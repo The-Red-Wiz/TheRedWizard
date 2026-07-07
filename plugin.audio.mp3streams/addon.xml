@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.audio.mp3streams" name="MP3 Streams" version="2026.05.26" provider-name="Jon Bovi, [COLOR crimson]King Krimson[/COLOR]">
+<addon id="plugin.audio.mp3streams" name="MP3 Streams" version="2026.07.07" provider-name="Jon Bovi, [COLOR crimson]King Krimson[/COLOR]">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.future"/>
@@ -10,15 +10,14 @@
     <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>audio</provides>
     </extension>
-    <extension point="xbmc.service" library="playerMP3.py" start="startup" />
+    <extension point="xbmc.service" library="playerMP3.py" />
     <extension point="xbmc.addon.metadata">
         <platform>all</platform>
-        <summary>A music streaming Collection.</summary>
-        <description>MP3 Streams Kodi 19+</description>
-        <news>2026.05.26 - Downloads, favorites, dialogs, navigation, see the changelog. 2025.0.1 - Fix Billboard Charts, 2022.0.2 - Fix errors loading pages. 2022.0.1 - Small fix, Kodi 20 ready. 2021.0.6 - Fixed issue with hanging  when skipping tracks. 2021.0.4 - Fixed Settings, 2021.0.3 - Bugfixes. Enjoy!</news>
+        <summary lang="en_GB">A music streaming Collection.</summary>
+        <description lang="en_GB">MP3 Streams Kodi 19+</description>
+        <news>2026.07.07 - Metadata cleanup (service declaration, language format). 2026.07.06 - Fix addon icon path so the icon shows in the addon browser. 2026.05.26 - Downloads, favorites, dialogs, navigation, see the changelog. 2025.0.1 - Fix Billboard Charts, 2022.0.2 - Fix errors loading pages. 2022.0.1 - Small fix, Kodi 20 ready. 2021.0.6 - Fixed issue with hanging  when skipping tracks. 2021.0.4 - Fixed Settings, 2021.0.3 - Bugfixes. Enjoy!</news>
         <assets>
-            <icon>icon.png</icon>
-            <fanart>fanart.jpg</fanart>
+            <icon>art/icon.png</icon>
         </assets>
     </extension>
 </addon>

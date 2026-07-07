@@ -60,7 +60,7 @@ msgctxt "#31010"
 msgid "Currently logged in as"
 msgstr ""
 
-#.Used for subtitle button in the OSD
+#. Used for subtitle button in the OSD
 msgctxt "#31011"
 msgid "N/A"
 msgstr ""
@@ -109,7 +109,7 @@ msgctxt "#31040"
 msgid "Now Playing"
 msgstr "En cours de lecture"
 
-#empty string with id 31041
+# empty string with id 31041
 
 msgctxt "#31042"
 msgid "PLAYING"
@@ -175,9 +175,9 @@ msgctxt "#31060"
 msgid "This file is stacked, select the part you want to play from."
 msgstr ""
 
-#-----------------------------------------------
+# -----------------------------------------------
 
-#Home Menu
+# Home Menu
 
 msgctxt "#31061"
 msgid "Radio FM"
@@ -391,9 +391,9 @@ msgctxt "#31113"
 msgid "If you use a 1024x600 Screen"
 msgstr ""
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Connect 3G
+# Connect 3G
 
 msgctxt "#31114"
 msgid "Your IP:"
@@ -411,9 +411,9 @@ msgctxt "#31117"
 msgid "Disconnect"
 msgstr ""
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Shutdown Dialog
+# Shutdown Dialog
 
 msgctxt "#31118"
 msgid "What do you want to do?"
@@ -435,9 +435,9 @@ msgctxt "#31122"
 msgid "Cancel"
 msgstr ""
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Weitere Skin Settings
+# Weitere Skin Settings
 
 msgctxt "#31123"
 msgid "Show visualisation on home when music is playing"
@@ -447,9 +447,9 @@ msgctxt "#31124"
 msgid "1024x600 screen distortion fix"
 msgstr ""
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Media Section
+# Media Section
 
 msgctxt "#31125"
 msgid "Autostart"
@@ -592,7 +592,7 @@ msgid "Options:"
 msgstr ""
 
 msgctxt "#31160"
-msgid "HOME SCREEN POSITION: Choose on which position on the home screen the button should appear[CR]BUTTON TITLE: The Title of the button [CR]ICON: The icon for the button (PNG with transparency, 80x80px)[CR]ACTION: The action that should be performed when the button is pressed. For instance: ActivateWindow(WindowName_or_ID) or: RunScript("plugin.name“)."
+msgid "HOME SCREEN POSITION: Choose on which position on the home screen the button should appear[CR]BUTTON TITLE: The Title of the button [CR]ICON: The icon for the button (PNG with transparency, 80x80px)[CR]ACTION: The action that should be performed when the button is pressed. For instance: ActivateWindow(WindowName_or_ID) or: RunScript(\"plugin.name“)."
 msgstr ""
 
 msgctxt "#31161"
@@ -751,9 +751,9 @@ msgctxt "#31199"
 msgid "You can set the color of the title and icon of the main menu buttons. Choose a color from the list or enter your own color in hex code (AARRGGBB (AA=transparency, FF=opaque, 00=fully transparent, RRGGBB=color code). Default color is White. Hint: Clear the color when you use colored custom icons."
 msgstr ""
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Submenu labels
+# Submenu labels
 
 msgctxt "#31200"
 msgid "Back"
@@ -767,7 +767,7 @@ msgctxt "#31202"
 msgid "View"
 msgstr "Vue"
 
-#------------------------------------------------
+# ------------------------------------------------
 
 msgctxt "#31203"
 msgid "You can set a background color for the main buttons. Choose a color from the list or enter your own color in hex code (AARRGGBB (AA=transparency, FF=opaque, 00=fully transparent, RRGGBB=color code). Default color is White. Additionally you can set the opacity of the background."
@@ -1151,10 +1151,10 @@ msgstr ""
 
 
 
-#empty strings from id 31299 to 31299
-#------------------------------------------------
+# empty strings from id 31299 to 31299
+# ------------------------------------------------
 
-#Extra labels
+# Extra labels
 
 msgctxt "#31300"
 msgid "Current Temp"
@@ -1316,7 +1316,7 @@ msgctxt "#31553"
 msgid "For day/night mode plugin.program.carpc-xtouch (X-Touch Helper) v0.0.6 or up is needed."
 msgstr ""
 
-#------------------------------------------------
+# ------------------------------------------------
 
 msgctxt "#40078"
 msgid "The required backend service is missing. Please install it."

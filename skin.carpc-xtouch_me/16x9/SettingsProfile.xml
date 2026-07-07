@@ -16,8 +16,8 @@
 			<include>VisibleFadeEffect</include>
 			<include>SubMenuCommonLayout</include>
 			<content>
-				<item>
-	<!--			<label>31200</label>
+	<!--		<item>
+					<label>31200</label>
 					<onclick>Back</onclick>
 					<icon>icon_back_w.png</icon>
 				</item> -->

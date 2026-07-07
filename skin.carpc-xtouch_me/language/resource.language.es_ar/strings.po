@@ -16,7 +16,7 @@ msgstr ""
 "Language: es_AR\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#Misc labels
+# Misc labels
 
 msgctxt "#31000"
 msgid "Change Your"
@@ -62,7 +62,7 @@ msgctxt "#31010"
 msgid "Currently logged in as"
 msgstr "Identificado actualmente como"
 
-#.Used for subtitle button in the OSD
+#. Used for subtitle button in the OSD
 msgctxt "#31011"
 msgid "N/A"
 msgstr "N/A"
@@ -91,7 +91,7 @@ msgctxt "#31017"
 msgid "Volume Muted"
 msgstr "Volumen Silenciado"
 
-#empty strings from id 31018 to 31023
+# empty strings from id 31018 to 31023
 
 msgctxt "#31024"
 msgid "Page"
@@ -101,8 +101,8 @@ msgctxt "#31025"
 msgid "Items"
 msgstr "Elementos"
 
-#empty strings from id 31026 to 31029
-#ViewType labels
+# empty strings from id 31026 to 31029
+# ViewType labels
 
 msgctxt "#31030"
 msgid "Info List"
@@ -112,14 +112,14 @@ msgctxt "#31031"
 msgid "Info Wide"
 msgstr "Información a lo Ancho"
 
-#empty strings from id 31032 to 31039
-#Extra labels
+# empty strings from id 31032 to 31039
+# Extra labels
 
 msgctxt "#31040"
 msgid "Now Playing"
 msgstr "Reproduciendo Ahora"
 
-#empty string with id 31041
+# empty string with id 31041
 
 msgctxt "#31042"
 msgid "PLAYING"
@@ -161,8 +161,8 @@ msgctxt "#31051"
 msgid "Sort: Descending"
 msgstr "Orden: Descendente"
 
-#empty strings from id 31052 to 31054
-#Playlist Editor labels
+# empty strings from id 31052 to 31054
+# Playlist Editor labels
 
 msgctxt "#31055"
 msgid "Open playlist"
@@ -188,9 +188,9 @@ msgctxt "#31060"
 msgid "This file is stacked, select the part you want to play from."
 msgstr "Este archivo fue detenido, seleccione desde donde quiere reproducirlo."
 
-#-----------------------------------------------
+# -----------------------------------------------
 
-#Home Menu
+# Home Menu
 
 msgctxt "#31061"
 msgid "Radio FM"
@@ -404,9 +404,9 @@ msgctxt "#31113"
 msgid "If you use a 1024x600 Screen"
 msgstr "Si se utiliza una pantalla 1024x600"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Connect 3G
+# Connect 3G
 
 msgctxt "#31114"
 msgid "Your IP:"
@@ -424,9 +424,9 @@ msgctxt "#31117"
 msgid "Disconnect"
 msgstr "Desconectar"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Shutdown Dialog
+# Shutdown Dialog
 
 msgctxt "#31118"
 msgid "What do you want to do?"
@@ -448,9 +448,9 @@ msgctxt "#31122"
 msgid "Cancel"
 msgstr "Cancelar"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Weitere Skin Settings
+# Weitere Skin Settings
 
 msgctxt "#31123"
 msgid "Show visualisation on home when music is playing"
@@ -460,9 +460,9 @@ msgctxt "#31124"
 msgid "1024x600 screen distortion fix"
 msgstr "corrección de distorsión pantalla 1024x600"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Media Section
+# Media Section
 
 msgctxt "#31125"
 msgid "Autostart"
@@ -605,8 +605,8 @@ msgid "Options:"
 msgstr "Opciones"
 
 msgctxt "#31160"
-msgid "HOME SCREEN POSITION: Choose on which position on the home screen the button should appear[CR]BUTTON TITLE: The Title of the button [CR]ICON: The icon for the button (PNG with transparency, 80x80px)[CR]ACTION: The action that should be performed when the button is pressed. For instance: ActivateWindow(WindowName_or_ID) or: RunScript("plugin.name“)."
-msgstr "POSICIÓN DE LA PANTALLA DE INICIO: Elija en el que la posición en la pantalla principal debería aparecer el botón [CR] BOTÓN DE TÍTULO: El título del botón del icono [CR]: El icono del botón (PNG con transparencia, 80x80px) ACCIÓN [CR]: La acción que se debe realizar al pulsar el botón. Por ejemplo: ActivateWindow (WindowName_or_ID) o: RunScript ("plugin.name")"
+msgid "HOME SCREEN POSITION: Choose on which position on the home screen the button should appear[CR]BUTTON TITLE: The Title of the button [CR]ICON: The icon for the button (PNG with transparency, 80x80px)[CR]ACTION: The action that should be performed when the button is pressed. For instance: ActivateWindow(WindowName_or_ID) or: RunScript(\"plugin.name“)."
+msgstr "POSICIÓN DE LA PANTALLA DE INICIO: Elija en el que la posición en la pantalla principal debería aparecer el botón [CR] BOTÓN DE TÍTULO: El título del botón del icono [CR]: El icono del botón (PNG con transparencia, 80x80px) ACCIÓN [CR]: La acción que se debe realizar al pulsar el botón. Por ejemplo: ActivateWindow (WindowName_or_ID) o: RunScript (\"plugin.name\")"
 
 msgctxt "#31161"
 msgid "Add Magic Button"
@@ -764,9 +764,9 @@ msgctxt "#31199"
 msgid "You can set the color of the title and icon of the main menu buttons. Choose a color from the list or enter your own color in hex code (AARRGGBB (AA=transparency, FF=opaque, 00=fully transparent, RRGGBB=color code). Default color is White. Hint: Clear the color when you use colored custom icons."
 msgstr "Puede ajustar el color del título y el icono de los botones del menú principal. Elegir un color de la lista o introduzca su propio color en código hexadecimal (aarrggbb (AA = transparencia, FF = opaco, 00 = totalmente transparente, RRGGBB = código de color). Color predeterminado es blanco."
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Submenu labels
+# Submenu labels
 
 msgctxt "#31200"
 msgid "Back"
@@ -780,7 +780,7 @@ msgctxt "#31202"
 msgid "View"
 msgstr "Vista"
 
-#------------------------------------------------
+# ------------------------------------------------
 
 msgctxt "#31203"
 msgid "You can set a background color for the main buttons. Choose a color from the list or enter your own color in hex code (AARRGGBB (AA=transparency, FF=opaque, 00=fully transparent, RRGGBB=color code). Default color is White. Additionally you can set the opacity of the background."
@@ -852,7 +852,7 @@ msgstr "Opacidad"
 
 msgctxt "#31220"
 msgid "You are starting this version of the xTouch skin for the first time. This First Run Wizzard will guide you through the steps to do some necessary basic settings. Just follow the instructions on the screen. It will take only one minute"
-msgstr "Usted está comenzando esta versión del skin xTouch por primera vez. Esta primera ejecución -Wizzard- le guiará a través de los pasos para hacer algunos ajustes básicos necesarios. Sólo tienes que seguir las instrucciones de la pantalla. Solo tomará un minuto ""
+msgstr "Usted está comenzando esta versión del skin xTouch por primera vez. Esta primera ejecución -Wizzard- le guiará a través de los pasos para hacer algunos ajustes básicos necesarios. Sólo tienes que seguir las instrucciones de la pantalla. Solo tomará un minuto \""
 
 msgctxt "#31221"
 msgid "Welcome!"
@@ -904,7 +904,7 @@ msgstr "¡Casi terminado!"
 
 msgctxt "#31233"
 msgid "Just on last step: click 'Finish' to close this assistant. You can change all this settings at any time. You can find them together with a ton of other settings in the skin settings. [CR] [CR]And now: Have fun and drive safely!"
-msgstr "Sólo es el último paso: haga clic en "Finalizar" para cerrar el asistente de esto. Puede cambiar esta configuración en cualquier momento dado. Puede encontrarlos junto con un montón de otros ajustes en la configuración de la piel. [CR] [CR] Y ahora: ¡Diviértete y conduce con seguridad!"
+msgstr "Sólo es el último paso: haga clic en \"Finalizar\" para cerrar el asistente de esto. Puede cambiar esta configuración en cualquier momento dado. Puede encontrarlos junto con un montón de otros ajustes en la configuración de la piel. [CR] [CR] Y ahora: ¡Diviértete y conduce con seguridad!"
 
 msgctxt "#31234"
 msgid "Finish"
@@ -1164,10 +1164,10 @@ msgstr ""
 
 
 
-#empty strings from id 31299 to 31299
-#------------------------------------------------
+# empty strings from id 31299 to 31299
+# ------------------------------------------------
 
-#Extra labels
+# Extra labels
 
 msgctxt "#31300"
 msgid "Current Temp"
@@ -1185,15 +1185,15 @@ msgctxt "#31303"
 msgid "Data provider"
 msgstr "Proveedor de Datos"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#empty strings from id 31304 to 31308
+# empty strings from id 31304 to 31308
 
 msgctxt "#31309"
 msgid "Memory Used:"
 msgstr "Memoria Utilizada:"
 
-#empty strings from id 31310 to 31311
+# empty strings from id 31310 to 31311
 
 msgctxt "#31312"
 msgid "Current Scraper"
@@ -1207,7 +1207,7 @@ msgctxt "#31314"
 msgid "Content Scanning Options"
 msgstr "Opciones de Escanéo de Contenido"
 
-#empty strings from id 31315 to 31318
+# empty strings from id 31315 to 31318
 
 msgctxt "#31319"
 msgid "Currently available Kodi user profiles"
@@ -1225,14 +1225,14 @@ msgctxt "#31322"
 msgid "Aired"
 msgstr "Transmitiendo"
 
-#empty strings from id 31323 to 31324
+# empty strings from id 31323 to 31324
 
 msgctxt "#31325"
 msgid "Playlist Options"
 msgstr "Opciones de Lista de Reproducción"
 
-#empty strings from id 31326 to 31350
-#Video and Music OSD Labels
+# empty strings from id 31326 to 31350
+# Video and Music OSD Labels
 
 msgctxt "#31351"
 msgid "Pause"
@@ -1262,8 +1262,8 @@ msgctxt "#31357"
 msgid "Image Info"
 msgstr "Información de la Imagen"
 
-#empty strings from id 31358 to 31389
-#Skin Fontsets
+# empty strings from id 31358 to 31389
+# Skin Fontsets
 
 msgctxt "#31390"
 msgid "Skin default"
@@ -1273,8 +1273,8 @@ msgctxt "#31391"
 msgid "Arial based"
 msgstr "Basada en Arial"
 
-#empty strings from id 31392 to 31399
-#Description Labels
+# empty strings from id 31392 to 31399
+# Description Labels
 
 msgctxt "#31400"
 msgid "Change the skin · Set language and region · Change file listing options · Set up a screensaver"
@@ -1312,14 +1312,14 @@ msgctxt "#31408"
 msgid "Manage your installed Add-ons · Browse for and install Add-ons from xbmc.org · Modify Add-on settings"
 msgstr ""
 
-#empty strings from id 31409 to 31420
+# empty strings from id 31409 to 31420
 
 msgctxt "#31421"
 msgid "Select your Kodi user Profile[CR]to login and continue"
 msgstr "Selecciona tu usuario [CR] y continua"
 
-#empty strings from id 31422 to 31499
-#Skin Setting Headers
+# empty strings from id 31422 to 31499
+# Skin Setting Headers
 
 msgctxt "#31500"
 msgid "Home Menu Catagory Buttons"
@@ -1337,8 +1337,8 @@ msgctxt "#31503"
 msgid "Media Window Add-ons"
 msgstr ""
 
-#empty strings from id 31504 to 31549
-#Skin Setting Options
+# empty strings from id 31504 to 31549
+# Skin Setting Options
 
 msgctxt "#31550"
 msgid "Home Screen Weather Info and button"
@@ -1356,7 +1356,7 @@ msgctxt "#31553"
 msgid "For day/night mode plugin.program.carpc-xtouch (X-Touch Helper) v0.0.6 or up is needed."
 msgstr ""
 
-#------------------------------------------------
+# ------------------------------------------------
 
 msgctxt "#40078"
 msgid "The required backend service is missing. Please install it."

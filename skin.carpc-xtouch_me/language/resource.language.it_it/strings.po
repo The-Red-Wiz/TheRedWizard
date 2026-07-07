@@ -16,7 +16,7 @@ msgstr ""
 "Language: it_IT\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#Misc labels
+# Misc labels
 
 msgctxt "#31000"
 msgid "Change Your"
@@ -62,7 +62,7 @@ msgctxt "#31010"
 msgid "Currently logged in as"
 msgstr "Al momento loggato come"
 
-#.Used for subtitle button in the OSD
+#. Used for subtitle button in the OSD
 msgctxt "#31011"
 msgid "N/A"
 msgstr "N/A"
@@ -91,7 +91,7 @@ msgctxt "#31017"
 msgid "Volume Muted"
 msgstr "Audio disattivato"
 
-#empty strings from id 31018 to 31023
+# empty strings from id 31018 to 31023
 
 msgctxt "#31024"
 msgid "Page"
@@ -101,8 +101,8 @@ msgctxt "#31025"
 msgid "Items"
 msgstr "Elementi"
 
-#empty strings from id 31026 to 31029
-#ViewType labels
+# empty strings from id 31026 to 31029
+# ViewType labels
 
 msgctxt "#31030"
 msgid "Info List"
@@ -112,8 +112,8 @@ msgctxt "#31031"
 msgid "Info Wide"
 msgstr "Informazioni estese"
 
-#empty strings from id 31032 to 31039
-#Extra labels
+# empty strings from id 31032 to 31039
+# Extra labels
 
 msgctxt "#31040"
 msgid "Now Playing"
@@ -163,8 +163,8 @@ msgctxt "#31051"
 msgid "Sort: Descending"
 msgstr "Ordinamento: Decrescente"
 
-#empty strings from id 31052 to 31054
-#Playlist Editor labels
+# empty strings from id 31052 to 31054
+# Playlist Editor labels
 
 msgctxt "#31055"
 msgid "Open playlist"
@@ -190,7 +190,7 @@ msgctxt "#31060"
 msgid "This file is stacked, select the part you want to play from."
 msgstr "Questo file è in più parti, seleziona la parte da cui partire."
 
-#Home Menu
+# Home Menu
 
 msgctxt "#31061"
 msgid "Radio FM"
@@ -404,9 +404,9 @@ msgctxt "#31113"
 msgid "If you use a 1024x600 Screen"
 msgstr "Se si utilizza schermo 1024x600"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Connect 3G
+# Connect 3G
 
 msgctxt "#31114"
 msgid "Your IP:"
@@ -424,9 +424,9 @@ msgctxt "#31117"
 msgid "Disconnect"
 msgstr "Disconnessione"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Shutdown Dialog
+# Shutdown Dialog
 
 msgctxt "#31118"
 msgid "What do you want to do?"
@@ -448,9 +448,9 @@ msgctxt "#31122"
 msgid "Cancel"
 msgstr "Cancella"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Weitere Skin Settings
+# Weitere Skin Settings
 
 msgctxt "#31123"
 msgid "Show visualisation on home when music is playing"
@@ -460,9 +460,9 @@ msgctxt "#31124"
 msgid "1024x600 correzione distorsione schermo"
 msgstr ""
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Media Section
+# Media Section
 
 msgctxt "#31125"
 msgid "Autostart"
@@ -605,8 +605,8 @@ msgid "Options:"
 msgstr "Opzioni:"
 
 msgctxt "#31160"
-msgid "HOME SCREEN POSITION: Choose on which position on the home screen the button should appear[CR]BUTTON TITLE: The Title of the button [CR]ICON: The icon for the button (PNG with transparency, 80x80px)[CR]ACTION: The action that should be performed when the button is pressed. For instance: ActivateWindow(WindowName_or_ID) or: RunScript("plugin.name“)."
-msgstr "POSIZIONE SCHERMATA HOME: Scegli in quale posizione della schermata principale dovrebbe apparire il pulsante [CR] TITOLO TASTO: Il titolo del pulsante IC [CR]: L'icona del pulsante (PNG con trasparenza, 80x80px) [CR] AZIONE: Il azione da eseguire quando si preme il pulsante. Ad esempio: ActivateWindow (WindowName_or_ID) o: RunScript ("plugin.name") "
+msgid "HOME SCREEN POSITION: Choose on which position on the home screen the button should appear[CR]BUTTON TITLE: The Title of the button [CR]ICON: The icon for the button (PNG with transparency, 80x80px)[CR]ACTION: The action that should be performed when the button is pressed. For instance: ActivateWindow(WindowName_or_ID) or: RunScript(\"plugin.name“)."
+msgstr "POSIZIONE SCHERMATA HOME: Scegli in quale posizione della schermata principale dovrebbe apparire il pulsante [CR] TITOLO TASTO: Il titolo del pulsante IC [CR]: L'icona del pulsante (PNG con trasparenza, 80x80px) [CR] AZIONE: Il azione da eseguire quando si preme il pulsante. Ad esempio: ActivateWindow (WindowName_or_ID) o: RunScript (\"plugin.name\") "
 
 msgctxt "#31161"
 msgid "Add Magic Button"
@@ -764,9 +764,9 @@ msgctxt "#31199"
 msgid "You can set the color of the title and icon of the main menu buttons. Choose a color from the list or enter your own color in hex code (AARRGGBB (AA=transparency, FF=opaque, 00=fully transparent, RRGGBB=color code). Default color is White. Hint: Clear the color when you use colored custom icons."
 msgstr "È possibile impostare il colore del titolo e l'icona dei pulsanti del menu principale. Scegli un colore dall'elenco o inserisci il tuo colore in codice esadecimale (AARRGGBB (AA = trasparenza, FF = opaco, 00 = completamente trasparente, RRGGBB = codice colore). Il colore predefinito è Bianco."
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Submenu labels
+# Submenu labels
 
 msgctxt "#31200"
 msgid "Back"
@@ -780,7 +780,7 @@ msgctxt "#31202"
 msgid "View"
 msgstr "Visualizza"
 
-#------------------------------------------------
+# ------------------------------------------------
 
 msgctxt "#31203"
 msgid "You can set a background color for the main buttons. Choose a color from the list or enter your own color in hex code (AARRGGBB (AA=transparency, FF=opaque, 00=fully transparent, RRGGBB=color code). Default color is White. Additionally you can set the opacity of the background."
@@ -904,7 +904,7 @@ msgstr "Quasi Fatto!"
 
 msgctxt "#31233"
 msgid "Just on last step: click 'Finish' to close this assistant. You can change all this settings at any time. You can find them together with a ton of other settings in the skin settings. [CR] [CR]And now: Have fun and drive safely!"
-msgstr "Solo all'ultimo passaggio: fai clic su "Fine" per chiudere questo assistente. Puoi modificare tutte queste impostazioni in qualsiasi momento. Puoi trovarli insieme a una tonnellata di altre impostazioni nelle impostazioni della skin. [CR] [CR] E ora: divertiti e guida in sicurezza!"
+msgstr "Solo all'ultimo passaggio: fai clic su \"Fine\" per chiudere questo assistente. Puoi modificare tutte queste impostazioni in qualsiasi momento. Puoi trovarli insieme a una tonnellata di altre impostazioni nelle impostazioni della skin. [CR] [CR] E ora: divertiti e guida in sicurezza!"
 
 msgctxt "#31234"
 msgid "Finish"
@@ -992,7 +992,7 @@ msgstr "Modalità Giorno/Notte"
 
 msgctxt "#31255"
 msgid "The Day/Night Mode allows you to store two different skin-configurations (for example a bright look for daytime and a dark look for the night) and to switch manually or automatically between them. This function needs the addon 'X-Touch Helper' to be installed and activated. [CR] [CR] HOW TO USE: First create your settings (backgrounds, colors, … anything you like) for the look you want to have at daytime, then press 'Save Day' below. All current settings will be stored. Then do the same for the look you want to have at night time and store the settings by pressing 'Save Night'. To switch from Day-Mode to Night-Mode or vice versa you can activate the according submenu button (manual switching) or set the time for day and night in the addon settings. Then the switch will be executed automatically at the given times."
-msgstr "La modalità Giorno / Notte consente di memorizzare due diverse configurazioni della pelle (ad esempio un aspetto luminoso per il giorno e un aspetto scuro per la notte) e di passare manualmente o automaticamente da una all'altra. Questa funzione richiede che l'addon 'X-Touch Helper' sia installato e attivato. [CR] COME USARE: Per prima cosa crea le tue impostazioni (sfondi, colori, ... qualsiasi cosa tu voglia) per l'aspetto che vuoi avere durante il giorno, quindi premi "Salva giorno" sotto. Tutte le impostazioni correnti verranno memorizzate. Quindi fare lo stesso per l'aspetto che si desidera avere di notte e memorizzare le impostazioni premendo 'Salva notte'. Per passare dalla modalità giorno alla modalità notturna o viceversa è possibile attivare il relativo pulsante del sottomenu (commutazione manuale) o impostare l'ora per il giorno e la notte nelle impostazioni dell'add-on. Quindi l'interruttore verrà eseguito automaticamente nei tempi indicati."
+msgstr "La modalità Giorno / Notte consente di memorizzare due diverse configurazioni della pelle (ad esempio un aspetto luminoso per il giorno e un aspetto scuro per la notte) e di passare manualmente o automaticamente da una all'altra. Questa funzione richiede che l'addon 'X-Touch Helper' sia installato e attivato. [CR] COME USARE: Per prima cosa crea le tue impostazioni (sfondi, colori, ... qualsiasi cosa tu voglia) per l'aspetto che vuoi avere durante il giorno, quindi premi \"Salva giorno\" sotto. Tutte le impostazioni correnti verranno memorizzate. Quindi fare lo stesso per l'aspetto che si desidera avere di notte e memorizzare le impostazioni premendo 'Salva notte'. Per passare dalla modalità giorno alla modalità notturna o viceversa è possibile attivare il relativo pulsante del sottomenu (commutazione manuale) o impostare l'ora per il giorno e la notte nelle impostazioni dell'add-on. Quindi l'interruttore verrà eseguito automaticamente nei tempi indicati."
 
 msgctxt "#31256"
 msgid "Save Day"
@@ -1148,7 +1148,7 @@ msgstr "Stile Lista Stazioni"
 
 msgctxt "#31295"
 msgid "Info Display & Bottom Bar Style"
-msgstr Info Display & Barra Inferiore Stile""
+msgstr "Info Display & Barra Inferiore Stile"
 
 msgctxt "#31296"
 msgid "Station List Buttons Outline"
@@ -1164,10 +1164,10 @@ msgstr "Scegli un'immagine di sfondo per la radio"
 
 
 
-#empty strings from id 31299 to 31299
-#------------------------------------------------
+# empty strings from id 31299 to 31299
+# ------------------------------------------------
 
-#Extra labels
+# Extra labels
 
 msgctxt "#31300"
 msgid "Current Temp"
@@ -1185,15 +1185,15 @@ msgctxt "#31303"
 msgid "Data provider"
 msgstr "Fornitore dei dati"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#empty strings from id 31304 to 31308
+# empty strings from id 31304 to 31308
 
 msgctxt "#31309"
 msgid "Memory Used:"
 msgstr "Memoria Usata:"
 
-#empty strings from id 31310 to 31311
+# empty strings from id 31310 to 31311
 
 msgctxt "#31312"
 msgid "Current Scraper"
@@ -1207,7 +1207,7 @@ msgctxt "#31314"
 msgid "Content Scanning Options"
 msgstr "Opzioni Scansione Contenuti"
 
-#empty strings from id 31315 to 31318
+# empty strings from id 31315 to 31318
 
 msgctxt "#31319"
 msgid "Currently available XBMC user profiles"
@@ -1225,14 +1225,14 @@ msgctxt "#31322"
 msgid "Aired"
 msgstr "In Onda"
 
-#empty strings from id 31323 to 31324
+# empty strings from id 31323 to 31324
 
 msgctxt "#31325"
 msgid "Playlist Options"
 msgstr "Opzioni Playlist"
 
-#empty strings from id 31326 to 31350
-#Video and Music OSD Labels
+# empty strings from id 31326 to 31350
+# Video and Music OSD Labels
 
 msgctxt "#31351"
 msgid "Pause"
@@ -1262,8 +1262,8 @@ msgctxt "#31357"
 msgid "Image Info"
 msgstr "Informazioni Immagine"
 
-#empty strings from id 31358 to 31389
-#Skin Fontsets
+# empty strings from id 31358 to 31389
+# Skin Fontsets
 
 msgctxt "#31390"
 msgid "Skin default"
@@ -1273,8 +1273,8 @@ msgctxt "#31391"
 msgid "Arial based"
 msgstr "Basato su Arial"
 
-#empty strings from id 31392 to 31399
-#Description Labels
+# empty strings from id 31392 to 31399
+# Description Labels
 
 msgctxt "#31400"
 msgid "Change the skin · Set language and region · Change file listing options · Set up a screensaver"
@@ -1312,14 +1312,14 @@ msgctxt "#31408"
 msgid "Manage your installed Add-ons · Browse for and install Add-ons from xbmc.org · Modify Add-on settings"
 msgstr "Gestisci i tuoi componenti aggiuntivi installati · Cerca e installa i componenti aggiuntivi da xbmc.org · Modifica le impostazioni del componente aggiuntivo"
 
-#empty strings from id 31409 to 31420
+# empty strings from id 31409 to 31420
 
 msgctxt "#31421"
 msgid "Select your XBMC user Profile[CR]to login and continue"
 msgstr "Scegli il tuo profilo utente di Kodi[CR]per fare il login e continuare"
 
-#empty strings from id 31422 to 31499
-#Skin Setting Headers
+# empty strings from id 31422 to 31499
+# Skin Setting Headers
 
 msgctxt "#31500"
 msgid "Home Menu Catagory Buttons"
@@ -1337,8 +1337,8 @@ msgctxt "#31503"
 msgid "Media Window Add-ons"
 msgstr "Add-ons della finestra multimediale"
 
-#empty strings from id 31504 to 31549
-#Skin Setting Options
+# empty strings from id 31504 to 31549
+# Skin Setting Options
 
 msgctxt "#31550"
 msgid "Home Screen Weather Info and button"
@@ -1356,7 +1356,7 @@ msgctxt "#31553"
 msgid "For day/night mode plugin.program.carpc-xtouch (X-Touch Helper) v0.0.6 or up is needed."
 msgstr "Per la modalità giorno / notte plugin.program.carpc-xtouch (X-Touch Helper) v0.0.6 o superiore è necessario."
 
-#------------------------------------------------
+# ------------------------------------------------
 
 msgctxt "#40078"
 msgid "The required backend service is missing. Please install it."
@@ -1768,6 +1768,7 @@ msgstr ""
 
 msgctxt "#40195"
 msgid "Relay Control Dialog"
+msgstr ""
 
 msgctxt "#40196"
 msgid ""

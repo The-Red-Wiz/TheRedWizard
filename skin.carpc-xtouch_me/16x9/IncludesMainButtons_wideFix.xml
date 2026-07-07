@@ -16,7 +16,7 @@
 				<onup condition="Control.IsVisible(3050)">Control.SetFocus(3050)</onup>
                 <ondown>Control.SetFocus(3002)</ondown>
                 <onright>3004</onright>
-                <description>Main Button-1 Outline & Action</description>
+                <description>Main Button-1 Outline &amp; Action</description>
                 <posx>0</posx>
                 <posy>0</posy>
                 <width>636</width>
@@ -67,7 +67,7 @@
                 <onup>Control.SetFocus(3001)</onup>
                 <ondown>Control.SetFocus(3003)</ondown>
                 <onright>3005</onright>
-                <description>Main Button-2 Outline & Action</description>
+                <description>Main Button-2 Outline &amp; Action</description>
                 <posx>0</posx>
                 <posy>0</posy>
                 <width>636</width>
@@ -119,7 +119,7 @@
                 <onup>Control.SetFocus(3002)</onup>
                 <ondown>Control.SetFocus(3004)</ondown>
                 <onright>3006</onright>
-                <description>Main Button-3 Outline & Action</description>
+                <description>Main Button-3 Outline &amp; Action</description>
                 <posx>0</posx>
                 <posy>0</posy>
                 <width>636</width>
@@ -171,7 +171,7 @@
                 <onup>Control.SetFocus(3003)</onup>
                 <ondown>Control.SetFocus(3005)</ondown>
                 <onleft>3001</onleft>
-                <description>Main Button-4 Outline & Action</description>
+                <description>Main Button-4 Outline &amp; Action</description>
                 <posx>0</posx>
                 <posy>0</posy>
                 <width>640</width>
@@ -223,7 +223,7 @@
                 <onup>Control.SetFocus(3004)</onup>
                 <ondown>Control.SetFocus(3006)</ondown>
                 <onleft>3002</onleft>
-                <description>Main Button-5 Outline & Action</description>
+                <description>Main Button-5 Outline &amp; Action</description>
                 <posx>0</posx>
                 <posy>0</posy>
                 <width>640</width>
@@ -283,7 +283,7 @@
 				<ondown condition="!Skin.HasSetting(ShowRecentlyAdded) + Control.IsVisible(9004)">Control.SetFocus(9004)</ondown>
 				<ondown condition="!Skin.HasSetting(ShowRecentlyAdded) + !Control.IsVisible(606) + Control.IsVisible(3050)">Control.SetFocus(3050)</ondown>
 				<onleft>3003</onleft>
-                <description>Main Button-6 Outline & Action</description>
+                <description>Main Button-6 Outline &amp; Action</description>
                 <posx>0</posx>
                 <posy>0</posy>
                 <width>640</width>

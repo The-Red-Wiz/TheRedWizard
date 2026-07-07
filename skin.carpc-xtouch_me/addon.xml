@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<addon id="skin.carpc-xtouch_me" version="6.0.7" name="[COLOR red]CarPC-XTouch[/COLOR]" provider-name="JackTirol, [COLOR red]The Red Wizard[/COLOR], Knuckes">
+<addon id="skin.carpc-xtouch_me" version="6.0.8" name="[COLOR red]CarPC-XTouch[/COLOR]" provider-name="JackTirol, [COLOR red]The Red Wizard[/COLOR], Knuckes">
 	<requires>
 		<import addon="xbmc.gui" version="5.17.0"/>
 	</requires>

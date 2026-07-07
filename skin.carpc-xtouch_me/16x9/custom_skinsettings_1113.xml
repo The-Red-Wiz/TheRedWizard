@@ -875,7 +875,7 @@
 			<width>1000</width>
 			<height>70</height>
 			<visible>Skin.HasSetting(EnableBottomBG) + Skin.String(OpenSetting2b,1) + Skin.String(SkinSettings,2)</visible>
-	        <control type="image"id="9902">
+	        <control type="image" id="9902">
 				<description>Hintergrund</description>
 				<posx>0</posx>
 				<posy>0</posy>
@@ -883,7 +883,7 @@
 				<height>70</height>
 				<texture>MenuItemNF.png</texture>
 			</control>
-			<control type="label"id="9903">
+			<control type="label" id="9903">
 				<posx>40</posx>
 				<posy>0</posy>
 				<height>70</height>
@@ -902,7 +902,7 @@
 				<width>1000</width>
 				<height>70</height>
 				<visible>Skin.HasSetting(EnableBottomBG) + Skin.String(OpenSetting2b,1) + Skin.String(SkinSettings,2)</visible>
-	            <control type="image"id="9904">
+	            <control type="image" id="9904">
 	                <description>Hintergrund</description>
 					<posx>0</posx>
 					<posy>0</posy>
@@ -910,7 +910,7 @@
 					<height>70</height>
 	                <texture border="0,2,0,2">MenuItemNF.png</texture>
 				</control>
-				<control type="label"id="9905">
+				<control type="label" id="9905">
 					<posx>50</posx>
 					<posy>0</posy>
 					<height>60</height>
@@ -18803,7 +18803,7 @@
 			<ondown></ondown>
 			<control type="button" id="710">
 				<description>Settings 7 Menu Button 1</description>
-				<description>Menu Home&Icon Color</description>
+				<description>Menu Home&amp;Icon Color</description>
 				<width>228</width>
 				<height>60</height>
 		        <texturenofocus>1px_transparent.png</texturenofocus>
@@ -18913,7 +18913,7 @@
 
 <!--	Home Button Text&Icon Color-->
 		<control type="grouplist">
-			<description>Home Buttons Text & Icon Color</description>
+			<description>Home Buttons Text &amp; Icon Color</description>
 			<visible>Skin.String(OpenSetting7a,1) + Skin.String(SkinSettings,7)</visible>
 			<posx>40</posx>
 			<posy>220</posy>
@@ -22872,7 +22872,7 @@
 			</control>
 			<control type="button" id="920">
 				<description>Settings 9 Menu Button</description>
-				<description>Music & Video Infos</description>
+				<description>Music &amp; Video Infos</description>
 				<visible>Skin.String(SkinSettings,9)</visible>
 				<width>300</width>
 				<height>60</height>
@@ -23047,7 +23047,7 @@
 
 					<control type="radiobutton" id="936">
 						<visible>Skin.String(SkinSettings,9) + System.Platform.Linux.RaspberryPi</visible>
-						<description>Show Music & Radio infos in Navit</description>
+						<description>Show Music &amp; Radio infos in Navit</description>
 						<height>45</height>
 						<width>920</width>
 						<font>font24_title</font>
@@ -25272,7 +25272,7 @@
 			</control>
 			<control type="button" id="31">
 				<visible>Skin.HasSetting(OpenSettingsMenu3)</visible>
-				<description>Settings9 - Music & Video</description>
+				<description>Settings9 - Music &amp; Video</description>
 				<width>300</width>
 				<height>60</height>
 				<include>ButtonPulldownMenu</include>

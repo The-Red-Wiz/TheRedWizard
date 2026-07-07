@@ -5650,7 +5650,7 @@
                 <scrolltime></scrolltime>
                 <orientation>vertical</orientation>
                 
-                <control type="button"id="556">
+                <control type="button" id="556">
                     <description>Button-1</description>
                     <posx>0</posx>
                     <posy>8</posy>
@@ -5664,7 +5664,7 @@
 		            <onright condition="Control.IsVisible(50)">Control.SetFocus(50)</onright>
 		            <onright condition="Control.IsVisible(500)">Control.SetFocus(500)</onright>
                 </control>
-                <control type="button"id="557">
+                <control type="button" id="557">
                     <description>Button-2</description>
                     <posx>0</posx>
                     <posy>85</posy>
@@ -5678,7 +5678,7 @@
  		            <onright condition="Control.IsVisible(50)">Control.SetFocus(50)</onright>
 		            <onright condition="Control.IsVisible(500)">Control.SetFocus(500)</onright>
                </control>
-                <control type="button"id="558">
+                <control type="button" id="558">
                     <description>Button-3</description>
                     <posx>0</posx>
                     <posy>162</posy>
@@ -5692,7 +5692,7 @@
  		            <onright condition="Control.IsVisible(50)">Control.SetFocus(50)</onright>
 		            <onright condition="Control.IsVisible(500)">Control.SetFocus(500)</onright>
               </control>
-                <control type="button"id="559">
+                <control type="button" id="559">
                     <description>Button-4</description>
                     <posx>0</posx>
                     <posy>239</posy>
@@ -5706,7 +5706,7 @@
 		            <onright condition="Control.IsVisible(50)">Control.SetFocus(50)</onright>
 		            <onright condition="Control.IsVisible(500)">Control.SetFocus(500)</onright>
                </control>
-                <control type="button"id="560">
+                <control type="button" id="560">
                     <description>Button-5</description>
                     <posx>0</posx>
                     <posy>316</posy>
@@ -5720,7 +5720,7 @@
 		            <onright condition="Control.IsVisible(50)">Control.SetFocus(50)</onright>
 		            <onright condition="Control.IsVisible(500)">Control.SetFocus(500)</onright>
                </control>
-                <control type="button"id="561">
+                <control type="button" id="561">
                     <description>Button-6</description>
                     <posx>0</posx>
                     <posy>393</posy>

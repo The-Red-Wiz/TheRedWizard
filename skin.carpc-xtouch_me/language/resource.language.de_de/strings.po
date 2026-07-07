@@ -16,7 +16,7 @@ msgstr ""
 "Language: de\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#Misc labels
+# Misc labels
 
 msgctxt "#31000"
 msgid "Change Your"
@@ -62,7 +62,7 @@ msgctxt "#31010"
 msgid "Currently logged in as"
 msgstr "Aktuell eingelogt als"
 
-#.Used for subtitle button in the OSD
+#. Used for subtitle button in the OSD
 msgctxt "#31011"
 msgid "N/A"
 msgstr "N/A"
@@ -91,7 +91,7 @@ msgctxt "#31017"
 msgid "Volume Muted"
 msgstr "Stumm"
 
-#empty strings from id 31018 to 31023
+# empty strings from id 31018 to 31023
 
 msgctxt "#31024"
 msgid "Page"
@@ -101,8 +101,8 @@ msgctxt "#31025"
 msgid "Items"
 msgstr ""
 
-#empty strings from id 31026 to 31029
-#ViewType labels
+# empty strings from id 31026 to 31029
+# ViewType labels
 
 msgctxt "#31030"
 msgid "Info List"
@@ -112,14 +112,14 @@ msgctxt "#31031"
 msgid "Info Wide"
 msgstr ""
 
-#empty strings from id 31032 to 31039
-#Extra labels
+# empty strings from id 31032 to 31039
+# Extra labels
 
 msgctxt "#31040"
 msgid "Now Playing"
 msgstr "Wird gespielt"
 
-#empty string with id 31041
+# empty string with id 31041
 
 msgctxt "#31042"
 msgid "PLAYING"
@@ -161,8 +161,8 @@ msgctxt "#31051"
 msgid "Sort: Descending"
 msgstr "Sortieren: Absteigend"
 
-#empty strings from id 31052 to 31054
-#Playlist Editor labels
+# empty strings from id 31052 to 31054
+# Playlist Editor labels
 
 msgctxt "#31055"
 msgid "Open playlist"
@@ -188,9 +188,9 @@ msgctxt "#31060"
 msgid "This file is stacked, select the part you want to play from."
 msgstr ""
 
-#-----------------------------------------------
+# -----------------------------------------------
 
-#Home Menu
+# Home Menu
 
 msgctxt "#31061"
 msgid "Radio FM"
@@ -404,9 +404,9 @@ msgctxt "#31113"
 msgid "If you use a 1024x600 Screen"
 msgstr "Nur für 1024x600 Displays"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Connect 3G
+# Connect 3G
 
 msgctxt "#31114"
 msgid "Your IP:"
@@ -424,9 +424,9 @@ msgctxt "#31117"
 msgid "Disconnect"
 msgstr "Trennen"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Shutdown Dialog
+# Shutdown Dialog
 
 msgctxt "#31118"
 msgid "What do you want to do?"
@@ -448,9 +448,9 @@ msgctxt "#31122"
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Weitere Skin Settings
+# Weitere Skin Settings
 
 msgctxt "#31123"
 msgid "Show visualisation on home when music is playing"
@@ -460,9 +460,9 @@ msgctxt "#31124"
 msgid "1024x600 screen distortion fix"
 msgstr "1024x600 Display Verzerrung korrigieren"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Media Section
+# Media Section
 
 msgctxt "#31125"
 msgid "Autostart"
@@ -518,7 +518,7 @@ msgstr "OBD"
 
 msgctxt "#31138"
 msgid "You can freely place your main menu buttons. Tap on the entry of the button you wish to move and then type the number (between 1 to 6) and the button will be placed on that position. [CR][CR]To hide a Button from home screen just leave the input field empty. If you wish to have access to the function of a hidden button, you can activate the according submenu button. The submenu buttons for ‚Shutdown‘ and ‚Settings‘ are a activated automatically when their home screen buttons are hidden."
-msgstr "Die Belegung der sechs Hauptmenübuttons ist frei wählbar. Tippe auf den gewünschten Eintrag und gebe eine Zahl von 1 bis 6 ein. Der betreffende Home Button wird dann an der gewählten Stelle platziert. [CR][CR]Um einen Home Button auszublenden, lasse einfach das Eingabefeld leer. Um dennoch Zugriff auf eine ausgeblendete Funktion zu erhalten, aktiviere den entsprechenden Submenü-Button. Die Submenü- Buttons für "Ausschalten" und "Einstellungen" werden automatisch eingeblendet, wenn die entsprechenden Hauptmenübuttons ausgeblendet sind."
+msgstr "Die Belegung der sechs Hauptmenübuttons ist frei wählbar. Tippe auf den gewünschten Eintrag und gebe eine Zahl von 1 bis 6 ein. Der betreffende Home Button wird dann an der gewählten Stelle platziert. [CR][CR]Um einen Home Button auszublenden, lasse einfach das Eingabefeld leer. Um dennoch Zugriff auf eine ausgeblendete Funktion zu erhalten, aktiviere den entsprechenden Submenü-Button. Die Submenü- Buttons für \"Ausschalten\" und \"Einstellungen\" werden automatisch eingeblendet, wenn die entsprechenden Hauptmenübuttons ausgeblendet sind."
 
 msgctxt "#31139"
 msgid "Visualisation"
@@ -598,15 +598,15 @@ msgstr "Action"
 
 msgctxt "#31158"
 msgid "You can add up to three freely configurable 'Magic Buttons' to your home screen. These buttons allow you to call a new function, a window, a plugin or a script directly from the home screen.[CR] "
-msgstr "Du kannst bis zu drei frei konfigurierbare "Magic Buttons" zum Homescreen hinzufügen. Sie ermöglichen dir, direkt vom Homescreen eine neue Funktion, ein Fenster, ein Addon oder ein Skript aufzurufen.[CR] "
+msgstr "Du kannst bis zu drei frei konfigurierbare \"Magic Buttons\" zum Homescreen hinzufügen. Sie ermöglichen dir, direkt vom Homescreen eine neue Funktion, ein Fenster, ein Addon oder ein Skript aufzurufen.[CR] "
 
 msgctxt "#31159"
 msgid "Options:"
 msgstr "Optionen:"
 
 msgctxt "#31160"
-msgid "HOME SCREEN POSITION: Choose on which position on the home screen the button should appear[CR]BUTTON TITLE: The Title of the button [CR]ICON: The icon for the button (PNG with transparency, 80x80px)[CR]ACTION: The action that should be performed when the button is pressed. For instance: ActivateWindow(WindowName_or_ID) or: RunScript("plugin.name“)."
-msgstr "HOME SCREEN POSITION: Die Position, die der Button auf dem Homescreen einnehmen soll (analog den Buttons auf der linken Seite) [CR]BUTTON TITEL: Die Beschriftung des Buttons [CR]ICON: Das Icon (PNG mit transparentem Hintergrund, 80x80px) für den Button [CR]AKTION: Die Aktion, die beim Druck auf den Button ausgeführt werden soll. Bsp.: ActivateWindow(WindowName_oder_ID) oder: RunScript("plugin.name“)"
+msgid "HOME SCREEN POSITION: Choose on which position on the home screen the button should appear[CR]BUTTON TITLE: The Title of the button [CR]ICON: The icon for the button (PNG with transparency, 80x80px)[CR]ACTION: The action that should be performed when the button is pressed. For instance: ActivateWindow(WindowName_or_ID) or: RunScript(\"plugin.name“)."
+msgstr "HOME SCREEN POSITION: Die Position, die der Button auf dem Homescreen einnehmen soll (analog den Buttons auf der linken Seite) [CR]BUTTON TITEL: Die Beschriftung des Buttons [CR]ICON: Das Icon (PNG mit transparentem Hintergrund, 80x80px) für den Button [CR]AKTION: Die Aktion, die beim Druck auf den Button ausgeführt werden soll. Bsp.: ActivateWindow(WindowName_oder_ID) oder: RunScript(\"plugin.name“)"
 
 msgctxt "#31161"
 msgid "Add Magic Button"
@@ -764,9 +764,9 @@ msgctxt "#31199"
 msgid "You can set the color of the title and icon of the main menu buttons. Choose a color from the list or enter your own color in hex code (AARRGGBB (AA=transparency, FF=opaque, 00=fully transparent, RRGGBB=color code). Default color is White. Clear the color when you use colored custom icons."
 msgstr "Hier kannst du die Icons und Beschriftungen deiner Hauptmenübuttons mit einer Farbe deiner Wahl einfärben. Wähle dazu eine Farbe aus der Farbtabelle aus oder gebe eine eigene Farbe in Hex-Code AARRGGBB ein (AA=Transparenz: FF=deckend; 00=voll transparent. RRGGBB=Farbcode). Die voreingestellte Farbe ist Weiß. Hinweis: Wähle 'Löschen' wenn du farbige Custom-Icons verwendest."
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#Submenu labels
+# Submenu labels
 
 msgctxt "#31200"
 msgid "Back"
@@ -780,7 +780,7 @@ msgctxt "#31202"
 msgid "View"
 msgstr "Ansicht"
 
-#------------------------------------------------
+# ------------------------------------------------
 
 msgctxt "#31203"
 msgid "You can set a background color for the main buttons. Choose a color from the list or enter your own color in hex code (AARRGGBB (AA=transparency, FF=opaque, 00=fully transparent, RRGGBB=color code). Default color is White. Additionally you can set the opacity of the background."
@@ -788,7 +788,7 @@ msgstr "Hier kannst du deine Hauptmenübuttons mit einer Fläche in einer Farbe 
 
 msgctxt "#31204"
 msgid "You can set a background image for each of your main buttons separately. Store the images on the pi and choose the path. The dimensions of the pictures should be 588x136px (640x136px if theme 'Home_wide' is active). Bigger images are also possible but will be scaled to fit the box."
-msgstr "Hier kannst du deine Hauptmenübuttons mit Hintergrundbildern deiner Wahl unterlegen. Speichere die Bilder zuvor in einem beliebigen Verzeichnis auf dem Pi und wähle dann den Speicherort in den Settings unten aus. Die Größe der Hintergrundbilder sollte optimalerweise 588x136 Pixel betragen (640x136 Pixel wenn das Theme "Home_wide" aktiv ist). Es sind auch größere Bilder möglich. Diese werden dann skaliert. "
+msgstr "Hier kannst du deine Hauptmenübuttons mit Hintergrundbildern deiner Wahl unterlegen. Speichere die Bilder zuvor in einem beliebigen Verzeichnis auf dem Pi und wähle dann den Speicherort in den Settings unten aus. Die Größe der Hintergrundbilder sollte optimalerweise 588x136 Pixel betragen (640x136 Pixel wenn das Theme \"Home_wide\" aktiv ist). Es sind auch größere Bilder möglich. Diese werden dann skaliert. "
 
 msgctxt "#31205"
 msgid "Background colors must be deactivated first!"
@@ -1164,10 +1164,10 @@ msgstr "Wähle ein Hintergrundbild für das Radio"
 
 
 
-#empty strings from id 31299 to 31299
-#------------------------------------------------
+# empty strings from id 31299 to 31299
+# ------------------------------------------------
 
-#Extra labels
+# Extra labels
 
 msgctxt "#31300"
 msgid "Current Temp"
@@ -1185,15 +1185,15 @@ msgctxt "#31303"
 msgid "Data provider"
 msgstr "Datenprovider"
 
-#------------------------------------------------
+# ------------------------------------------------
 
-#empty strings from id 31304 to 31308
+# empty strings from id 31304 to 31308
 
 msgctxt "#31309"
 msgid "Memory Used:"
 msgstr "Genutzter Speicher:"
 
-#empty strings from id 31310 to 31311
+# empty strings from id 31310 to 31311
 
 msgctxt "#31312"
 msgid "Current Scraper"
@@ -1207,7 +1207,7 @@ msgctxt "#31314"
 msgid "Content Scanning Options"
 msgstr "Content Scanning Optionen"
 
-#empty strings from id 31315 to 31318
+# empty strings from id 31315 to 31318
 
 msgctxt "#31319"
 msgid "Currently available XBMC user profiles"
@@ -1225,14 +1225,14 @@ msgctxt "#31322"
 msgid "Aired"
 msgstr ""
 
-#empty strings from id 31323 to 31324
+# empty strings from id 31323 to 31324
 
 msgctxt "#31325"
 msgid "Playlist Options"
 msgstr "Playlist Optionen"
 
-#empty strings from id 31326 to 31350
-#Video and Music OSD Labels
+# empty strings from id 31326 to 31350
+# Video and Music OSD Labels
 
 msgctxt "#31351"
 msgid "Pause"
@@ -1262,8 +1262,8 @@ msgctxt "#31357"
 msgid "Image Info"
 msgstr ""
 
-#empty strings from id 31358 to 31389
-#Skin Fontsets
+# empty strings from id 31358 to 31389
+# Skin Fontsets
 
 msgctxt "#31390"
 msgid "Skin default"
@@ -1273,8 +1273,8 @@ msgctxt "#31391"
 msgid "Arial based"
 msgstr ""
 
-#empty strings from id 31392 to 31399
-#Description Labels
+# empty strings from id 31392 to 31399
+# Description Labels
 
 msgctxt "#31400"
 msgid "Change the skin · Set language and region · Change file listing options · Set up a screensaver"
@@ -1312,14 +1312,14 @@ msgctxt "#31408"
 msgid "Manage your installed Add-ons · Browse for and install Add-ons from xbmc.org · Modify Add-on settings"
 msgstr ""
 
-#empty strings from id 31409 to 31420
+# empty strings from id 31409 to 31420
 
 msgctxt "#31421"
 msgid "Select your XBMC user Profile[CR]to login and continue"
 msgstr ""
 
-#empty strings from id 31422 to 31499
-#Skin Setting Headers
+# empty strings from id 31422 to 31499
+# Skin Setting Headers
 
 msgctxt "#31500"
 msgid "Home Menu Catagory Buttons"
@@ -1337,8 +1337,8 @@ msgctxt "#31503"
 msgid "Media Window Add-ons"
 msgstr ""
 
-#empty strings from id 31504 to 31549
-#Skin Setting Options
+# empty strings from id 31504 to 31549
+# Skin Setting Options
 
 msgctxt "#31550"
 msgid "Home Screen Weather Info and button"
@@ -1356,7 +1356,7 @@ msgctxt "#31553"
 msgid "For day/night mode plugin.program.carpc-xtouch (X-Touch Helper) v0.0.6 or up is needed."
 msgstr "Für die Tag-/Nacht-Umschaltung wird plugin.program.carpc-xtouch (X-Touch Helper) v0.0.6 oder höher benötigt."
 
-#------------------------------------------------
+# ------------------------------------------------
 
 msgctxt "#40078"
 msgid "The required backend service is missing. Please install it."

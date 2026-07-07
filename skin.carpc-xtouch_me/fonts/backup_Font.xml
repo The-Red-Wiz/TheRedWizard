@@ -377,7 +377,7 @@
 		</font>
 	</fontset>
 	
-	<fontset id="NotoSans (Greek & Cyrillic)" unicode="true"> 
+	<fontset id="NotoSans (Greek &amp; Cyrillic)" unicode="true"> 
 	<!-- Normal Fonts -->
 		<font>
 			<name>font12</name>

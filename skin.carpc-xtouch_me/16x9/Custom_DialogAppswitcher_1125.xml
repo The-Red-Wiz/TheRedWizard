@@ -177,7 +177,7 @@
 					<onclick>ActivateWindow(10001,"androidapp://source/apps/",return)</onclick>
 				</item>
 				<item id="3027">
-					<description>Switch Temp<>Clock</description>
+					<description>Switch Temp&lt;&gt;Clock</description>
 					<label>$LOCALIZE[40137]</label>
 			 		<visible>System.HasAddon(plugin.program.piwire) + Skin.HasSetting(Enable_Temp_Display)</visible>
 					<icon>buttons-tempclock-switch.png</icon>

@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="service.multiinstallmybinaries" name="[COLOR red]Install My Binaries[/COLOR]" version="1.0.1" provider-name="Zaxxon709">
+<addon id="service.multiinstallmybinaries" name="[COLOR red]Install My Binaries[/COLOR]" version="1.0.2" provider-name="Zaxxon709">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1"/>
 	</requires>
-	<extension point="xbmc.service" library="autoexec.py">
-	</extension>
+	<extension point="xbmc.service" library="autoexec.py"/>
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_GB">[COLOR red]Installs binaries for The Red Wizard Live and Redflix TOTAL Kodi builds[/COLOR]</summary>
 		<description lang="en_GB">[COLOR red]Installs binary addons on first run required by The Red Wizard Live and Redflix TOTAL Kodi builds: "inputstream.adaptive", "inputstream.ffmpegdirect", "inputstream.rtmp" and "pvr.iptvsimple"[/COLOR]</description>

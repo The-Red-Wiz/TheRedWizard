@@ -20,8 +20,8 @@
 	</category>
 	<category label="30059">
 		<setting type="lsep" label="30058"/>
-		<setting id="skin_protection"  type="text" label="" visible="false"default="false"/>
-      		<setting id="savedata"  type="bool" label="Save Trakt & Debrid Data" default="true"/>
+		<setting id="skin_protection"  type="text" label="" visible="false" default="false"/>
+      		<setting id="savedata"  type="bool" label="Save Trakt &amp; Debrid Data" default="true"/>
       		<setting id="saveyoutube" type="bool" label="Save Youtube API Keys" default="false"/>
 		<setting id="savefavs" type="bool" label="Save Favourites" default="true"/>
 		<setting id="savesources" type="bool" label="Save Sources" default="false"/>

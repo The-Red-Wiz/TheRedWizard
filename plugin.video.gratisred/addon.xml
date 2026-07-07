@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<addon id="plugin.video.gratisred" version="1.1.0" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.video.gratisred" version="1.1.1" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
     <requires>
         <import addon="script.module.six"/>
         <import addon="script.module.kodi-six"/>
@@ -13,7 +13,7 @@
     <extension point="xbmc.python.pluginsource" library="main.py">
         <provides>video</provides>
     </extension>
-    <extension library="service.py" point="xbmc.service" start="startup"/>
+    <extension library="service.py" point="xbmc.service"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en">[COLOR red]Free and non-Debrid Movies, TV Shows and Anime[/COLOR]</summary>
         <description lang="en">[COLOR red]Additional providers in[/COLOR] [COLOR gold]Tools > Settings > Provider Settings[/COLOR] [COLOR red](returning false positives, but they might work depending on your IP address)[CR][CR]Providers bstsrs.one and srstop.link are largely returning duplicates of each other. To see more links, go to[/COLOR] [COLOR gold]Tools > Settings > Playback Settings and disable "Remove Duplicate Sources".[/COLOR][CR][CR][COLOR red]Forked and updated from[/COLOR] [COLOR orange]Scrubs v2 by JewBMX.[/COLOR][CR][CR][COLOR blue]Many thanks to The Alpha![/COLOR]</description>
