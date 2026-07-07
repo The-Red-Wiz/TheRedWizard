@@ -429,7 +429,7 @@
                             <align>center</align>
                             <aligny>center</aligny>
                             <font>font12</font> <!-- REDLIGHT_26 -->
-                            <label>[COLOR FFFFFFFF][B]$INFO[Window.Property(results_4k)][/B][/COLOR]</label>
+                            <label>[COLOR $INFO[Window.Property(progress_4k_color)]][B]$INFO[Window.Property(results_4k)][/B][/COLOR]</label>
                         </control>
                     </control>
                     <control type="group">
@@ -452,7 +452,7 @@
                             <align>center</align>
                             <aligny>center</aligny>
                             <font>font12</font> <!-- REDLIGHT_26 -->
-                            <label>[COLOR FFFFFFFF][B]$INFO[Window.Property(results_1080p)][/B][/COLOR]</label>
+                            <label>[COLOR $INFO[Window.Property(progress_1080p_color)]][B]$INFO[Window.Property(results_1080p)][/B][/COLOR]</label>
                         </control>
                     </control>
                     <control type="group">
@@ -475,7 +475,7 @@
                             <align>center</align>
                             <aligny>center</aligny>
                             <font>font12</font> <!-- REDLIGHT_26 -->
-                            <label>[COLOR FFFFFFFF][B]$INFO[Window.Property(results_720p)][/B][/COLOR]</label>
+                            <label>[COLOR $INFO[Window.Property(progress_720p_color)]][B]$INFO[Window.Property(results_720p)][/B][/COLOR]</label>
                         </control>
                     </control>
                     <control type="group">
@@ -498,7 +498,7 @@
                             <align>center</align>
                             <aligny>center</aligny>
                             <font>font12</font> <!-- REDLIGHT_26 -->
-                            <label>[COLOR FFFFFFFF][B]$INFO[Window.Property(results_sd)][/B][/COLOR]</label>
+                            <label>[COLOR $INFO[Window.Property(progress_sd_color)]][B]$INFO[Window.Property(results_sd)][/B][/COLOR]</label>
                         </control>
                     </control>
                     <control type="group">

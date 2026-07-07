@@ -3395,6 +3395,44 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(70)</visible>
+                          <property name="setting_label">Scrape Progress Count Colors</property>
+                          <property name="setting_type">separator</property>
+                          <onclick>noop</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(70)</visible>
+                          <property name="setting_label">    - 4K Count Color</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">[COLOR $INFO[Window(10000).Property(redlight.scraper_progress_4k_highlight)]]$INFO[Window(10000).Property(redlight.scraper_progress_4k_highlight)][/COLOR]</property>
+                          <property name="setting_description">Choose 4K source count color on the scrape progress dialog</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=scraper_color_choice&amp;setting_id=scraper_progress_4k_highlight)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(70)</visible>
+                          <property name="setting_label">    - 1080P Count Color</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">[COLOR $INFO[Window(10000).Property(redlight.scraper_progress_1080p_highlight)]]$INFO[Window(10000).Property(redlight.scraper_progress_1080p_highlight)][/COLOR]</property>
+                          <property name="setting_description">Choose 1080P source count color on the scrape progress dialog</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=scraper_color_choice&amp;setting_id=scraper_progress_1080p_highlight)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(70)</visible>
+                          <property name="setting_label">    - 720P Count Color</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">[COLOR $INFO[Window(10000).Property(redlight.scraper_progress_720p_highlight)]]$INFO[Window(10000).Property(redlight.scraper_progress_720p_highlight)][/COLOR]</property>
+                          <property name="setting_description">Choose 720P source count color on the scrape progress dialog</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=scraper_color_choice&amp;setting_id=scraper_progress_720p_highlight)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(70)</visible>
+                          <property name="setting_label">    - SD Count Color</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">[COLOR $INFO[Window(10000).Property(redlight.scraper_progress_SD_highlight)]]$INFO[Window(10000).Property(redlight.scraper_progress_SD_highlight)][/COLOR]</property>
+                          <property name="setting_description">Choose SD source count color on the scrape progress dialog</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=scraper_color_choice&amp;setting_id=scraper_progress_SD_highlight)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(70)</visible>
                           <property name="setting_label">Tint Focused Result Background</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.highlight.tint_focused_background)]</property>

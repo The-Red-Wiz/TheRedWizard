@@ -16,6 +16,7 @@ PROP_NEXTEP_PREP_SCHEDULED = 'redlight.nextep_prep_scheduled'
 PROP_NEXTEP_PREP_DECLINED = 'redlight.nextep_prep_declined'
 PROP_AUTOSCRAPE_NEXTEP_READY = 'redlight.autoscrape_nextep_ready'
 PROP_NEXTEP_AUTOPLAY_CANCELLED = 'redlight.nextep_autoplay_cancelled'
+PROP_RANDOM_CONTINUAL_SKIP_ATTEMPTS = 'redlight.random_continual_skip_attempts'
 # Movies-only: fire stingers alert ~3 min before other alert sources would (typical 90% vs 95% gap on ~1 hr).
 _STINGER_EARLY_OFFSET_SEC = 180
 _NEXTEP_SUB_FETCH_DEFER_SEC = 45
@@ -1035,6 +1036,7 @@ class RedLightPlayer(xbmc.Player):
 			ku.clear_property(PROP_NEXTEP_PREP_SCHEDULED)
 			ku.clear_property(PROP_NEXTEP_PREP_DECLINED)
 			ku.clear_property(PROP_AUTOSCRAPE_NEXTEP_READY)
+			ku.clear_property(PROP_RANDOM_CONTINUAL_SKIP_ATTEMPTS)
 			ku.clear_property(PROP_NEXTEP_AUTOPLAY_CANCELLED)
 			self._autoscrape_ready_notified = False
 			self._nextep_alert_pending_logged = False

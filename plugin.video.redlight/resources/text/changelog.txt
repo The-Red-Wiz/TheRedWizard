@@ -1,3 +1,6 @@
+[COLOR red][B]Version 1.7.6[/B][/COLOR]
+- [B]Scrape Progress[/B]: added per-quality count colours under [B]Results Color Highlights[/B] so [B]4K[/B], [B]1080[/B], [B]720[/B], and [B]SD[/B] labels can stay muted while the updating counts use separate colours. Defaults remain white.
+
 [COLOR red][B]Version 1.7.5[/B][/COLOR]
 - Fixed [B]Autoplay Next Episode[/B] flashing the episode list when choosing [B]Close[/B] (or at natural episode end): stashed resolve now starts a few seconds before fullscreen closes so the resolver covers the transition instead of [B]DialogBusy[/B] (which Kodi tears down when playback stops).
 - Fixed [B]Autoplay Next Episode[/B] [B]Cancel[/B] on the alert still autoplaying after the current episode ended.

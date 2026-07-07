@@ -107,6 +107,28 @@ def return_to_main_menu():
     xbmc.executebuiltin('Container.Update(%s,isdir)' % addon_root_url())
     sys.exit(0)
 
+def track_number_from_title(title):
+    title = settings.decode_text(title or '')
+    match = re.match(r'^\s*(\d+)\.\s+', title)
+    return match.group(1) if match else ''
+
+def numbered_song_title(track, songname):
+    songname = settings.decode_text(songname or '')
+    if not track:
+        return songname
+    if re.match(r'^\s*%s\.\s+' % re.escape(str(track)), songname):
+        return songname
+    return "%s. %s" % (track, songname)
+
+def album_download_names(name):
+    name = settings.decode_text(name or '')
+    parts = name.split(' - ')
+    if len(parts) < 2:
+        return 'Various', name
+    artist = parts[0]
+    album_parts = parts[1:-1] if len(parts) > 2 and re.match(r'^\d{4}$', parts[-1]) else parts[1:]
+    return artist, ' - '.join(album_parts)
+
 # RunPlugin / action-only modes must not call endOfDirectory or Kodi shows a blank list.
 PLUGIN_ACTION_MODES = (8, 61, 62, 64, 65, 67, 68, 89, 99, 100, 201, 202, 333, 500)
 
@@ -669,9 +691,9 @@ def play_song(url, name, songname, artist, album, iconimage, dur, clear):
 def download_song(url, name, songname, artist, album, iconimage):
     display_name = settings.decode_text(songname or name)
     notification('MP3 Streams', 'Downloading: %s' % display_name, '3000', iconimage or iconart)
-    dot = name.find('. ')
-    track = name[:dot] if dot >= 0 else ''
-    safe_songname = settings.sanitize_filename(settings.decode_text(songname))
+    track = track_number_from_title(name)
+    filename_title = numbered_song_title(track, songname)
+    safe_songname = settings.sanitize_filename(filename_title)
     artist_path = create_directory(settings.music_dir(), settings.decode_text(artist))
     album_path = create_directory(artist_path, settings.decode_text(album))
     list_data = "%s<>%s<>%s<>%s<>%s%s" % (album_path,artist,album,track,safe_songname,'.mp3')
@@ -711,9 +733,8 @@ class DownloadMusicThread(Thread):
             xbmc.executebuiltin(notify)
 '''
 def download_album(url, name, iconimage):
-    nartist = name.split(' - ')[0]
+    nartist, nalbum = album_download_names(name)
     xbmc.log("nartist = {0}".format(nartist), xbmc.LOGINFO)
-    nalbum = name.split(' - ')[1]
     xbmc.log("nalbum = {0}".format(nalbum), xbmc.LOGINFO)
     if GOLDEN_PATH:
         url = url.replace('http','https').replace('musicmp3','www.goldenmp3').replace('artist_','/').replace('__album_','/').replace('.html','')
@@ -737,6 +758,7 @@ def download_album(url, name, iconimage):
     xbmc.log("match = {0}".format(match), xbmc.LOGINFO)
     nSong = len(match)
     count = 0
+    album_path = create_directory(settings.music_dir(), nalbum)
     for track, id, songurl, meta, album, artist, songname, dur in match:
         count += 1
         songname = settings.decode_text(songname)
@@ -752,8 +774,6 @@ def download_album(url, name, iconimage):
         playlist.append(songname)
         title = "%s. %s" % (track.replace('track',''), songname)
         safe_title = settings.sanitize_filename(title)
-        artist_path = create_directory(settings.music_dir(), artist)
-        album_path = create_directory(artist_path, album)
         list_data = "%s<>%s<>%s<>%s<>%s%s" % (album_path,artist,album,trn,safe_title,'.mp3')
         create_file(settings.music_dir(), "downloading.txt")
         local_filename = os.path.join(album_path, safe_title + '.mp3')
@@ -768,7 +788,7 @@ def download_album(url, name, iconimage):
         text = "%s of %s tracks downloaded" % (trn, nSong)
         notification(artist + ' ' + album, text, '3000', iconimage)
         add_to_list(list_data, DOWNLOAD_LIST, False)
-    notification(name.split(' - ')[0] + ' ' + name.split(' - ')[1], 'Album download finished', '3000', iconimage)
+    notification(nartist + ' ' + nalbum, 'Album download finished', '3000', iconimage)
     if os.path.exists(download_lock_path()):
         os.remove(download_lock_path())
 

@@ -473,6 +473,10 @@ class SourcesPlayback(BaseDialog):
 		self.setProperty('results_720p', '0')
 		self.setProperty('results_sd', '0')
 		self.setProperty('results_total', '0')
+		self.setProperty('progress_4k_color', get_setting('redlight.scraper_progress_4k_highlight', 'FFFFFFFF'))
+		self.setProperty('progress_1080p_color', get_setting('redlight.scraper_progress_1080p_highlight', 'FFFFFFFF'))
+		self.setProperty('progress_720p_color', get_setting('redlight.scraper_progress_720p_highlight', 'FFFFFFFF'))
+		self.setProperty('progress_sd_color', get_setting('redlight.scraper_progress_SD_highlight', 'FFFFFFFF'))
 		self.setProperty('percent', '0')
 
 	def set_resolver_properties(self):

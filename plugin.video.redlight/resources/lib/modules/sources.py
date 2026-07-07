@@ -25,6 +25,8 @@ PROP_NEXTEP_SCRAPE_READY = 'redlight.nextep_scrape_ready'
 PROP_NEXTEP_SCRAPE_KEY = 'redlight.nextep_scrape_key'
 PROP_NEXTEP_AUTOPLAY_CANCELLED = 'redlight.nextep_autoplay_cancelled'
 PROP_AUTOSCRAPE_NEXTEP_READY = 'redlight.autoscrape_nextep_ready'
+PROP_RANDOM_CONTINUAL_SKIP_ATTEMPTS = 'redlight.random_continual_skip_attempts'
+RANDOM_CONTINUAL_MAX_SKIPS = 25
 _NEXTEP_AUTOPLAY_STASH = {}
 _NEXTEP_PLAY_STASH_PATH = None
 
@@ -266,7 +268,9 @@ class Sources():
 		if self.background and self.play_type in ('autoplay_nextep', 'autoscrape_nextep', 'random_continual'):
 			self._log_nextep_scrape_started()
 			self._prefetch_nextep_segment_data()
-		if self.background and self.autoplay_nextep and self.nextep_settings and not getattr(self, '_nextep_alert_handled', False):
+		if self.background and self.play_type == 'random_continual' and not self.nextep_settings:
+			self.nextep_settings = {'watching_check': settings.auto_nextep_settings('autoplay_nextep')['watching_check']}
+		if self.background and (self.autoplay_nextep or self.play_type == 'random_continual') and self.nextep_settings and not getattr(self, '_nextep_alert_handled', False):
 			if not self.still_watching_check():
 				self._decline_nextep_prep('still watching')
 				kodi_utils.notification('Cancel Autoplay', icon=self.meta.get('poster'))
@@ -1191,9 +1195,29 @@ class Sources():
 		return self._show_modal_message('Playback failed', message)
 
 	def _no_results(self):
+		if self.random_continual and self.media_type == 'episode' and self.tmdb_id:
+			return self._random_continual_skip()
 		self._close_progress_before_modal()
+		return self._show_no_results()
+
+	def _show_no_results(self):
 		heading = self.meta.get('rootname', '') or self.meta.get('title', '') or 'Red Light'
 		return self._show_modal_message(heading, 'No results found.', '[B]Next Up:[/B] No Results')
+
+	def _random_continual_skip(self):
+		"""Continual random play: an episode with no links should not stop the chain, so retry with another random episode."""
+		from modules.episode_tools import EpisodeTools
+		attempts = int(kodi_utils.get_property(PROP_RANDOM_CONTINUAL_SKIP_ATTEMPTS) or 0)
+		self._close_progress_before_modal()
+		if attempts >= RANDOM_CONTINUAL_MAX_SKIPS:
+			kodi_utils.clear_property(PROP_RANDOM_CONTINUAL_SKIP_ATTEMPTS)
+			return self._show_no_results()
+		kodi_utils.set_property(PROP_RANDOM_CONTINUAL_SKIP_ATTEMPTS, str(attempts + 1))
+		kodi_utils.logger('Red Light', 'Continual random play: no results for %s S%02dE%02d, skipping to another episode' % (
+			self.meta.get('title', ''), self.meta.get('season', 0), self.meta.get('episode', 0)))
+		meta = metadata.tvshow_meta('tmdb_id', self.tmdb_id, settings.tmdb_api_key(), settings.mpaa_region(), get_datetime())
+		meta['watch_count'] = self.meta.get('watch_count', 1)
+		return EpisodeTools(meta).play_random_continual(first_run=False)
 
 	def get_search_title(self):
 		search_title = self.meta.get('custom_title', None) or self.meta.get('english_title') or self.meta.get('title')

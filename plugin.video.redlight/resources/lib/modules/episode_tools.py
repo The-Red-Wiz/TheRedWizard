@@ -102,7 +102,9 @@ class EpisodeTools:
 							'episode': episode, 'premiered': premiered, 'plot': plot})
 			url_params = {'media_type': 'episode', 'tmdb_id': tmdb_id, 'tvshowtitle': self.meta_get('rootname'), 'season': season, 'episode': episode,
 						'playcount': playcount, 'autoplay': 'true'}
-			if continual: url_params['random_continual'] = 'true'
+			if continual:
+				url_params['random_continual'] = 'true'
+				url_params['watch_count'] = self.meta_get('watch_count', 1)
 			else: url_params['random'] = 'true'
 			if not first_run:
 				url_params['background'] = 'true'
