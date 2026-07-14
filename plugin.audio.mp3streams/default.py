@@ -157,6 +157,29 @@ def album_download_names(name):
     album_parts = parts[1:-1] if len(parts) > 2 and re.match(r'^\d{4}$', parts[-1]) else parts[1:]
     return artist, ' - '.join(album_parts)
 
+def album_storage_dir(artist, album, create=True):
+    artist = settings.decode_text(artist or 'Various')
+    album = settings.decode_text(album or 'Unknown Album')
+    if FOLDERSTRUCTURE == "0":
+        path = os.path.join(
+            settings.music_dir(),
+            settings.sanitize_filename(artist),
+            settings.sanitize_filename(album),
+        )
+    else:
+        path = os.path.join(
+            settings.music_dir(),
+            settings.sanitize_filename('%s - %s' % (artist, album)),
+        )
+    if create and not os.path.exists(path):
+        os.makedirs(path)
+    return path
+
+def album_track_filename(track, songname):
+    track = str(track or '').replace('track', '')
+    title = numbered_song_title(track, songname)
+    return settings.sanitize_filename(title) + '.mp3'
+
 # RunPlugin / action-only modes must not call endOfDirectory or Kodi shows a blank list.
 PLUGIN_ACTION_MODES = (8, 61, 62, 64, 65, 67, 68, 89, 99, 100, 201, 202, 333, 500)
 
@@ -526,12 +549,7 @@ def find_url(id):
         return 'https://listen.musicmp3.ru/1d6c13041066bed9/'
 
 def play_album(name, url, iconimage, mix, clear):
-    if ' - ' in name:
-        nartist=name.split(' - ')[0]
-        nalbum=name.split(' - ')[1]
-    else:
-        nartist='Various'
-        nalbum=name
+    nartist, nalbum = album_download_names(name)
     if GOLDEN_PATH:
         url=url.replace('http://','https://').replace('musicmp3','www.goldenmp3').replace('artist_','/').replace('__album_','/').replace('.html','')
     origurl=url
@@ -649,10 +667,7 @@ def play_album(name, url, iconimage, mix, clear):
             url, liz = playerMP3.getListItem(ntrack, songname, album, trn, iconimage, dur, url, fanart, 'true', GOTHAM_FIX_2)
         else:
             url, liz = playerMP3.getListItem(songname, artist, album, trn, iconimage, dur, url, fanart, 'true', GOTHAM_FIX_2)
-        if FOLDERSTRUCTURE=="0":
-            stored_path = os.path.join(settings.music_dir(), settings.sanitize_filename(artist), settings.sanitize_filename(album), settings.sanitize_filename(songname) + '.mp3')
-        else:
-            stored_path = os.path.join(settings.music_dir(), settings.sanitize_filename(artist + ' - ' + album), settings.sanitize_filename(songname) + '.mp3')
+        stored_path = os.path.join(album_storage_dir(nartist, nalbum, create=False), album_track_filename(trn, songname))
         if os.path.exists(stored_path):
             url = stored_path
         playlist.append((url, liz))
@@ -777,7 +792,7 @@ def download_album(url, name, iconimage):
     xbmc.log("match = {0}".format(match), xbmc.LOGINFO)
     nSong = len(match)
     count = 0
-    album_path = create_directory(settings.music_dir(), nalbum)
+    album_path = album_storage_dir(nartist, nalbum)
     for track, id, songurl, meta, album, artist, songname, dur in match:
         count += 1
         songname = settings.decode_text(songname)
