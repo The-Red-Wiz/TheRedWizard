@@ -158,7 +158,7 @@ def album_download_names(name):
     return artist, ' - '.join(album_parts)
 
 def find_local_track(artist, album, track, songname, title=None):
-    """First existing local file for a track (album download layout, then legacy single-download paths)."""
+    """First existing local file for a track in artist-scoped download layouts."""
     track_id = track_number_from_title(title) if title else ''
     if not track_id:
         track_id = str(track or '').replace('track', '').strip()
@@ -172,9 +172,6 @@ def find_local_track(artist, album, track, songname, title=None):
         base = os.path.join(settings.music_dir(), settings.sanitize_filename(artist + ' - ' + album))
     candidates.append(os.path.join(base, settings.sanitize_filename(numbered) + '.mp3'))
     candidates.append(os.path.join(base, settings.sanitize_filename(songname) + '.mp3'))
-    # Pre-2026.07.16 album downloads used album title only.
-    legacy_base = os.path.join(settings.music_dir(), settings.sanitize_filename(album))
-    candidates.append(os.path.join(legacy_base, settings.sanitize_filename(numbered) + '.mp3'))
     for path in candidates:
         if path and os.path.exists(path):
             return path
