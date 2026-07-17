@@ -17,6 +17,10 @@ _SETTINGS_WIDGETS_MIGRATED = 'redlight.settings_widgets_migrated'
 _SETTINGS_DB_SYNCED = 'redlight.settings_db_synced'
 _SETTINGS_SYNC_FINGERPRINT = 'redlight.settings_sync_fingerprint'
 _WIDGET_REFRESH_SCHEDULED = 'redlight.widgets_refresh_scheduled'
+_NEW_SETTING_VALUE_MIGRATIONS = {
+	'trakt.calendar_display': 'single_ep_display',
+	'trakt.calendar_display_widget': 'single_ep_display_widget',
+}
 _bootstrap_lock = Lock()
 _DEFAULTS_LIST = None
 _DEFAULTS_MAP = None
@@ -70,6 +74,12 @@ def _new_settings_affect_widgets(insert_list):
 			continue
 		return True
 	return False
+
+def _new_setting_value(setting_id, setting_default, currentsettings, had_existing_settings):
+	if not had_existing_settings: return setting_default
+	old_setting_id = _NEW_SETTING_VALUE_MIGRATIONS.get(setting_id)
+	if not old_setting_id: return setting_default
+	return currentsettings.get(old_setting_id, setting_default)
 
 _CREDENTIAL_STRING_SETTINGS = frozenset(('tmdb_api', 'trakt.client', 'trakt.secret', 'tmdb.lists_read_token', 'omdb_api'))
 
@@ -648,15 +658,19 @@ def sync_settings(params={}):
 		if setting_id in currentsettings: continue
 		setting_type = item['setting_type']
 		setting_default = item['setting_default']
+		setting_value = _new_setting_value(setting_id, setting_default, currentsettings, had_existing_settings)
 		if setting_type == 'action' and 'settings_options' in item:
 			if setting_id == 'aiostreams.instance':
 				try:
 					from apis.aiostreams_api import INSTANCE_LABELS
 					name_default = INSTANCE_LABELS.get(setting_default, item['settings_options'][setting_default])
 				except: name_default = item['settings_options'][setting_default]
-			else: name_default = item['settings_options'][setting_default]
-			insert_list_append(('%s_name' % setting_id, 'name', name_default, name_default))
-		insert_list_append((setting_id, setting_type, setting_default, setting_default))
+				name_value = name_default
+			else:
+				name_default = item['settings_options'][setting_default]
+				name_value = item['settings_options'].get(setting_value, name_default)
+			insert_list_append(('%s_name' % setting_id, 'name', name_default, name_value))
+		insert_list_append((setting_id, setting_type, setting_default, setting_value))
 	if insert_list:
 		settings_cache.set_many(insert_list, load_properties=load_properties)
 		migrated = True
@@ -1032,6 +1046,8 @@ def default_settings():
 {'setting_id': 'nextep.include_unaired', 'setting_type': 'boolean', 'setting_default': 'false'},
 #======+============= Trakt Calendar
 {'setting_id': 'trakt.flatten_episodes', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'trakt.calendar_display', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
+{'setting_id': 'trakt.calendar_display_widget', 'setting_type': 'action', 'setting_default': '1', 'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
 {'setting_id': 'trakt.calendar_sort_order', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'Descending', '1': 'Ascending'}},
 {'setting_id': 'trakt.calendar_previous_days', 'setting_type': 'action', 'setting_default': '7', 'min_value': '0', 'max_value': '14'},
 {'setting_id': 'trakt.calendar_future_days', 'setting_type': 'action', 'setting_default': '7', 'min_value': '0', 'max_value': '14'},

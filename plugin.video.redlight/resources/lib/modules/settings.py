@@ -485,6 +485,11 @@ def single_ep_display_format(is_external):
 	else: setting, default = 'redlight.single_ep_display', ''
 	return int(get_setting(setting, default))
 
+def calendar_display_format(is_external):
+	if is_external: setting, default = 'redlight.trakt.calendar_display_widget', '1'
+	else: setting, default = 'redlight.trakt.calendar_display', '0'
+	return int(get_setting(setting, default))
+
 def easynews_active():
 	if get_setting('redlight.provider.easynews', 'false') == 'true': easynews_status = easynews_authorized()
 	else: easynews_status = False

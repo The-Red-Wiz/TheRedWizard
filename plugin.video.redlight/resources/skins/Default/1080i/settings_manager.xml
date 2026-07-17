@@ -1535,6 +1535,22 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(40)</visible>
+                          <property name="setting_label">Calendar Display Format - Within Addon</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_display_name)]</property>
+                          <property name="setting_description">Choose the display format Red Light uses when naming episodes within the Trakt Calendar in the addon</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=trakt.calendar_display)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(40)</visible>
+                          <property name="setting_label">Calendar Display Format - Widgets</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_display_widget_name)]</property>
+                          <property name="setting_description">Choose the display format Red Light uses when naming episodes in the Trakt Calendar for widgets</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=trakt.calendar_display_widget)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(40)</visible>
                           <property name="setting_label">Sort Order</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_sort_order_name)]</property>
