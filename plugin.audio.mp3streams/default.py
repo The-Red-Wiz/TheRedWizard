@@ -198,17 +198,25 @@ def find_local_track(artist, album, track, songname, title=None):
     if not track_id:
         track_id = str(track or '').replace('track', '').strip()
     numbered = numbered_song_title(track_id, songname)
-    candidates = [
-        settings.album_track_file_path(artist, album, track_id, songname, create_dir=False),
-    ]
+    candidates = []
+    seen_candidates = set()
+    def add_candidate(base, filename, verify_id3=False):
+        path = os.path.join(base, filename + '.mp3')
+        if path not in seen_candidates:
+            candidates.append((path, verify_id3))
+            seen_candidates.add(path)
     if FOLDERSTRUCTURE == "0":
-        base = os.path.join(settings.music_dir(), settings.sanitize_filename(artist), settings.sanitize_filename(album))
+        album_bases = [(os.path.join(settings.music_dir(), settings.sanitize_filename(artist), settings.sanitize_filename(album)), False)]
     else:
-        base = os.path.join(settings.music_dir(), settings.sanitize_filename(artist + ' - ' + album))
-    candidates.append(os.path.join(base, settings.sanitize_filename(numbered) + '.mp3'))
-    candidates.append(os.path.join(base, settings.sanitize_filename(songname) + '.mp3'))
-    for path in candidates:
-        if path and os.path.exists(path):
+        album_bases = [
+            (settings.album_storage_folder(artist, album, create=False), False),
+            (settings.legacy_flat_album_storage_folder(artist, album), True),
+        ]
+    for base, verify_id3 in album_bases:
+        for filename in (settings.album_track_basename(track_id, songname), settings.sanitize_filename(numbered), settings.sanitize_filename(songname)):
+            add_candidate(base, filename, verify_id3=verify_id3)
+    for path, verify_id3 in candidates:
+        if path and os.path.exists(path) and (not verify_id3 or _legacy_local_path_id3_ok(path, artist, album)):
             return path
     # Pre-2026.07.16 album downloads used album title only — keep for legacy users, but verify ID3 when present.
     legacy_base = os.path.join(settings.music_dir(), settings.sanitize_filename(album))
