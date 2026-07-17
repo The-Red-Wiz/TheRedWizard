@@ -75,10 +75,12 @@ def _new_settings_affect_widgets(insert_list):
 		return True
 	return False
 
-def _new_setting_value(setting_id, setting_default, currentsettings, had_existing_settings):
-	if not had_existing_settings: return setting_default
+def _new_setting_value(setting_id, setting_default, currentsettings, had_existing_settings) -> str:
+	if not had_existing_settings:
+		return setting_default
 	old_setting_id = _NEW_SETTING_VALUE_MIGRATIONS.get(setting_id)
-	if not old_setting_id: return setting_default
+	if not old_setting_id:
+		return setting_default
 	return currentsettings.get(old_setting_id, setting_default)
 
 _CREDENTIAL_STRING_SETTINGS = frozenset(('tmdb_api', 'trakt.client', 'trakt.secret', 'tmdb.lists_read_token', 'omdb_api'))
@@ -655,7 +657,8 @@ def sync_settings(params={}):
 				settings_cache.set_memory_cache(setting_id, sanitized)
 	for item in d_settings:
 		setting_id = item['setting_id']
-		if setting_id in currentsettings: continue
+		if setting_id in currentsettings:
+			continue
 		setting_type = item['setting_type']
 		setting_default = item['setting_default']
 		setting_value = _new_setting_value(setting_id, setting_default, currentsettings, had_existing_settings)
@@ -664,12 +667,13 @@ def sync_settings(params={}):
 				try:
 					from apis.aiostreams_api import INSTANCE_LABELS
 					name_default = INSTANCE_LABELS.get(setting_default, item['settings_options'][setting_default])
-				except: name_default = item['settings_options'][setting_default]
+				except (ImportError, KeyError):
+					name_default = item['settings_options'][setting_default]
 				name_value = name_default
 			else:
 				name_default = item['settings_options'][setting_default]
 				name_value = item['settings_options'].get(setting_value, name_default)
-			insert_list_append(('%s_name' % setting_id, 'name', name_default, name_value))
+			insert_list_append((f'{setting_id}_name', 'name', name_default, name_value))
 		insert_list_append((setting_id, setting_type, setting_default, setting_value))
 	if insert_list:
 		settings_cache.set_many(insert_list, load_properties=load_properties)

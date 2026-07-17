@@ -85,20 +85,45 @@ class FakeSettingsCache:
 class CalendarDisplayMigrationTests(unittest.TestCase):
 	@classmethod
 	def setUpClass(cls):
+		cls._original_sys_modules = {}
+		for key in ('modules', 'modules.kodi_utils', 'modules.settings', 'caches', 'caches.base_cache'):
+			if key in sys.modules:
+				cls._original_sys_modules[key] = sys.modules[key]
 		cls.module = _load_settings_cache_module()
+
+	@classmethod
+	def tearDownClass(cls):
+		for key in ('modules', 'modules.kodi_utils', 'modules.settings', 'caches', 'caches.base_cache'):
+			if key in cls._original_sys_modules:
+				sys.modules[key] = cls._original_sys_modules[key]
+			else:
+				sys.modules.pop(key, None)
 
 	def setUp(self):
 		self.module._test_properties.clear()
-		self.module.default_settings = lambda: [
-			{'setting_id': 'single_ep_display', 'setting_type': 'action', 'setting_default': '0',
-			 'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
-			{'setting_id': 'single_ep_display_widget', 'setting_type': 'action', 'setting_default': '1',
-			 'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
-			{'setting_id': 'trakt.calendar_display', 'setting_type': 'action', 'setting_default': '0',
-			 'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
-			{'setting_id': 'trakt.calendar_display_widget', 'setting_type': 'action', 'setting_default': '1',
-			 'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
-		]
+		production_defaults = self.module.default_settings()
+		calendar_settings = {
+			s['setting_id']: s for s in production_defaults
+			if s['setting_id'] in ('single_ep_display', 'single_ep_display_widget', 'trakt.calendar_display', 'trakt.calendar_display_widget')
+		}
+		expected_calendar_metadata = {
+			'single_ep_display': {'setting_type': 'action', 'setting_default': '0',
+								  'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
+			'single_ep_display_widget': {'setting_type': 'action', 'setting_default': '1',
+										 'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
+			'trakt.calendar_display': {'setting_type': 'action', 'setting_default': '0',
+									   'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
+			'trakt.calendar_display_widget': {'setting_type': 'action', 'setting_default': '1',
+											  'settings_options': {'0': 'TITLE: SxE - EPISODE', '1': 'SxE - EPISODE', '2': 'EPISODE'}},
+		}
+		for setting_id, expected_meta in expected_calendar_metadata.items():
+			actual = calendar_settings.get(setting_id, {})
+			self.assertEqual(expected_meta['setting_type'], actual.get('setting_type'),
+							 f"Production default for {setting_id} setting_type changed")
+			self.assertEqual(expected_meta['setting_default'], actual.get('setting_default'),
+							 f"Production default for {setting_id} setting_default changed")
+			self.assertEqual(expected_meta['settings_options'], actual.get('settings_options'),
+							 f"Production default for {setting_id} settings_options changed")
 
 	def _sync(self, initial):
 		cache = FakeSettingsCache(initial)

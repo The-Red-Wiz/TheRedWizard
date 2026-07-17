@@ -304,8 +304,10 @@ def build_single_episode(list_type, params={}):
 	window_command = 'ActivateWindow(Videos,%s,return)' if is_external else 'Container.Update(%s)'
 	no_spoilers = settings.avoid_episode_spoilers()
 	watched_indicators = settings.watched_indicators()
-	if list_type == 'episode.trakt': display_format = settings.calendar_display_format(is_external)
-	else: display_format = settings.single_ep_display_format(is_external)
+	if list_type == 'episode.trakt':
+		display_format = settings.calendar_display_format(is_external)
+	else:
+		display_format = settings.single_ep_display_format(is_external)
 	current_date, current_time, adjust_hours = get_datetime(), get_current_timestamp(), settings.date_offset()
 	unwatched_info = settings.single_ep_unwatched_episodes()
 	hide_watched = is_external and settings.widget_hide_watched() and list_type != 'episode.recently_watched'
