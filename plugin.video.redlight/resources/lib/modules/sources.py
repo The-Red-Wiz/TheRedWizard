@@ -1119,21 +1119,13 @@ class Sources():
 				return
 			if player.isPlayingVideo() or player.isPlaying():
 				break
+			self._touch_sources_busy()
 			kodi_utils.sleep(100)
 		while player.isPlayingVideo() or player.isPlaying():
 			if monitor.abortRequested():
 				return
+			self._touch_sources_busy()
 			kodi_utils.sleep(100)
-
-	def _reclaim_sources_busy(self):
-		'''Re-take scrape lock after releasing it during browse playback wait.'''
-		if kodi_utils.get_property(PROP_SOURCES_BUSY) == 'true':
-			return False
-		self._sources_busy_owner = str(id(self))
-		kodi_utils.set_property(PROP_SOURCES_BUSY, 'true')
-		kodi_utils.set_property(PROP_SOURCES_OWNER, self._sources_busy_owner)
-		self._touch_sources_busy()
-		return True
 
 	def display_results(self, results):
 		while True:
@@ -1150,14 +1142,9 @@ class Sources():
 			if not action:
 				if kodi_utils.get_property(PROP_BROWSE_RETURN_SOURCES) == 'true':
 					kodi_utils.clear_property(PROP_BROWSE_RETURN_SOURCES)
-					# Release busy while browsing so a hung/long wait does not block scrapes
-					# with "Source search already running" until Kodi restart.
-					self._release_sources_busy()
+					# Keep the scrape lock while Browse playback is active so another scrape
+					# cannot overwrite shared result properties before this list reopens.
 					self._wait_active_playback_end()
-					if not self._reclaim_sources_busy():
-						self._kill_progress_dialog(join_timeout=1.0)
-						self.resolve_dialog_made = False
-						return
 					continue
 				if self._playback_already_active():
 					self._kill_progress_dialog(join_timeout=1.0)
@@ -1689,12 +1676,11 @@ class Sources():
 			kodi_utils.clear_property(PROP_SOURCES_BUSY_AT)
 		if kodi_utils.get_property(PROP_SOURCES_BUSY) != 'true':
 			return False
-		# Browse closes the results window under playback while get_sources may still be
-		# waiting — clear so a new scrape is not blocked until restart.
+		# Active playback can be the owner intentionally waiting for Browse to end.
+		# Do not clear here; overlapping scrapes share window properties and corrupt results.
 		try:
 			if kodi_utils.kodi_player().isPlayingVideo():
-				_clear()
-				return True
+				return False
 		except:
 			pass
 		# No playback and no recent heartbeat — the owning scrape is dead (killed invoker,
