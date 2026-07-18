@@ -443,6 +443,8 @@ class Sources():
 		return self.background and self.play_type in ('autoplay_nextep', 'autoscrape_nextep')
 
 	def _allow_concurrent_scrape(self):
+		if kodi_utils.get_property(PROP_BROWSE_RETURN_SOURCES) == 'true':
+			return False
 		if self.autoscrape and self.background:
 			return True
 		if self.background and self.play_type == 'random_continual':
@@ -1141,10 +1143,10 @@ class Sources():
 			action, chosen_item = window_result
 			if not action:
 				if kodi_utils.get_property(PROP_BROWSE_RETURN_SOURCES) == 'true':
-					kodi_utils.clear_property(PROP_BROWSE_RETURN_SOURCES)
 					# Keep the scrape lock while Browse playback is active so another scrape
 					# cannot overwrite shared result properties before this list reopens.
 					self._wait_active_playback_end()
+					kodi_utils.clear_property(PROP_BROWSE_RETURN_SOURCES)
 					continue
 				if self._playback_already_active():
 					self._kill_progress_dialog(join_timeout=1.0)
