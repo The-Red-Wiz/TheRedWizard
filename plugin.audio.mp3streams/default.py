@@ -69,6 +69,37 @@ def download_lock_path():
 xbmc_version=xbmc.getInfoLabel("System.BuildVersion")[:4]
 ua = 'Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36'
 
+def download_stream_to_file(url, headers, local_filename, chunk_size=1024):
+    tmp_filename = '%s.%s.part' % (local_filename, os.getpid())
+    response = None
+    bytes_written = 0
+    try:
+        response = requests.get(url, headers=headers, stream=True, timeout=30)
+        response.raise_for_status()
+        with open(tmp_filename, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    bytes_written += len(chunk)
+                    f.write(chunk)
+        expected_length = response.headers.get('Content-Length')
+        if expected_length:
+            try:
+                expected_length = int(expected_length)
+            except ValueError:
+                expected_length = None
+            if expected_length is not None and bytes_written != expected_length:
+                raise IOError('Downloaded %s bytes, expected %s' % (bytes_written, expected_length))
+        if bytes_written <= 0:
+            raise IOError('Downloaded file was empty')
+        os.replace(tmp_filename, local_filename)
+    except Exception:
+        if os.path.exists(tmp_filename):
+            os.remove(tmp_filename)
+        raise
+    finally:
+        if response is not None:
+            response.close()
+
 
 GOTHAM_FIX_2 = ADDON.getSetting('gotham_fix_2') == 'true'
 if GOTHAM_FIX_2:
@@ -775,12 +806,12 @@ def download_song(url, name, songname, artist, album, iconimage, storage_artist=
     list_data = "%s<>%s<>%s<>%s<>%s%s" % (album_path,artist,album,track,safe_songname,'.mp3')
     local_filename = os.path.join(album_path, safe_songname + '.mp3')
     headers = {'Host': 'listen.musicmp3.ru','Range': 'bytes=0-','User-Agent': 'AppleWebKit/<WebKit Rev>', 'Accept': 'audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5'}
-    r = requests.get(url, headers=headers, stream=True)
-    with open(local_filename, 'wb') as f:
-        for chunk in r.iter_content(): #chunk_size=1024
-            if chunk:
-                f.write(chunk)
-                f.flush()
+    try:
+        download_stream_to_file(url, headers, local_filename)
+    except Exception as exc:
+        xbmc.log('MP3 Streams download failed for %s: %s' % (local_filename, exc), xbmc.LOGERROR)
+        notification('MP3 Streams', 'Download failed: %s' % display_name, '3000', iconimage or iconart)
+        return
     #urllib.urlretrieve(url, local_filename)
     add_to_list(list_data, DOWNLOAD_LIST, False)
     notification('MP3 Streams', 'Download complete: %s' % display_name, '3000', iconimage or iconart)
@@ -823,50 +854,52 @@ def download_album(url, name, iconimage):
         dialog.ok("Album download in progress", 'Please wait for the current download to finish')
         return
     notification('MP3 Streams', 'Downloading album: %s' % settings.decode_text(name), '3000', iconimage or iconart)
-    playlist = []
-    link = GET_url(url)#.decode('utf-8')
-    xbmc.log("link = {0}".format(link), xbmc.LOGINFO)
-    if 'goldenmp3' in url:
-        link = regex_from_to(link,'<table class="title_list">','<div>Total')
-        match = re.compile('itemscope="(.+?)" itemtype="http://schema.org/MusicRecording"><td><a class="play" href="#" rel="(.+?)" title="Listen the song in low quality">(.+?)</a>(.+?)<td><div class="title_td_wrap">(.+?)<span itemprop="(.+?)am(.+?)">(.+?)</span>&ensp;(.+?)<div class="jp-seek-bar"><div class="jp-play-bar"></div></div></div></td><td>').findall(link)
-    else:
-        match = re.compile('<tr class="song" id="(.+?)" itemprop="tracks" itemscope="itemscope" itemtype="http://schema.org/MusicRecording"><td class="song__play_button"><a class="player__play_btn js_play_btn" href="#" rel="(.+?)" title="Play track"/></td><td class="song__name"><div class="title_td_wrap"><meta content="(.+?)" itemprop="url"/><meta content="(.+?)" itemprop="duration"/><meta content="(.+?)" itemprop="inAlbum"/><meta content="(.+?)" itemprop="byArtist"/><span itemprop="name">(.+?)</span><div class="jp-seek-bar" data-time="(.+?)">').findall(link)
-    xbmc.log("match = {0}".format(match), xbmc.LOGINFO)
-    nSong = len(match)
-    count = 0
-    album_path = settings.album_storage_folder(nartist, nalbum)
-    for track, id, songurl, meta, album, artist, songname, dur in match:
-        count += 1
-        songname = settings.decode_text(songname)
-        if 'goldenmp3' in origurl:
-            artist = settings.decode_text(nartist)
-            album = settings.decode_text(nalbum)
-            track = str(count)
-        artist = settings.decode_text(artist)
-        album = settings.decode_text(album)
-        trn = track.replace('track','')
-        #url = find_url(trn).strip() + id
-        url = 'https://listen.musicmp3.ru/' + id #'http://files.musicmp3.ru/lofi/' + id
-        playlist.append(songname)
-        title = "%s. %s" % (track.replace('track',''), songname)
-        safe_title = settings.sanitize_filename(title)
-        list_data = "%s<>%s<>%s<>%s<>%s%s" % (album_path,artist,album,trn,safe_title,'.mp3')
-        create_file(settings.music_dir(), "downloading.txt")
-        local_filename = os.path.join(album_path, safe_title + '.mp3')
-        headers = {'Host':'listen.musicmp3.ru', 'Range':'bytes=0-', 'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:44.0) Gecko/20100101 Firefox/44.0', 'Accept':'audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5','Referer':'https://www.goldenmp3.ru'}
-        r = requests.get(url, headers=headers, stream=True)
-        with open(local_filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024):
-                if chunk:
-                    f.write(chunk)
-                    f.flush()
-        #urllib.urlretrieve(url, local_filename)
-        text = "%s of %s tracks downloaded" % (trn, nSong)
-        notification(artist + ' ' + album, text, '3000', iconimage)
-        add_to_list(list_data, DOWNLOAD_LIST, False)
-    notification(nartist + ' ' + nalbum, 'Album download finished', '3000', iconimage)
-    if os.path.exists(download_lock_path()):
-        os.remove(download_lock_path())
+    create_file(settings.music_dir(), "downloading.txt")
+    try:
+        playlist = []
+        link = GET_url(url)#.decode('utf-8')
+        xbmc.log("link = {0}".format(link), xbmc.LOGINFO)
+        if 'goldenmp3' in url:
+            link = regex_from_to(link,'<table class="title_list">','<div>Total')
+            match = re.compile('itemscope="(.+?)" itemtype="http://schema.org/MusicRecording"><td><a class="play" href="#" rel="(.+?)" title="Listen the song in low quality">(.+?)</a>(.+?)<td><div class="title_td_wrap">(.+?)<span itemprop="(.+?)am(.+?)">(.+?)</span>&ensp;(.+?)<div class="jp-seek-bar"><div class="jp-play-bar"></div></div></div></td><td>').findall(link)
+        else:
+            match = re.compile('<tr class="song" id="(.+?)" itemprop="tracks" itemscope="itemscope" itemtype="http://schema.org/MusicRecording"><td class="song__play_button"><a class="player__play_btn js_play_btn" href="#" rel="(.+?)" title="Play track"/></td><td class="song__name"><div class="title_td_wrap"><meta content="(.+?)" itemprop="url"/><meta content="(.+?)" itemprop="duration"/><meta content="(.+?)" itemprop="inAlbum"/><meta content="(.+?)" itemprop="byArtist"/><span itemprop="name">(.+?)</span><div class="jp-seek-bar" data-time="(.+?)">').findall(link)
+        xbmc.log("match = {0}".format(match), xbmc.LOGINFO)
+        nSong = len(match)
+        count = 0
+        album_path = settings.album_storage_folder(nartist, nalbum)
+        for track, id, songurl, meta, album, artist, songname, dur in match:
+            count += 1
+            songname = settings.decode_text(songname)
+            if 'goldenmp3' in origurl:
+                artist = settings.decode_text(nartist)
+                album = settings.decode_text(nalbum)
+                track = str(count)
+            artist = settings.decode_text(artist)
+            album = settings.decode_text(album)
+            trn = track.replace('track','')
+            #url = find_url(trn).strip() + id
+            url = 'https://listen.musicmp3.ru/' + id #'http://files.musicmp3.ru/lofi/' + id
+            playlist.append(songname)
+            title = "%s. %s" % (track.replace('track',''), songname)
+            safe_title = settings.sanitize_filename(title)
+            list_data = "%s<>%s<>%s<>%s<>%s%s" % (album_path,artist,album,trn,safe_title,'.mp3')
+            local_filename = os.path.join(album_path, safe_title + '.mp3')
+            headers = {'Host':'listen.musicmp3.ru', 'Range':'bytes=0-', 'User-Agent':'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:44.0) Gecko/20100101 Firefox/44.0', 'Accept':'audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5','Referer':'https://www.goldenmp3.ru'}
+            try:
+                download_stream_to_file(url, headers, local_filename)
+            except Exception as exc:
+                xbmc.log('MP3 Streams album download failed for %s: %s' % (local_filename, exc), xbmc.LOGERROR)
+                notification(artist + ' ' + album, 'Album download failed: %s' % songname, '3000', iconimage)
+                return
+            #urllib.urlretrieve(url, local_filename)
+            text = "%s of %s tracks downloaded" % (trn, nSong)
+            notification(artist + ' ' + album, text, '3000', iconimage)
+            add_to_list(list_data, DOWNLOAD_LIST, False)
+        notification(nartist + ' ' + nalbum, 'Album download finished', '3000', iconimage)
+    finally:
+        if os.path.exists(download_lock_path()):
+            os.remove(download_lock_path())
 
 def clear_lock():
     if os.path.exists(download_lock_path()):
