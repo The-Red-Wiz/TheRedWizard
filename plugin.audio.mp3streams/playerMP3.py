@@ -327,7 +327,7 @@ def clean(text):
     return settings.sanitize_filename(text)
 
 
-def createFilename(title, artist, album, url):
+def createFilename(title, artist, album, url, storage_artist='', storage_album=''):
     if ADDON.getSetting('keep_downloads')=='false':
         return os.path.join(TEMP, createMD5(url))
 
@@ -340,11 +340,11 @@ def createFilename(title, artist, album, url):
         songname = title[len(match.group(0)):]
     else:
         songname = title
-    return settings.album_track_file_path(artist, album, track, songname, create_dir=True)
+    return settings.album_track_file_path(storage_artist or artist, storage_album or album, track, songname, create_dir=True)
 
 
 #called from default.py
-def getListItem(title, artist, album, track, image, duration, url, fanart, isPlayable, useDownload):
+def getListItem(title, artist, album, track, image, duration, url, fanart, isPlayable, useDownload, storage_artist='', storage_album=''):
 
     liz = xbmcgui.ListItem(title)
     
@@ -359,7 +359,7 @@ def getListItem(title, artist, album, track, image, duration, url, fanart, isPla
     if FRODO or '.mp3' in url or not useDownload:
         return url, liz
     title = "%s. %s" % (track,title)
-    filename = createFilename(title, artist, album, url)
+    filename = createFilename(title, artist, album, url, storage_artist, storage_album)
                 
     plugin = 'plugin://%s/'  % ADDONID
     plugin += '?mode=%d'     % 999
