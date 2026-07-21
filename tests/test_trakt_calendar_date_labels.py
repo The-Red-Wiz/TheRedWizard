@@ -95,7 +95,10 @@ class TraktCalendarDateLabelTests(unittest.TestCase):
 		self.assertIsNotNone(setting, 'trakt.calendar_date_labels missing from default settings')
 		self.assertEqual('action', setting['setting_type'])
 		self.assertEqual('0', setting['setting_default'])
-		self.assertEqual({'0': 'Words (Today, Tomorrow, Weekday)', '1': 'MM/DD/YYYY', '2': 'DD/MM/YYYY', '3': 'YYYY-MM-DD'},
+		self.assertEqual({
+			'0': 'Words / YYYY-MM-DD', '7': 'Words / MM-DD-YYYY', '8': 'Words / DD-MM-YYYY',
+			'3': 'YYYY-MM-DD', '1': 'MM-DD-YYYY', '2': 'DD-MM-YYYY',
+			'6': 'Day + YYYY-MM-DD', '4': 'Day + MM-DD-YYYY', '5': 'Day + DD-MM-YYYY'},
 						 setting['settings_options'])
 
 
