@@ -255,9 +255,9 @@ def _write_local_progress(watched_indicators, media_type, tmdb_id, season, episo
 	dbcon.execute('INSERT OR REPLACE INTO progress VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
 				(media_type, str(tmdb_id), season, episode, str(resume_point), str(curr_time), last_played, 0, title))
 
-def erase_bookmark(media_type, media_id, season='', episode='', refresh='false'):
+def erase_bookmark(media_type, media_id, season='', episode='', refresh='false', watched_indicators=None):
 	try:
-		watched_indicators = settings.watched_indicators()
+		if watched_indicators is None: watched_indicators = settings.watched_indicators()
 		watched_db = get_database(watched_indicators)
 		if watched_indicators == 1:
 			try:

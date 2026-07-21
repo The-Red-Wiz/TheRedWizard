@@ -559,14 +559,14 @@ def simkl_reset_scrobble(params):
 			simkl_scrobble('stop', 'movie', tmdb_id, 0)
 			resume_id = watched_db.execute('SELECT resume_id FROM progress WHERE db_type=? AND media_id=?', ('movie', str(tmdb_id))).fetchone()[0]
 			simkl_progress('clear_progress', 'movie', tmdb_id, 0, resume_id=resume_id)
-			erase_bookmark('movie', tmdb_id, '', '', 'true')
+			erase_bookmark('movie', tmdb_id, '', '', 'true', 2)
 		elif media_type == 'episode' and season and episode:
 			simkl_scrobble('stop', 'episode', tmdb_id, 0, season, episode)
 			row = watched_db.execute('SELECT resume_id FROM progress WHERE db_type=? AND media_id=? AND season=? AND episode=?',
 				('episode', str(tmdb_id), int(season), int(episode))).fetchone()
 			if row:
 				simkl_progress('clear_progress', 'episode', tmdb_id, 0, season, episode, resume_id=row[0])
-			erase_bookmark('episode', tmdb_id, season, episode, 'true')
+			erase_bookmark('episode', tmdb_id, season, episode, 'true', 2)
 		else: return kodi_utils.notification('Reset Scrobble is only available for movies and episodes', 3500)
 		kodi_utils.notification('Success', 3000)
 	except: kodi_utils.notification('Error', 3000)

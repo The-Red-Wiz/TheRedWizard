@@ -431,12 +431,12 @@ def trakt_reset_scrobble(params):
 		if media_type == 'movie':
 			resume_id = get_bookmarks_movie(watched_db).get(str(tmdb_id), {}).get('resume_id')
 			if resume_id: trakt_progress('clear_progress', 'movie', tmdb_id, 0, resume_id=resume_id)
-			erase_bookmark('movie', tmdb_id, '', '', 'true')
+			erase_bookmark('movie', tmdb_id, '', '', 'true', 1)
 		elif season not in (None, '', 'None') and episode not in (None, '', 'None'):
 			bookmarks = get_bookmarks_episode(str(tmdb_id), season, watched_db) or {}
 			resume_id = bookmarks.get(int(episode), {}).get('resume_id')
 			if resume_id: trakt_progress('clear_progress', 'episode', tmdb_id, 0, season, episode, resume_id)
-			erase_bookmark('episode', tmdb_id, season, episode, 'true')
+			erase_bookmark('episode', tmdb_id, season, episode, 'true', 1)
 		else:
 			return kodi_utils.notification('Reset Scrobble is only available for movies and episodes', 3500)
 		trakt_sync_activities()
