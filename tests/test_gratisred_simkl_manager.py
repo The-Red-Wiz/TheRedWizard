@@ -1,7 +1,9 @@
 import importlib.util
 import sys
 import types
+import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SIMKL_PATH = Path(__file__).resolve().parents[1] / 'plugin.video.gratisred' / 'resources' / 'lib' / 'modules' / 'simkl.py'
@@ -14,7 +16,7 @@ def _install_module(name):
     return module
 
 
-def _load_simkl(monkeypatch):
+def _load_simkl():
     for name in (
         'resources',
         'resources.lib',
@@ -73,57 +75,62 @@ def _load_simkl(monkeypatch):
     simkl = importlib.util.module_from_spec(spec)
     sys.modules['gratisred_simkl_under_test'] = simkl
     spec.loader.exec_module(simkl)
-    monkeypatch.setattr(simkl, 'refreshSimklCache', lambda: None)
     return simkl, control
 
 
-def test_manager_only_removes_selected_status_membership(monkeypatch):
-    simkl, control = _load_simkl(monkeypatch)
-    calls = []
+class SimklManagerTests(unittest.TestCase):
 
-    def fetch_status(media_kind, status):
-        if media_kind == 'movies' and status == 'completed':
-            return [{'ids': {'tmdb': 123, 'imdb': 'tt7654321'}}]
-        return []
+    def test_manager_only_removes_selected_status_membership(self):
+        simkl, control = _load_simkl()
+        calls = []
 
-    def call_simkl(path, data=None, method=None):
-        calls.append((path, data, method))
-        return {'deleted': {'movies': 1}}
-
-    monkeypatch.setattr(simkl, '_fetch_status', fetch_status)
-    monkeypatch.setattr(simkl, 'call_simkl', call_simkl)
-    control.selected = 1
-
-    simkl.manager('Example Movie', 'tt7654321', '123', 'movie')
-
-    assert control.labels == [
-        'Add to [B]Plan to Watch[/B]',
-        'Remove from [B]Completed[/B]',
-        'Add to [B]Dropped[/B]',
-    ]
-    assert calls == [
-        ('/sync/history/remove', {'movies': [{'ids': {'tmdb': 123, 'imdb': 'tt7654321'}}]}, None)
-    ]
-
-
-def test_manager_rechecks_membership_before_destructive_remove(monkeypatch):
-    simkl, control = _load_simkl(monkeypatch)
-    calls = []
-    completed_checks = {'count': 0}
-
-    def fetch_status(media_kind, status):
-        if media_kind == 'movies' and status == 'completed':
-            completed_checks['count'] += 1
-            if completed_checks['count'] == 1:
+        def fetch_status(media_kind, status):
+            if media_kind == 'movies' and status == 'completed':
                 return [{'ids': {'tmdb': 123, 'imdb': 'tt7654321'}}]
-        return []
+            return []
 
-    monkeypatch.setattr(simkl, '_fetch_status', fetch_status)
-    monkeypatch.setattr(simkl, 'call_simkl', lambda *args, **kwargs: calls.append((args, kwargs)))
-    control.selected = 1
+        def call_simkl(path, data=None, method=None):
+            calls.append((path, data, method))
+            return {'deleted': {'movies': 1}}
 
-    simkl.manager('Example Movie', 'tt7654321', '123', 'movie')
+        control.selected = 1
 
-    assert control.labels[1] == 'Remove from [B]Completed[/B]'
-    assert calls == []
-    assert control.dialogs[-1][0][0] == 'Item is not in Completed.'
+        with mock.patch.object(simkl, '_fetch_status', fetch_status), \
+                mock.patch.object(simkl, 'call_simkl', call_simkl), \
+                mock.patch.object(simkl, 'refreshSimklCache', lambda: None):
+            simkl.manager('Example Movie', 'tt7654321', '123', 'movie')
+
+        self.assertEqual(control.labels, [
+            'Add to [B]Plan to Watch[/B]',
+            'Remove from [B]Completed[/B]',
+            'Add to [B]Dropped[/B]',
+        ])
+        self.assertEqual(calls, [
+            ('/sync/history/remove', {'movies': [{'ids': {'tmdb': 123, 'imdb': 'tt7654321'}}]}, None)
+        ])
+
+    def test_manager_rechecks_membership_before_destructive_remove(self):
+        simkl, control = _load_simkl()
+        calls = []
+        completed_checks = {'count': 0}
+
+        def fetch_status(media_kind, status):
+            if media_kind == 'movies' and status == 'completed':
+                completed_checks['count'] += 1
+                if completed_checks['count'] == 1:
+                    return [{'ids': {'tmdb': 123, 'imdb': 'tt7654321'}}]
+            return []
+
+        control.selected = 1
+
+        with mock.patch.object(simkl, '_fetch_status', fetch_status), \
+                mock.patch.object(simkl, 'call_simkl', lambda *args, **kwargs: calls.append((args, kwargs))):
+            simkl.manager('Example Movie', 'tt7654321', '123', 'movie')
+
+        self.assertEqual(control.labels[1], 'Remove from [B]Completed[/B]')
+        self.assertEqual(calls, [])
+        self.assertEqual(control.dialogs[-1][0][0], 'Item is not in Completed.')
+
+
+if __name__ == '__main__':
+    unittest.main()
