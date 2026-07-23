@@ -938,6 +938,33 @@ def _list_ids(tmdb=None, imdb=None, tvdb=None):
     return ids
 
 
+def _ids_match(item_ids, ids):
+    if not isinstance(item_ids, dict) or not isinstance(ids, dict):
+        return False
+    for key in ('tmdb', 'imdb', 'tvdb'):
+        item_value = item_ids.get(key)
+        wanted_value = ids.get(key)
+        if item_value in (None, '', 'None', 0, '0') or wanted_value in (None, '', 'None', 0, '0'):
+            continue
+        if str(item_value) == str(wanted_value):
+            return True
+    return False
+
+
+def _item_in_status(media_kind, status, ids):
+    try:
+        if media_kind == 'movies':
+            items = _fetch_status('movies', status)
+        else:
+            items = _fetch_tv_status(status)
+        for item in items:
+            if _ids_match(item.get('ids'), ids):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def markMovieAsWatched(imdb, tmdb=None):
     ids = _list_ids(tmdb=tmdb, imdb=imdb)
     if not ids:
@@ -1088,7 +1115,7 @@ def manager(name, imdb, tmdb, content):
         if not getSimklCredentialsInfo():
             return control.infoDialog('Authorise Simkl first.', sound=True)
         is_movie = content == 'movie'
-        media_type = 'movie' if is_movie else 'tvshow'
+        media_kind = 'movies' if is_movie else 'shows'
         ids = _list_ids(tmdb=tmdb, imdb=imdb)
         if not ids:
             return control.infoDialog('Missing IDs for Simkl Manager.', sound=True, icon='ERROR')
@@ -1097,8 +1124,10 @@ def manager(name, imdb, tmdb, content):
             if is_movie and status in ('watching', 'hold'):
                 continue
             label = _STATUS_LABELS[status]
-            choices.append(('Add to [B]%s[/B]' % label, 'add', status))
-            choices.append(('Remove from [B]%s[/B]' % label, 'remove', status))
+            if _item_in_status(media_kind, status, ids):
+                choices.append(('Remove from [B]%s[/B]' % label, 'remove', status))
+            else:
+                choices.append(('Add to [B]%s[/B]' % label, 'add', status))
         select = control.selectDialog([c[0] for c in choices], 'Simkl Manager')
         if select < 0:
             return
@@ -1110,6 +1139,9 @@ def manager(name, imdb, tmdb, content):
                 post = {'shows': [{'to': status, 'ids': ids}]}
             result = call_simkl('/sync/add-to-list', data=post)
         else:
+            if not _item_in_status(media_kind, status, ids):
+                label = _STATUS_LABELS.get(status, status)
+                return control.infoDialog('Item is not in %s.' % label, heading=str(name), sound=True, icon='ERROR')
             if is_movie:
                 post = {'movies': [{'ids': ids}]}
             else:
