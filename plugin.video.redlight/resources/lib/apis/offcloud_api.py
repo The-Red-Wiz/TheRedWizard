@@ -306,12 +306,9 @@ class OffcloudAPI:
 					return None
 				extras_filter = extras()
 				torrent_files = [i for i in torrent_files if not any(x in i['filename'] for x in extras_filter)]
+			# Offcloud download URLs include this requestId; removing the cloud request here can
+			# invalidate the URL before Kodi opens it. Leave cleanup to a post-playback path.
 			file_url = self.requote_uri(torrent_files[0]['url'])
-			if file_url and not store_to_cloud and torrent_id:
-				try: self.delete_torrent(torrent_id)
-				except Exception: pass
-				try: self.clear_cache(clear_hashes=False)
-				except Exception: pass
 			return file_url
 		except Exception:
 			if torrent_id: self.delete_torrent(torrent_id)
