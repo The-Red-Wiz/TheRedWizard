@@ -198,9 +198,6 @@ class player(xbmc.Player):
                     if watcher == True and not property == '7':
                         control.window.setProperty(pname, '7')
                         playcount.markMovieDuringPlayback(self.imdb, '7', self.tmdb)
-                    elif watcher == False and not property == '6':
-                        control.window.setProperty(pname, '6')
-                        playcount.markMovieDuringPlayback(self.imdb, '6', self.tmdb)
                 except:
                     pass
                 xbmc.sleep(2000)
@@ -214,9 +211,6 @@ class player(xbmc.Player):
                     if watcher == True and not property == '7':
                         control.window.setProperty(pname, '7')
                         playcount.markEpisodeDuringPlayback(self.imdb, self.tmdb, self.season, self.episode, '7', self.tvdb)
-                    elif watcher == False and not property == '6':
-                        control.window.setProperty(pname, '6')
-                        playcount.markEpisodeDuringPlayback(self.imdb, self.tmdb, self.season, self.episode, '6', self.tvdb)
                 except:
                     pass
                 xbmc.sleep(2000)
