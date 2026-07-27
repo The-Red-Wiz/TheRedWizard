@@ -277,42 +277,52 @@ class OffcloudAPI:
 		return self._get('cloud/remove/%s' % request_id)
 
 	def resolve_magnet(self, magnet_url, info_hash, store_to_cloud, title, season, episode):
+		url, _cleanup_request_id = self.resolve_magnet_with_cleanup(magnet_url, info_hash, store_to_cloud, title, season, episode)
+		return url
+
+	def resolve_magnet_with_cleanup(self, magnet_url, info_hash, store_to_cloud, title, season, episode):
 		try:
 			if self._hash_is_cached(info_hash):
 				url = self._resolve_cached_download(magnet_url, season, episode)
-				if url: return url
-			return self._resolve_via_cloud(magnet_url, season, episode, store_to_cloud)
+				if url: return url, None
+			return self._resolve_via_cloud_result(magnet_url, season, episode, store_to_cloud)
 		except Exception:
-			return None
+			return None, None
 
 	def _resolve_via_cloud(self, magnet_url, season, episode, store_to_cloud=True):
+		url, _cleanup_request_id = self._resolve_via_cloud_result(magnet_url, season, episode, store_to_cloud)
+		return url
+
+	def _resolve_via_cloud_result(self, magnet_url, season, episode, store_to_cloud=True):
 		torrent_id = None
 		try:
 			extensions = supported_video_extensions()
 			torrent = self.add_magnet(magnet_url)
-			if not torrent or torrent.get('status') != 'downloaded': return None
+			if not torrent or torrent.get('status') != 'downloaded': return None, None
 			single_file_torrent = '%s/%s' % (torrent['url'], torrent['fileName'])
 			torrent_id = torrent['requestId']
 			torrent_files = self.torrent_info(torrent_id)
 			if not isinstance(torrent_files, list): torrent_files = [single_file_torrent]
 			torrent_files = [{'url': item, 'filename': item.split('/')[-1], 'size': 0} for item in torrent_files if item.lower().endswith(tuple(extensions))]
-			if not torrent_files: return None
+			if not torrent_files: return None, None
 			if season:
 				torrent_files = [i for i in torrent_files if seas_ep_filter(season, episode, i['filename'])]
-				if not torrent_files: return None
+				if not torrent_files: return None, None
 			else:
 				if self._m2ts_check(torrent_files):
 					self.delete_torrent(torrent_id)
-					return None
+					return None, None
 				extras_filter = extras()
 				torrent_files = [i for i in torrent_files if not any(x in i['filename'] for x in extras_filter)]
 			# Download URLs include this requestId — deleting here invalidates the link
 			# before Kodi opens it. Caller removes the request after playback when
 			# Store Resolved to Cloud is off (see Sources._cleanup_offcloud_resolved_url).
-			return self.requote_uri(torrent_files[0]['url'])
+			file_url = self.requote_uri(torrent_files[0]['url'])
+			cleanup_request_id = torrent_id if file_url and not store_to_cloud else None
+			return file_url, cleanup_request_id
 		except Exception:
 			if torrent_id: self.delete_torrent(torrent_id)
-			return None
+			return None, None
 
 	def display_magnet_pack(self, magnet_url, info_hash):
 		try:

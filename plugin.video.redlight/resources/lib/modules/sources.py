@@ -2041,8 +2041,11 @@ class Sources():
 			return
 		try:
 			from apis.offcloud_api import OffcloudAPI
-			request_id = OffcloudAPI.request_id_from_download_url(url)
+			request_id = item.pop('_offcloud_cleanup_request_id', None)
 			if not request_id:
+				return
+			url_request_id = OffcloudAPI.request_id_from_download_url(url)
+			if url_request_id and url_request_id != request_id:
 				return
 			api = OffcloudAPI()
 			Thread(target=api.cleanup_resolved_request, args=(request_id,), daemon=True).start()
@@ -2774,7 +2777,7 @@ class Sources():
 					pack = 'package' in item
 				else: title, season, episode, pack = self.get_search_title(), None, None, False
 				if cache_provider in ('Real-Debrid', 'Premiumize.me', 'AllDebrid', 'Offcloud', 'TorBox'):
-					url = self.resolve_cached(cache_provider, item['url'], item['hash'], title, season, episode, pack)
+					url = self.resolve_cached(cache_provider, item['url'], item['hash'], title, season, episode, pack, item)
 					try:
 						self._log_nextep_resolve_diag(item, phase='resolved', url=url, resolve_se=(season, episode))
 					except Exception:
@@ -2785,10 +2788,18 @@ class Sources():
 			return None
 		return url
 
-	def resolve_cached(self, debrid_provider, item_url, _hash, title, season, episode, pack):
+	def resolve_cached(self, debrid_provider, item_url, _hash, title, season, episode, pack, source_item=None):
 		debrid_function = self.debrid_importer(debrid_provider)
 		store_to_cloud = settings.store_resolved_to_cloud(debrid_provider, pack)
-		try: url = debrid_function().resolve_magnet(item_url, _hash, store_to_cloud, title, season, episode)
+		try:
+			api = debrid_function()
+			if debrid_provider == 'Offcloud' and hasattr(api, 'resolve_magnet_with_cleanup'):
+				url, cleanup_request_id = api.resolve_magnet_with_cleanup(item_url, _hash, store_to_cloud, title, season, episode)
+				if source_item is not None:
+					if cleanup_request_id: source_item['_offcloud_cleanup_request_id'] = cleanup_request_id
+					else: source_item.pop('_offcloud_cleanup_request_id', None)
+			else:
+				url = api.resolve_magnet(item_url, _hash, store_to_cloud, title, season, episode)
 		except: url = None
 		return url
 
