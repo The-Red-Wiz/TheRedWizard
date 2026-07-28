@@ -37,9 +37,14 @@ def load_punchplay_api():
 	settings = types.ModuleType('modules.settings')
 	settings.punchplay_user_active = lambda: True
 
+	utils = types.ModuleType('modules.utils')
+	utils.copy2clip = lambda value: None
+	utils.make_qrcode = lambda value: ''
+
 	modules = types.ModuleType('modules')
 	modules.kodi_utils = kodi_utils
 	modules.settings = settings
+	modules.utils = utils
 
 	sys.modules.update({
 		'caches': caches,
@@ -48,6 +53,7 @@ def load_punchplay_api():
 		'modules': modules,
 		'modules.kodi_utils': kodi_utils,
 		'modules.settings': settings,
+		'modules.utils': utils,
 	})
 
 	module_path = Path(__file__).resolve().parents[1] / 'plugin.video.redlight' / 'resources' / 'lib' / 'apis' / 'punchplay_api.py'
