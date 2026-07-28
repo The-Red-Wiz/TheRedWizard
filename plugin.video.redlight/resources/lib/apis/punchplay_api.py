@@ -502,6 +502,32 @@ def punchplay_interact(media_type, tmdb_id, payload):
 	result = call_punchplay('/title/%s/%s/interact' % (kind, tid), method='patch', data=payload)
 	return bool(result) and not (isinstance(result, dict) and result.get('error'))
 
+def _punchplay_episode_history_ids(tmdb_id, season, episode):
+	try:
+		tid, season_num, episode_num = int(tmdb_id), int(season), int(episode)
+	except: return []
+	history_ids = []
+	for item in _paginate_history():
+		try:
+			if item.get('type') != 'episode': continue
+			show_id = item.get('showTmdbId') or item.get('show_tmdb_id') or item.get('tmdbId')
+			if int(show_id) != tid: continue
+			if int(item.get('season')) != season_num or int(item.get('episode')) != episode_num: continue
+			history_id = item.get('id') or item.get('historyId') or item.get('watchHistoryId')
+			if history_id not in (None, ''): history_ids.append(str(history_id))
+		except: continue
+	return history_ids
+
+def _punchplay_delete_episode_history(tmdb_id, season, episode):
+	history_ids = _punchplay_episode_history_ids(tmdb_id, season, episode)
+	if not history_ids: return False
+	ok = True
+	for history_id in history_ids:
+		result = call_punchplay('/watch-history/%s' % history_id, method='delete')
+		if result is None or (isinstance(result, dict) and result.get('error')):
+			ok = False
+	return ok
+
 def punchplay_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season=None, episode=None):
 	if not punchplay_user_active(): return False
 	kind = _title_kind(media_type)
@@ -524,7 +550,9 @@ def punchplay_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season
 	else:
 		if media_type == 'movie':
 			result = call_punchplay('/title/%s/%s/history' % (kind, tid), method='delete')
-		elif media_type in ('episode', 'season') and season is not None:
+		elif media_type == 'episode' and season is not None and episode is not None:
+			result = _punchplay_delete_episode_history(tid, season, episode)
+		elif media_type == 'season' and season is not None:
 			result = call_punchplay(
 				'/title/%s/%s/season/%s/watch' % (kind, tid, int(season)), method='delete')
 		else:
