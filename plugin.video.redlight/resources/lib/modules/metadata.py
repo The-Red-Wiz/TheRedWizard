@@ -403,12 +403,10 @@ def episodes_meta(season, meta, force_refresh=False):
 		# Airing current seasons need frequent refresh — weekly anime often lands mid-window.
 		if tvshow_status in ('Ended', 'Canceled') or total_seasons > int(season): expiration = 4368
 		else: expiration = 12
-		try:
-			details = season_episodes_details(media_id, season)['episodes']
-			total_episodes = len(details)
-			data = list(_process())
-		except: data, expiration = [], 12
-	except: data, expiration = [], 12
+		details = season_episodes_details(media_id, season)['episodes']
+		total_episodes = len(details)
+		data = list(_process())
+	except: return []
 	meta_cache.set_season(prop_string, data, expiration)
 	return data
 

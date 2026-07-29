@@ -55,7 +55,7 @@ def _get_mdbl_paginated_list(url):
 	try:
 		for _ in range(MAX_LIST_ITEMS // params['limit']):
 			result = call_mdblist(url, params=params)
-			if not isinstance(result, dict): break
+			if not isinstance(result, dict): return None
 			for key in items:
 				if key in result and isinstance(result[key], list):
 					items[key].extend(result[key])
@@ -64,11 +64,13 @@ def _get_mdbl_paginated_list(url):
 			next_cursor = pagination.get('next_cursor')
 			if not next_cursor: break
 			params['cursor'] = next_cursor
-	except: pass
+	except: return None
 	return items
 
 def _get_mdbl_playback_items():
-	return _get_mdbl_paginated_list('sync/playback').get('items', [])
+	result = _get_mdbl_paginated_list('sync/playback')
+	if result is None: return None
+	return result.get('items', [])
 
 def _tmdb_id_from_ids(ids):
 	for key in ('tmdb', 'tmdbid'):
@@ -445,6 +447,7 @@ def mdblist_hide_unhide_progress_items(params):
 	else: kodi_utils.notification('Removed from MDBList Dropped', 3000)
 
 def mdblist_indicators_movies(watched_info):
+	if watched_info is None: return False
 	insert_list = []
 	def _process(item):
 		tmdb_id = _resolve_movie_id(item.get('movie', {}).get('ids', {}))
@@ -452,8 +455,10 @@ def mdblist_indicators_movies(watched_info):
 	movies = watched_info.get('movies', [])
 	for i in TaskPool().tasks(_process, movies, min(len(movies), settings.max_threads())): i.join()
 	mdblist_cache.mdblist_watched_cache.set_bulk_movie_watched(insert_list)
+	return True
 
 def mdblist_indicators_tv(watched_info):
+	if watched_info is None: return False
 	insert_list = []
 	def _process(item):
 		show_ids = item.get('episode', {}).get('show', {}).get('ids', {})
@@ -464,8 +469,10 @@ def mdblist_indicators_tv(watched_info):
 	episodes = watched_info.get('episodes', [])
 	for i in TaskPool().tasks(_process, episodes, min(len(episodes), settings.max_threads())): i.join()
 	mdblist_cache.mdblist_watched_cache.set_bulk_tvshow_watched(insert_list)
+	return True
 
 def mdblist_progress_movies(progress_info):
+	if progress_info is None: return False
 	insert_list = []
 	def _process(item):
 		tmdb_id = _resolve_movie_id(item.get('movie', {}).get('ids', {}))
@@ -474,8 +481,10 @@ def mdblist_progress_movies(progress_info):
 	threads = list(make_thread_list(_process, [i for i in progress_info if i.get('type') == 'movie' and float(i.get('progress', 0)) > 1]))
 	[i.join() for i in threads]
 	mdblist_cache.mdblist_watched_cache.set_bulk_movie_progress(insert_list)
+	return True
 
 def mdblist_progress_tv(progress_info):
+	if progress_info is None: return False
 	insert_list = []
 	def _process(item):
 		tmdb_id = _resolve_tvshow_id(item.get('show', {}).get('ids', {}))
@@ -486,6 +495,7 @@ def mdblist_progress_tv(progress_info):
 	threads = list(make_thread_list(_process, [i for i in progress_info if i.get('type') == 'episode' and float(i.get('progress', 0)) > 1]))
 	[i.join() for i in threads]
 	mdblist_cache.mdblist_watched_cache.set_bulk_tvshow_progress(insert_list)
+	return True
 
 def mdblist_sync_activities(params=None, force_update=False, progress=None):
 	if isinstance(params, dict): force_update = params.get('force_update', 'false') in ('true', 'True', True) or force_update
@@ -536,6 +546,7 @@ def mdblist_sync_activities(params=None, force_update=False, progress=None):
 		if _sync_canceled(): return 'canceled'
 		success = 'success'
 		watched_info = _get_mdbl_paginated_list('sync/watched')
+		if watched_info is None: return 'failed'
 		if _sync_canceled(): return 'canceled'
 		if refresh_movies: mdblist_indicators_movies(watched_info)
 		if _sync_canceled(): return 'canceled'
@@ -544,6 +555,7 @@ def mdblist_sync_activities(params=None, force_update=False, progress=None):
 		if _sync_canceled(): return 'canceled'
 		success = 'success'
 		items = _get_mdbl_playback_items()
+		if items is None: return 'failed'
 		if _sync_canceled(): return 'canceled'
 		if refresh_movie_pause: mdblist_progress_movies(items)
 		if _sync_canceled(): return 'canceled'
