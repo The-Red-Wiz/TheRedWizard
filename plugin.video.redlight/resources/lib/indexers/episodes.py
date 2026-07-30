@@ -31,6 +31,21 @@ def _calendar_episode_date(service_first_aired, tmdb_premiered, adjust_hours):
 			pass
 	return adjust_premiered_date(tmdb_premiered, adjust_hours)
 
+def _should_refresh_missing_next(meta_get, last_season, last_episode, include_unaired, current_date, adjust_hours):
+	"""Only refresh Next cache when TMDb advertises a concrete eligible next episode."""
+	try:
+		next_ep = ((meta_get('extra_info') or {}).get('next_episode_to_air') or {})
+		next_season, next_episode = int(next_ep.get('season_number')), int(next_ep.get('episode_number'))
+		last_season, last_episode = int(last_season), int(last_episode)
+		if (next_season, next_episode) <= (last_season, last_episode): return False
+		episode_date, _premiered = adjust_premiered_date(next_ep.get('air_date'), adjust_hours)
+		if episode_date and current_date < episode_date:
+			if not include_unaired: return False
+			if not date_difference(current_date, episode_date, 7): return False
+		return True
+	except:
+		return False
+
 def _nextep_indicator_watchlist(indicators=None):
 	"""Never-started shows from a Watched Indicators service watchlist (empty for Red Light)."""
 	if indicators is None: indicators = settings.watched_indicators()
@@ -228,7 +243,8 @@ def build_single_episode(list_type, params={}):
 				last_watched_season, last_watched_episode = orig_season, orig_episode
 				orig_season, orig_episode = ws.get_next(orig_season, orig_episode, watched_info, season_data, nextep_content, meta)
 				# Weekly anime: stale season/show cache often stops at the last watched ep until expiry.
-				if (not orig_season or not orig_episode) and meta_get('status') not in ('Ended', 'Canceled'):
+				if (not orig_season or not orig_episode) and meta_get('status') not in ('Ended', 'Canceled') \
+					and _should_refresh_missing_next(meta_get, last_watched_season, last_watched_episode, include_unaired, current_date, adjust_hours):
 					try:
 						from modules.metadata import refresh_airing_show_meta
 						refresh_airing_show_meta(meta_get('tmdb_id'), last_watched_season)
