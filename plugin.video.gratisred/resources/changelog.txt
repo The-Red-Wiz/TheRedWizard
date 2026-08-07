@@ -1,4 +1,8 @@
 
+[B]- 1.2.4 (2026-08-07)[/B] Trakt/Simkl backend (performance) cumulative update + Kodi 22 compliance:
+ * [B]Simkl[/B]: continuous watched sync uses [I]/sync/activities[/I] + [I]date_from[/I] deltas (Simkl Phase 2), merging into local indicator caches instead of full [I]/sync/all-items[/I] on every poll. Full pull remains for first sync / Force Refresh / removal reconciliation. API calls spaced 1.5s across plugin/service invokers (shared throttle file + home property); overlapping syncs coalesced. Anime sync uses [I]full_anime_seasons[/I] with TVDb S/E mapping. Indicator list refresh uses activities sync instead of always forcing a full cache rebuild.
+ * [B]Playback[/B]: prefer [I]setResolvedUrl()[/I] when the plugin handle expects it (home widgets / [I]PlayMedia[/I] on Kodi 22). Fall back to [I]Player().play()[/I] only when there is no resolve handle — avoids dual play+resolve and the post-stop [B]One or more items failed to play[/B] toast.
+
 [B]- 1.2.3 (2026-07-31)[/B] Trakt failed-playback scrobble guard (#180):
  * [B]Trakt[/B]: failed or zero-time playback no longer sends a stop scrobble at a stale bookmark resume percentage (clears Playing now at 1% instead). Live start backup only runs if video is actually playing.
  * [B]Simkl[/B]: authorise uses [I]POST /users/settings[/I] with the new token so the account row shows your real Simkl name instead of "Simkl User". Revoke and re-authorise once to refresh an existing install.
@@ -23,7 +27,7 @@
  * [B]OpenSubtitles.com[/B]: ships a Gratis Red–only API consumer (separate from Red Light). Existing installs on the old shared key are migrated automatically; the stored login JWT is cleared once so the next check re-authorises with username/password — no manual re-entry.
 
 [B]- 1.1.9 (2026-07-26)[/B] Playback unwatch safety (#157 / #163):
- * [B]Playback[/B]: stop sending automatic Trakt/Simkl "not watched" updates while progress is below the 92% watched threshold (and on rewind). Auto-mark at >=92% and manual Unwatched are unchanged - avoids wiping remote watched history when indicators are stale.
+ * [B]Playback[/B]: stop sending automatic Trakt/Simkl "not watched" updates while progress is below the 92% watched threshold (and on rewind). Auto-mark at >=92% and manual Unwatched are unchanged — avoids wiping remote watched history when indicators are stale.
 
 [B]- 1.1.8 (2026-07-25)[/B] Trakt watched follow-up (#157):
  * [B]Trakt[/B]: after auto-mark during playback, refresh the underlying list once playback stops/ends (same [I]Container.Refresh[/I] as manual Watched) so checkmarks appear without leaving and re-entering — all platforms, no device-specific branching.
@@ -40,9 +44,9 @@
 
 [B]- 1.1.5 (2026-07-24)[/B] Managers, list sort, auth gating, library imports:
  * [B]Playback[/B]: Resume Point Source follows Watched Indicators (no separate Change picker); [I]Using[/I] remains as read-only info under Resume Playback.
- * [B]My Stuff[/B]: My Simkl / My Trakt / My TMDb / My UserLists only appear when that account is authorised (Authorize CTAs remain under Tools); service menus ordered Simkl > Trakt > TMDb (My Stuff and Movies Explore); [I]My UserLists[/I] capitalisation standardised.
- * Removed broken [I]View Changelog[/I] from navigator folder context menus (Changelog remains under Tools).
- * Account Settings: Trakt Library Sync and Simkl Watched Sync rows only when authorised; TMDb Manager guards unauthorised calls.
+ * [B]My Stuff[/B]: My Simkl / My Trakt / My TMDb / My UserLists only appear when that account is authorised (Authorize CTAs remain under Tools); service menus ordered Simkl > Trakt > TMDb; [I]My UserLists[/I] capitalisation standardised.
+ * [B]Menus[/B]: removed broken [I]View Changelog[/I] from navigator folder context menus (Changelog remains under Tools).
+ * [B]Account Settings[/B]: Trakt Library Sync and Simkl Watched Sync rows only when authorised; TMDb Manager guards unauthorised calls.
  * [B]Tools[/B]: Authorize TMDb when not signed in (alongside Simkl / Trakt).
  * [B]Simkl Manager[/B]: only shows Remove for statuses the item is already on; re-checks membership before history remove; toasts say Added to / Removed from the chosen shelf (or a clear failure); cache refresh after manager actions is silent (manual Refresh Simkl Cache still notifies).
  * [B]My Simkl[/B]: per-status [I]Set Sort Order[/I] (title / date added / year / random / provider default) on Plan to Watch, Watching, Completed, On Hold, Dropped; defaults to Title A–Z when unset; list fetch no longer uses [I]ids_only[/I] (titles were missing so title sort did nothing).
@@ -54,133 +58,93 @@
  * [B]TMDb UserLists[/B]: per-list [I]Set Sort Order[/I] (context menu on each list).
 
 [B]- 1.1.4 (2026-07-22)[/B] Watched Indicators UX:
- * [B]Change Watched Indicators...[/B] in General Settings (clearer action); reopens General Settings so [I]Using[/I] updates immediately.
- * Changing Watched Indicators also sets [B]Resume Point Source[/B] to match.
- * [B]Change Resume Point Source...[/B] in Playback Settings uses the same authorised-only picker (Local / Simkl / Trakt when signed in).
+ * [B]Settings[/B]: [B]Change Watched Indicators...[/B] in General Settings (clearer action); reopens General Settings so [I]Using[/I] updates immediately.
+ * [B]Playback[/B]: changing Watched Indicators also sets Resume Point Source to match.
+ * [B]Settings[/B]: [B]Change Resume Point Source...[/B] in Playback Settings uses the same authorised-only picker (Local / Simkl / Trakt when signed in).
 
 [B]- 1.1.3 (2026-07-22)[/B] Indicators settings + sync defaults:
  * [B]Indicators[/B]: clickable settings row opens the provider picker (was a greyed-out label); [I]Current[/I] / [I]Using[/I] shows the active provider.
- * [B]Simkl Watched Sync on Kodi Startup[/B] defaults to off (same as Trakt Library Sync).
+ * [B]Simkl[/B]: Watched Sync on Kodi Startup defaults to off (same as Trakt Library Sync).
 
 [B]- 1.1.2 (2026-07-22)[/B] Simkl integration + personal progress:
- * [B]Simkl[/B]: authorise with QR / PIN (same dialog style as Trakt/TMDb); revoke from Account Settings; optional [I]script.simkl[/I] coexistence when marking watched / scrobbling.
- * Gratis Red–specific Simkl client ID (not shared with Red Light).
+ * [B]Simkl[/B]: authorise with QR / PIN (same dialog style as Trakt/TMDb); revoke from Account Settings; optional [I]script.simkl[/I] coexistence when marking watched / scrobbling. Gratis Red–specific client ID (not shared with Red Light).
  * [B]Indicators[/B]: picker only lists authorised providers (Local always; Simkl / Trakt when signed in). After Simkl or Trakt auth, optional prompt to set that service as Indicators.
  * [B]My Stuff > My Simkl[/B]: Movies — Plan to Watch / Completed / Dropped / In Progress; TV — Plan to Watch / Watching / Completed / On Hold / Dropped / Continue Watching / In Progress Episodes / Upcoming Episodes; Refresh Simkl Cache.
- * [B]Explore Simkl[/B] (Movies / TV): [B]Simkl Trending Today / This Week / This Month[/B] from Simkl Most Watched CDN lists (TV merges anime).
- * [B]Simkl Manager[/B] on movie/show/episode context menus (add/remove status shelves).
- * [B]Native Simkl scrobble[/B] (start / pause / stop) when Indicators = Simkl; [B]Resume Point Source[/B] adds [I]Simkl[/I].
- * Optional [B]Simkl Watched Sync on Kodi Startup[/B]; Progress item limit / sort labels are provider-neutral.
- * [B]Optional Installs[/B]: [I]script.simkl[/I] listed before [I]script.trakt[/I]; Tools auth entries ordered Simkl then Trakt; auth/revoke refreshes the open menu.
- * Trakt Explore catalogs, Calendar / Continue Watching, UserLists, Collection / Favorites, and scrape helpers remain Trakt-backed.
- * After Simkl auth, optional prompt to open Simkl's official Trakt import page.
- * Requires [B]script.gratisred.artwork[/B] 1.0.3+ (Simkl menu icons; transparent theme uses the official mark).
+ * [B]Explore Simkl[/B]: Movies / TV — Trending Today / This Week / This Month from Simkl Most Watched CDN lists (TV merges anime).
+ * [B]Simkl Manager[/B]: movie/show/episode context menus (add/remove status shelves).
+ * [B]Playback[/B]: native Simkl scrobble (start / pause / stop) when Indicators = Simkl; Resume Point Source adds Simkl.
+ * [B]Simkl[/B]: optional Watched Sync on Kodi Startup; Progress item limit / sort labels are provider-neutral.
+ * [B]Tools[/B]: Optional Installs lists [I]script.simkl[/I] before [I]script.trakt[/I]; auth entries ordered Simkl then Trakt; auth/revoke refreshes the open menu.
+ * [B]Trakt[/B]: Explore catalogs, Calendar / Continue Watching, UserLists, Collection / Favorites, and scrape helpers remain Trakt-backed.
+ * [B]Simkl[/B]: after auth, optional prompt to open Simkl's official Trakt import page.
+ * [B]Artwork[/B]: requires [I]script.gratisred.artwork[/I] 1.0.3+ (Simkl menu icons; transparent theme uses the official mark).
 
 [B]- 1.1.1 (2026-07-11)[/B] Trakt/TMDb fixes, QR auth, scraper fixes, OpenSubtitles.com:
- * [B]hdhub_stremio[/B]: new provider using the HdHub Stremio JSON API (IMDb movie + TV episode streams; direct CDN / PixelDrain links, torrents skipped).
- * [B]fmovie_core_sites[/B]: new movies-only provider for [I]moviesfree.cv[/I] and [I]ghostplayer.store[/I] (fmovie-core [I]Servers[/I] block; file-host chains via ResolveURL; cloud mirror keys skipped).
- * [B]watchseries_cyou[/B] and [B]projectfreetv_cyou[/B]: use [I]scrapePage[/I] + FlareSolverr for Cloudflare bypass (same pattern as [I]projectfreetv_lol[/I]); [I]/open/link/[/I] resolve follows [I]/open/site/[/I] redirects via [I]geturl[/I].
- * [B]tvmovieflix_com[/B]: parse the current fmovie-core [I]Servers[/I] JSON object for named embed URLs; fixed internal [I]player.php[/I] links being dropped after redirect; [I]embed.php[/I] direct streams still decoded from JW Player payload.
- * [B]projectfreetv_cyou[/B] re-enabled by default in Provider Settings (was marked false positives while on the old cookie-only fetch path).
- * [B]Trakt[/B] and [B]TMDb[/B] authorise dialogs now show a [B]QR code[/B], copy the activation link to the clipboard, and offer a short URL fallback — same flow as Red Light.
- * [B]TMDb[/B] authorisation uses the modern themoviedb.org QR / browser confirm path (no username/password entry required for lists); session is converted for existing list/watchlist API calls.
- * Removed the obsolete TMDb password setting; username is filled automatically after QR authorisation.
- * Bundled [I]segno[/I] QR generator; progress dialog runs in a dedicated window with BACK to cancel.
- * [B]Trakt[/B]: [I]Authorize Trakt[/I] is hidden in [I]Tools[/I] and [I]Account Settings[/I] once connected; authorised account username is shown instead.
- * [B]OpenSubtitles.com[/B]: restored built-in subtitle download via the modern REST API ([I]api.opensubtitles.com[/I]; same app key as Red Light). Enable in [I]Special Settings > Subtitles[/I], enter your free opensubtitles.com username/password, choose languages — subs fetch at playback start.
- * [B]Subtitle notifications[/B] (FIX): removed [I]Dialog.Close(all)[/I] and the 3s wait before the OpenSubtitles download toast — the corner notification still shows without tearing down fullscreen player UI or popping the OSD/seek bar.
- * Fixed [I]trakt_list()[/I] typos where missing TMDb IDs and [I]paused_at[/I] values were never defaulted ([I]==[/I] vs [I]=[/I]) in [I]movies.py[/I] and [I]tvshows.py[/I].
- * Trakt pagination limits updated to match current API caps (250 per page; 100 when [I]extended=progress[/I]) so large watchlists, collections, and user lists no longer truncate silently.
- * Watched movie/show sync and playback resume now walk all pages instead of stopping at the first chunk.
- * OAuth token expiry ([I]trakt.expires[/I]) stored on authorise/refresh with proactive refresh before requests; concurrent refresh guarded to avoid token storms.
- * Resume lookups cache Trakt playback progress briefly (2 min) instead of re-fetching the full list on every play.
- * Activity timestamps validated before use so bad/HTML responses do not corrupt list cache invalidation.
- * [B]TMDb UserLists[/B] ([I]My UserLists > TMDb UserLists[/I]): account session/id are read at request time (not cached at Kodi startup), so authorising in settings works without restarting; all account list pages are fetched; movie and TV menus filter by TMDb [I]list_type[/I]; list contents accept nested [I]movie[/I]/[I]show[/I] payloads.
- * [B]Set Views[/B] (FIX): [I]getCurrentViewId()[/I] in [I]control.py[/I] falls back to the focused skin control ID when [I]Container.Viewmode.id[/I] is blank (common on some Kodi 21 builds). [I]views.addView()[/I] validates the ID before saving; Estuary content defaults apply for menus, movies, TV shows, seasons, and episodes.
- * [B]Settings shortcuts[/B]: [I]Developer Tools > Provider Settings[/I] and [I]Library Settings[/I] land on the correct category on any skin (runtime category-list detection, not Estuary-only control ids).
- * [B]Optional Installs[/B]: list refreshes after an install completes so [I]Open Settings[/I] appears without leaving the menu.
- * [B]Provider Domains[/B] (dev tools): lists all auto-loaded scrapers including [I]hdhub_stremio[/I] and [I]fmovie_core_sites[/I]; no longer breaks when a scraper omits [I]base_link[/I].
- * [B]General Settings[/B]: restored [I]Show Changelog After Updates[/I] (default off).
+ * [B]Providers[/B]: [B]hdhub_stremio[/B] — HdHub Stremio JSON API (IMDb movie + TV episode streams; direct CDN / PixelDrain links, torrents skipped).
+ * [B]Providers[/B]: [B]fmovie_core_sites[/B] — movies-only for [I]moviesfree.cv[/I] and [I]ghostplayer.store[/I] (fmovie-core Servers block; file-host chains via ResolveURL).
+ * [B]Providers[/B]: [B]watchseries_cyou[/B] and [B]projectfreetv_cyou[/B] use [I]scrapePage[/I] + FlareSolverr for Cloudflare; [I]/open/link/[/I] resolve follows [I]/open/site/[/I] redirects. [B]projectfreetv_cyou[/B] re-enabled by default.
+ * [B]Providers[/B]: [B]tvmovieflix_com[/B] parses the current fmovie-core Servers JSON for named embeds; fixed internal [I]player.php[/I] links dropped after redirect; [I]embed.php[/I] streams still decoded from JW Player payload.
+ * [B]Trakt[/B] / [B]TMDb[/B]: authorise dialogs show a QR code, copy the activation link, and offer a short URL fallback — same flow as Red Light. Bundled [I]segno[/I] QR generator; progress dialog supports BACK to cancel.
+ * [B]TMDb[/B]: modern themoviedb.org QR / browser confirm path (no username/password for lists); session converted for existing list/watchlist API calls. Obsolete password setting removed; username filled after QR auth.
+ * [B]Trakt[/B]: Authorize Trakt hidden in Tools / Account Settings once connected; authorised account username shown instead.
+ * [B]OpenSubtitles.com[/B]: built-in subtitle download via modern REST API ([I]api.opensubtitles.com[/I]). Enable under Special Settings > Subtitles with username/password and languages — subs fetch at playback start.
+ * [B]Subtitles[/B]: removed [I]Dialog.Close(all)[/I] and the 3s wait before the OpenSubtitles download toast — corner notification still shows without tearing down fullscreen player UI.
+ * [B]Trakt[/B]: fixed [I]trakt_list()[/I] typos where missing TMDb IDs and [I]paused_at[/I] were never defaulted ([I]==[/I] vs [I]=[/I]). Pagination limits match current API caps (250 per page; 100 when [I]extended=progress[/I]). Watched sync and resume walk all pages. OAuth expiry stored with proactive refresh; concurrent refresh guarded. Resume lookups cache playback progress briefly (2 min). Activity timestamps validated before use.
+ * [B]TMDb UserLists[/B]: account session/id read at request time (authorising in settings works without restart); all account list pages fetched; movie/TV menus filter by [I]list_type[/I]; list contents accept nested movie/show payloads.
+ * [B]Set Views[/B]: [I]getCurrentViewId()[/I] falls back to the focused skin control ID when [I]Container.Viewmode.id[/I] is blank; views validate before saving; Estuary content defaults for menus, movies, TV, seasons, and episodes.
+ * [B]Settings[/B]: Provider Settings and Library Settings land on the correct category on any skin. Optional Installs refreshes after install. Provider Domains lists all auto-loaded scrapers (including new ones) and no longer breaks when a scraper omits [I]base_link[/I]. Restored Show Changelog After Updates (default off).
 
 [B]- 1.1.0 (2026-04-29)[/B] FlareSolverr default + navigator cleanup:
-[COLOR blue]I'm grateful to The Alpha for bstsrs.one, srstop.link (and providers generally) and the FlareSolverr work.[/COLOR]
- * FlareSolverr default value of [I]http://127.0.0.1:8191/v1[/I] added.
- * Clean up of [I]navigator.py[/I] (menus).
+ * [COLOR blue]Thanks to The Alpha for bstsrs.one, srstop.link (and providers generally) and the FlareSolverr work.[/COLOR]
+ * [B]FlareSolverr[/B]: default URL [I]http://127.0.0.1:8191/v1[/I] added.
+ * [B]Menus[/B]: navigator cleanup.
 
 [B]- 1.0.9 (2026-04-29)[/B] Provider settings + Cloudflare detection fixes:
- * Provider Settings list (FIX): [B]bstsrs_one[/B] was visible in [I]Settings > Provider Settings[/I] but newer scrapers [B]srstop_link[/B], [B]watchseries_cyou[/B] and [B]projectfreetv_lol[/B] had no matching [I]<setting>[/I] entries, so they could not be toggled alongside bstsrs. All three now appear in the providers list.
-    - [I]resources/settings.xml[/I]: added [I]provider.srstop_link[/I] (FlareSolverr), [I]provider.watchseries_cyou[/I] and [I]provider.projectfreetv_lol[/I] entries.
- * Cloudflare challenge detection (FIX): with FlareSolverr enabled, srstop and bstsrs still produced no links because Cloudflare's modern managed-challenge can be served with status 200 (not just 403/503), and the previous [I]_is_cf_challenge[/I] only inspected the body when the status code was 403/503. Result: [I]scrapePage[/I] saw a "Just a moment..." page, never routed it to FlareSolverr, the scraper short-circuited and the provider returned zero sources.
-    - [I]resources/lib/modules/client.py[/I]: [I]_is_cf_challenge[/I] now triggers on [I]cf-mitigated: challenge[/I] OR an interstitial body marker ("Just a moment", "cf-chl", "challenge-platform", "__cf_chl_") regardless of HTTP status code; the legacy 403/503 + [I]Server: cloudflare[/I] path is preserved as a fallback for non-CF 403s (plain nginx Forbidden no longer triggers a needless FlareSolverr round-trip).
- * srstop_link break-loop fix: the candidate-URL loop only stopped once it saw [I]embed-selector[/I] in the HTML, so a valid response that exposed [I]dbneg(...)[/I] without the wrapper class was thrown away and the next 404 candidate URL overwrote it. Aligned with [B]bstsrs_one[/B] which already breaks on either marker.
-    - [I]resources/lib/sources/working/srstop_link.py[/I]: also break on [I]dbneg([/I], and short-circuit if FlareSolverr could not solve the CF challenge ("Just a moment" still in body).
+ * [B]Provider Settings[/B]: [B]srstop_link[/B], [B]watchseries_cyou[/B], and [B]projectfreetv_lol[/B] now appear alongside [B]bstsrs_one[/B] so they can be toggled (previously missing settings entries).
+ * [B]Cloudflare[/B]: challenge detection also triggers on [I]cf-mitigated: challenge[/I] or interstitial body markers ("Just a moment", [I]cf-chl[/I], etc.) regardless of HTTP status — so FlareSolverr is used when CF returns 200. Legacy 403/503 + [I]Server: cloudflare[/I] path kept as fallback.
+ * [B]Providers[/B]: [B]srstop_link[/B] break-loop aligned with [B]bstsrs_one[/B] — stops on [I]dbneg([/I] as well as [I]embed-selector[/I], and short-circuits if FlareSolverr could not solve the challenge.
 
 [B]- 1.0.8 (2026-04-29)[/B] FlareSolverr cookie cache + new TV providers:
- * FlareSolverr cookie cache (FIX): in v1.0.7, enabling FlareSolverr made bstsrs links appear but srstop links disappeared. Both [I]bstsrs.in[/I] AND [I]srstop.link[/I] are CF-protected, so each scraper was round-tripping through FlareSolverr for every candidate URL (~15–30s per call × 5–7 URLs). The shared [I]providers.timeout[/I] killed the second scraper before it could parse anything.
-    - [I]resources/lib/modules/client.py[/I]: when FlareSolverr solves a CF challenge, the returned cookies ([I]cf_clearance[/I] et al) and the matching User-Agent are now cached per-host (25 min TTL). Subsequent requests on the same host attach the cached cookie header and bypass CF with plain [I]requests[/I] — no second FlareSolverr round-trip. Result: bstsrs and srstop both finish well inside [I]providers.timeout[/I] and links appear simultaneously.
- * Robust JSON parsing for [I]/ajax/search.php[/I] (FIX): FlareSolverr renders all responses through Chrome and wraps JSON payloads in [I]<html><body><pre>JSON</pre></body></html>[/I].
-    - [I]resources/lib/sources/working/srstop_link.py[/I] and [I]resources/lib/sources/working/bstsrs_one.py[/I]: new [I]_parse_search_json[/I] helper strips the [I]<pre>[/I] wrapper before [I]json.loads[/I], so the search-API permalink fallback keeps working when the request was solved by FlareSolverr.
- * NEW TV providers (sister sites of [I]projectfreetv_cyou[/I], same page template / [I]/open/link/<id>/[/I] redirector, also CF-protected and covered by the new cookie cache):
-    - [I]resources/lib/sources/working/watchseries_cyou.py[/I] — [I]https://watchseries.cyou/tv-series/<slug>-season-<n>-episode-<m>/[/I]
-    - [I]resources/lib/sources/working/projectfreetv_lol.py[/I] — [I]https://projectfreetv.lol/tv-series/<slug>-season-<n>-episode-<m>/[/I]
+ * [B]FlareSolverr[/B]: per-host cookie / User-Agent cache (25 min TTL) after a solved challenge — subsequent requests on the same host use plain requests so bstsrs and srstop both finish inside providers timeout.
+ * [B]Providers[/B]: [B]srstop_link[/B] and [B]bstsrs_one[/B] strip FlareSolverr's HTML/[I]<pre>[/I] wrapper before parsing [I]/ajax/search.php[/I] JSON.
+ * [B]Providers[/B]: new [B]watchseries_cyou[/B] and [B]projectfreetv_lol[/B] (sister sites of [B]projectfreetv_cyou[/B]; CF-protected; covered by the cookie cache).
 
 [B]- 1.0.7 (2026-04-29)[/B] Cloudflare auto-bypass via FlareSolverr (opt-in):
- * Why bstsrs went silent: [I]bstsrs.in[/I] was placed behind a Cloudflare managed JS challenge ([I]cf-mitigated: challenge[/I]) before v1.0.5; it was not srstop that broke it. Plain [I]requests[/I] (what Kodi uses) gets a 403 "Just a moment..." page on every URL, so the regex finds zero [I]dbneg(...)[/I] embeds and the scraper returns []. The two alternate domains are also gone: [I]bstsrs.one[/I] 302s to an ad redirector and [I]bstsrs.cc[/I] 302s to a parking page ([I]ww1.bstsrs.cc[/I]). You only noticed once srstop began contributing ~19 links per episode and the bstsrs absence became conspicuous.
- * Cloudflare auto-bypass via FlareSolverr (NEW, opt-in):
-    - [I]resources/lib/modules/client.py[/I]: [I]scrapePage()[/I] now detects CF managed-challenge / IUAM responses (status 403/503 with [I]cf-mitigated: challenge[/I] or "Just a moment..." body) and transparently retries the same request through a self-hosted FlareSolverr instance. Returns a duck-typed Response so all existing callers keep working.
-    - [I]resources/settings.xml[/I]: NEW field under Playback Settings — [B]FlareSolverr URL[/B]. Blank by default => behaviour identical to v1.0.6. Set it to e.g. [I]http://127.0.0.1:8191/v1[/I] to unlock bstsrs and any future CF-protected provider.
- * bstsrs scraper hardening continued:
-    - Drops the dead [I]bstsrs.one[/I] and [I]bstsrs.cc[/I] fall-backs (they were just costing 30+ seconds of timeouts per episode for nothing).
-    - Tries the Italian local title first via [I]localtvshowtitle[/I] ([I]bstsrs.in[/I] URLs use Italian show names, e.g. "House M.D." -> "/show/dr-house-medical-division-..."). Then falls back to the original title slugs and the [I]/ajax/search.php?q=[/I] search API for both titles.
-    - Short-circuits as soon as a CF challenge is detected when no FlareSolverr URL is configured, so it no longer slows the overall episode scrape down.
- * How to enable bstsrs:
-    - Run FlareSolverr on the same machine as Kodi (Docker: [I]docker run -d -p 8191:8191 --restart unless-stopped --name flaresolverr ghcr.io/flaresolverr/flaresolverr:latest[/I]; Windows/Linux/macOS prebuilt binaries: [I]https://github.com/FlareSolverr/FlareSolverr/releases[/I]).
-    - In Kodi: Gratis Red > Settings > Playback Settings > scroll to [B]Cloudflare Bypass (FlareSolverr)[/B] > paste [I]http://127.0.0.1:8191/v1[/I].
-    - Re-open any episode — [I]bstsrs.in[/I] entries will now appear alongside [I]srstop.link[/I].
+ * [B]Providers[/B]: [I]bstsrs.in[/I] sat behind a Cloudflare managed JS challenge — plain requests got "Just a moment..." and returned no embeds. Alternate domains ([I]bstsrs.one[/I], [I]bstsrs.cc[/I]) were dead redirects.
+ * [B]FlareSolverr[/B]: opt-in Cloudflare bypass — [I]scrapePage()[/I] detects CF challenge responses and retries through a self-hosted FlareSolverr URL (Playback Settings). Blank URL keeps v1.0.6 behaviour.
+ * [B]Providers[/B]: [B]bstsrs_one[/B] drops dead domain fall-backs; tries Italian local title first then original slugs and search API; short-circuits on CF when FlareSolverr is unset so it does not slow the overall scrape.
+ * [B]FlareSolverr[/B]: run locally (e.g. Docker on port 8191), set Playback Settings > Cloudflare Bypass to [I]http://127.0.0.1:8191/v1[/I], then re-open an episode.
 
 [B]- 1.0.6 (2026-04-29)[/B] bstsrs scraper hardened:
- * [I]bstsrs_one.py[/I] previously only tried two slug guesses on [I]bstsrs.in[/I], required the page to contain an [I]imdb.com/title/<imdb>/[/I] anchor, used a single strict [I]window.open(dbneg('...'))[/I] regex, and had no decoder fallback — so once the site dropped the imdb anchor / switched to the [I]embed-selector[/I] layout it returned 0 links.
- * Rewritten to mirror [I]srstop_link.py[/I]:
-    - Tries [I]bstsrs.in[/I], [I]bstsrs.one[/I] and [I]bstsrs.cc[/I].
-    - Tries multiple slug variants ([I]title year[/I], cleantitle slug, simple lowercase-dash slug).
-    - Falls back to the [I]/ajax/search.php?q=[/I] search API per domain to resolve the real show permalink.
-    - Uses the broader [I]embed-selector ... dbneg(...)[/I] regex with a plain [I]dbneg(...)[/I] fallback.
-    - Decodes embeds with the existing hex-table decoder AND TV Free's per-string offset variant.
- * Net effect: whatever [I]srstop.link[/I] returns for an episode, bstsrs now also returns alongside it whenever bstsrs has the title.
+ * [B]Providers[/B]: [B]bstsrs_one[/B] rewritten to mirror [B]srstop_link[/B] — multiple domains/slug variants, search-API permalink fallback, broader [I]dbneg(...)[/I] embed matching, and hex-table plus per-string offset decoders — so bstsrs returns links alongside srstop when the title is available.
 
 [B]- 1.0.5 (2026-04-29)[/B] TV Free integration:
- * Ported every TV Free scraper into Gratis Red so every link TV Free can find is now resolvable from inside this addon — no need to keep TV Free installed alongside.
-    - NEW provider [I]resources/lib/sources/working/srstop_link.py[/I] — the "Srstop" plugin from TV Free ([I]bst.py[/I]) rewritten as a Scrubs-style [I]class source[/I]. Plugs straight into the existing Movies/TV Shows scraping pipeline. Decodes [I]dbneg(...)[/I] embed strings using both the existing GratisRed hex-table decoder and TV Free's per-string offset variant.
-    - NEW indexer plugin [I]resources/lib/indexers/plugins/daddylive.py[/I] — the "Daddy" plugin from TV Free ([I]ddlv.py[/I]) ported into the GratisRed indexer-plugin format used by [I]tvpassport.py[/I]. Provides [B]Live TV / Sports (DaddyLive)[/B] inside the TV Shows menu with the full [I]daddylive.mp[/I] schedule plus the 24/7 channel list (FFmpegDirect playback).
-    - Wiring: [I]navigator.py[/I] lists [B]Live TV / Sports (DaddyLive)[/B] under TV Shows; [I]system.py[/I] routes [I]daddy_menu[/I] / [I]daddy_channels[/I] / [I]daddy_cats[/I] / [I]daddy_events[/I] / [I]daddy_play[/I] into the new module.
+ * [B]Providers[/B]: ported TV Free scrapers into Gratis Red — [B]srstop_link[/B] (Srstop / [I]dbneg[/I] embeds) plugs into the Movies/TV scrape pipeline.
+ * [B]Live TV[/B]: [B]Live TV / Sports (DaddyLive)[/B] under TV Shows — DaddyLive schedule plus 24/7 channels (FFmpegDirect), ported from TV Free's Daddy plugin.
 
 [B]- 1.0.4 (2026-04-29)[/B] TVmaze Networks / WebChannels overhaul:
-[COLOR blue]Thank you to The Alpha for his work on TVmaze.[/COLOR]
- * FIXED: many networks/webchannels showed empty lists or only a handful of (the wrong) shows. Two root causes:
-    - Wrong network IDs in [I]resources/lib/indexers/metadata/tvmaze/tvmaze_networks.py[/I] — the curated list shipped with v1.0.2 had several IDs pointing at the wrong network on TVmaze (e.g. FX -> Cinemax, BBC Two -> FX, FXX -> ITV1, Channel 4 -> BBC America, BBC Three -> TNT, Channel 5 -> Syfy, Disney XD -> ITV2, History (US) -> History (CA), Sky Atlantic -> SundanceTV). All IDs are now verified against live TVmaze API responses.
-    - [I]tvshows.tvmaze_list()[/I] only fetched the single 250-show [I]id=0[/I] page and filtered client-side. TVmaze paginates [I]/shows[/I] by show-id (oldest first), so most modern networks/webchannels had at most a few matching shows in that page. We now build a deduplicated, cached "all shows" pool from [I]/shows?page=0..N[/I] (parallel page fetches, ~25s on first build, instant thereafter for the cache TTL) and filter against that pool.
- * IMPROVED: cleaned-up curated list — removed duplicates (Apple TV+ moved to WebChannels only, Paramount+ collapsed) and added Adult Swim, A&E, BBC Four, BBC America, ITV1/2/4, Lifetime, SundanceTV, VH1, Acorn TV, Amazon Freevee, CW Seed, HBO Go, Prime Video, Tubi, discovery+ where appropriate.
+ * [COLOR blue]Thank you to The Alpha for his work on TVmaze.[/COLOR]
+ * [B]TVmaze[/B]: fixed wrong curated network IDs (several pointed at the wrong network) and empty/short lists — builds a cached all-shows pool from paginated [I]/shows[/I] instead of only the first 250-show page.
+ * [B]TVmaze[/B]: cleaned curated Networks / WebChannels list (removed duplicates; added Adult Swim, A&E, BBC Four/America, ITV, Lifetime, SundanceTV, VH1, and more streaming channels).
 
 [B]- 1.0.3 (2026-04-28)[/B] TVmaze bug fixes (follow-up to v1.0.2):
- * FIXED: [B]Premiering Today (US TV)[/B] did not open — TVmaze does not expose a [I]premieres=1[/I] query param; on most days the US schedule has zero S1E1 episodes, leaving the list empty. Worse, an empty list crashed [I]episodeDirectory()[/I]'s [I]for i in items:[/I] loop on [I]None[/I]. Fix: [I]episodes.tvmaze_list()[/I] now widens the search to the next 14 days when the user explicitly asked for premieres and today has none; [I]episodeDirectory()[/I] finalises cleanly when the list is empty/None.
- * FIXED: [B]New Episodes (US TV)[/B] did not open — [I]episodes.tvmaze_list()[/I] returned [I]None[/I] on inner exceptions and [I]calendar()[/I] did [I]self.list += None[/I]. Fix: [I]tvmaze_list()[/I] always returns a list; [I]calendar()[/I] guards each per-day chunk with [I]isinstance(chunk, list)[/I].
- * FIXED: [B]Most Popular Shows[/B] took 60–120 seconds — [I]tvshows.tvmaze_list()[/I] returned all 250 rows and [I]worker()[/I] performed a TMDb info lookup per show. Fix: Most Popular variant now keeps only the top 80 shows by TVmaze popularity weight (under 15 seconds).
+ * [B]TVmaze[/B]: Premiering Today (US TV) widens to the next 14 days when today has no S1E1s; empty lists no longer crash episode directory.
+ * [B]TVmaze[/B]: New Episodes (US TV) always returns a list and calendar chunks are type-guarded (no [I]None[/I] append crash).
+ * [B]TVmaze[/B]: Most Popular Shows keeps the top 80 by popularity weight (was ~60–120s for all 250 with per-show TMDb lookups).
 
 [B]- 1.0.2 (2026-04-28)[/B] TVmaze sections overhauled and expanded:
- * FIXED: Networks and WebChannels — module recreated with a hand-curated list of popular networks and streaming channels.
- * FIXED: [B]Explore TVmaze[/B] sub-menu had been commented out in the navigator and is now visible again under TV Shows.
- * FIXED: [I]tvshows.py[/I] [I]tvmaze_list()[/I] was scraping rendered HTML from [I]www.tvmaze.com[/I] — replaced with official [I]api.tvmaze.com[/I] JSON endpoints (no API key).
- * FIXED: [I]episodes.py[/I] [I]tvmaze_list()[/I] now tolerates both [I]/schedule[/I] (US TV, "show" key) and [I]/schedule/web[/I] (streaming, "_embedded.show" key) payload shapes.
- * NEW TVmaze sections (under Explore TVmaze): Most Popular Shows; Premiering Today (US TV); Streaming Today; Recently Updated Shows; Genres browser; Countries browser.
- * Networks list now hand-curated for usability (ABC / CBS / NBC / FOX / HBO / Netflix / Disney+ / Apple TV+ etc.) instead of the full ~3000-entry dump.
- * [I]modules/tvmaze.py[/I] expanded with helper methods ([I]page[/I], [I]schedule[/I], [I]webSchedule[/I], [I]updates[/I], [I]search[/I], [I]searchPeople[/I]) for future use.
+ * [B]TVmaze[/B]: Networks and WebChannels recreated with a hand-curated list of popular networks and streaming channels.
+ * [B]Menus[/B]: Explore TVmaze visible again under TV Shows (had been commented out).
+ * [B]TVmaze[/B]: show lists use official [I]api.tvmaze.com[/I] JSON (no API key) instead of scraping rendered HTML.
+ * [B]TVmaze[/B]: episode schedule tolerates both [I]/schedule[/I] (US TV) and [I]/schedule/web[/I] (streaming) payload shapes.
+ * [B]Explore TVmaze[/B]: Most Popular Shows; Premiering Today (US TV); Streaming Today; Recently Updated Shows; Genres; Countries.
+ * [B]TVmaze[/B]: helper methods expanded ([I]page[/I], [I]schedule[/I], [I]webSchedule[/I], [I]updates[/I], [I]search[/I], [I]searchPeople[/I]) for future use.
 
 [B]- 1.0.1 (2026-04-28)[/B] TV Passport + themes + changelogs:
- * TV Passport Channels overhauled — channel addresses and logos updated; inactive channels removed; logos scraped from [I]tvpassport.com[/I] and hosted on The Red Wizard server (jpeg where transparency was an issue); movie-less channels hidden; moved from Main to Movies menu.
- * Changelogs moved from online to traditional locally hosted.
- * Themes renamed and reorganised (requires [I]script.gratisred.artwork[/I] v1.0.2).
- * Old entries cleaned/removed.
+ * [B]TV Passport[/B]: channels overhauled — addresses and logos updated; inactive / movie-less channels removed; logos hosted on The Red Wizard server; moved from Main to Movies menu.
+ * [B]Changelog[/B]: moved from online to traditional locally hosted; old entries cleaned.
+ * [B]Artwork[/B]: themes renamed and reorganised (requires [I]script.gratisred.artwork[/I] v1.0.2).
 
 [B]- 1.0.0 (2026-04-23)[/B] Initial Gratis Red release:
- * Forked from [COLOR orange]Scrubs v2 v5.1.55[/COLOR] (most recent JewBMX version 5.1.42).
- * New Transparent theme set to default.
+ * [B]Release[/B]: forked from [COLOR orange]Scrubs v2 v5.1.55[/COLOR] (most recent JewBMX version 5.1.42).
+ * [B]Artwork[/B]: new Transparent theme set to default.

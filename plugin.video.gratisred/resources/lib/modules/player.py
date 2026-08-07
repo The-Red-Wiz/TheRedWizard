@@ -93,15 +93,19 @@ class player(xbmc.Player):
                 info_tag.set_info(control.metadataClean(meta))
             else:
                 item.setInfo(type='Video', infoLabels=control.metadataClean(meta))
-            # Play via this Player instance so onAVStarted / stop callbacks fire here.
-            if 'plugin' in control.infoLabel('Container.PluginName'):
-                self.play(url, item)
+            # Prefer setResolvedUrl when the plugin handle expects it (Kodi 22 widgets /
+            # PlayMedia). Player().play() from a plugin is unsupported and can leave the
+            # original plugin:// item unresolved → "One or more items failed to play".
+            played_via_resolve = False
             try:
                 handle = int(sys.argv[1])
-                if handle >= 0:
+                if handle > 0:
                     control.resolve(handle, True, item)
+                    played_via_resolve = True
             except Exception:
                 pass
+            if not played_via_resolve:
+                self.play(url, item)
             control.window.setProperty('script.trakt.ids', json.dumps(self.ids))
             self.keepPlaybackAlive()
             # Stop after CloseFile — never sync-HTTP inside onPlayBackStopped (freezes Kodi).

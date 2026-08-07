@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<addon id="plugin.video.gratisred" version="1.2.3" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.video.gratisred" version="1.2.4" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
     <requires>
         <import addon="script.gratisred.artwork" version="1.0.5"/>
         <import addon="script.module.kodi-six"/>
@@ -26,10 +26,9 @@
 		<website>https://redwizard.xyz/</website> 
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/The-Red-Wizard</source>
-        <news>[COLOR red]2026-07-31
-- Summary of v1.2.3 (see Tools > Changelog for the detail):
- * Trakt: failed / zero-time playback no longer stop-scrobbles at a stale resume %
- * Simkl: account row shows your real name (revoke and re-authorise to refresh)[/COLOR]</news>
+        <news>[COLOR red]2026-08-07
+- Summary of v1.2.4 (see Tools > Changelog for the detail):
+ * Trakt/Simkl backend (performance) cumulative update + Kodi 22 compliance[/COLOR]</news>
         <assets>
             <icon>resources/images/icon.png</icon>
             <fanart>resources/images/fanart.jpg</fanart>

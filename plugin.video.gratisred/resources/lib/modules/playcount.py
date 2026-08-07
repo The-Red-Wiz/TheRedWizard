@@ -24,7 +24,10 @@ def getMovieIndicators(refresh=False):
             return
     if provider == 'simkl':
         try:
-            return simkl.cachesyncMovies(timeout=0 if refresh else 720)
+            if refresh:
+                # Activities + date_from delta when possible (same idea as Trakt activity gate).
+                simkl.syncSimklWatched(silent=True)
+            return simkl.cachesyncMovies(timeout=720)
         except Exception:
             return
     try:
@@ -48,8 +51,9 @@ def getTVShowIndicators(refresh=False):
             return
     if provider == 'simkl':
         try:
-            timeout = 0 if refresh else 720
-            return simkl.cachesyncTVShows(timeout=timeout)
+            if refresh:
+                simkl.syncSimklWatched(silent=True)
+            return simkl.cachesyncTVShows(timeout=720)
         except Exception:
             return
     try:

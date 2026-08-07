@@ -96,13 +96,14 @@
         <setting type="lsep" label="Simkl" />
         <setting id="simkl.token" type="text" label="" default="" enable="false" visible="false" />
         <setting id="simkl.authed" type="text" label="" default="" enable="false" visible="false" />
-        <setting id="simkl.authorize" type="action" label="Authorize Simkl (QR Code)" option="close" action="RunPlugin(plugin://plugin.video.gratisred/?action=auth_simkl&amp;source=settings)" visible="eq(-2,)" />
-        <setting id="simkl.revoke" type="action" label="Revoke Simkl Account" option="close" action="RunPlugin(plugin://plugin.video.gratisred/?action=revoke_simkl&amp;source=settings)" visible="!eq(-3,)" />
-        <setting id="simkl.user" type="text" label="Simkl Account:" default="" enable="false" visible="!eq(-4,)" />
-        <setting type="lsep" label="Auto Simkl Watched Syncing" visible="!eq(-5,)" />
-        <setting id="simkl.sync" type="bool" label="Simkl Watched Sync on Kodi Startup" default="false" visible="!eq(-6,)" />
-        <setting id="simkl.synctime" type="slider" label="Delay Simkl Watched Sync _ Hour/s" default="0" range="0,24" option="int" subsetting="true" enable="!eq(-1,false)" visible="eq(-1,true)+!eq(-7,)" />
-        <setting id="simkl.synctext" type="text" label="0 Value Disables Delay" subsetting="true" enable="!eq(-2,false)" visible="eq(-2,true)+!eq(-8,)" />
+        <setting id="simkl.activities_json" type="text" label="" default="" enable="false" visible="false" />
+        <setting id="simkl.authorize" type="action" label="Authorize Simkl (QR Code)" option="close" action="RunPlugin(plugin://plugin.video.gratisred/?action=auth_simkl&amp;source=settings)" visible="eq(-3,)" />
+        <setting id="simkl.revoke" type="action" label="Revoke Simkl Account" option="close" action="RunPlugin(plugin://plugin.video.gratisred/?action=revoke_simkl&amp;source=settings)" visible="!eq(-4,)" />
+        <setting id="simkl.user" type="text" label="Simkl Account:" default="" enable="false" visible="!eq(-5,)" />
+        <setting type="lsep" label="Auto Simkl Watched Syncing" visible="!eq(-6,)" />
+        <setting id="simkl.sync" type="bool" label="Simkl Watched Sync on Kodi Startup" default="false" visible="!eq(-7,)" />
+        <setting id="simkl.synctime" type="slider" label="Delay Simkl Watched Sync _ Hour/s" default="0" range="0,24" option="int" subsetting="true" enable="!eq(-1,false)" visible="eq(-1,true)+!eq(-8,)" />
+        <setting id="simkl.synctext" type="text" label="0 Value Disables Delay" subsetting="true" enable="!eq(-2,false)" visible="eq(-2,true)+!eq(-9,)" />
         <setting type="lsep" label="TMDb" />
         <setting id="tmdb.session" type="text" label="" default="" enable="false" visible="false" />
         <setting id="tmdb.lists_read_token" type="text" label="" default="eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhMGJmMjA3YzVmZjZjMGNhYWJhYzAzMjdlMzliMWNkMiIsIm5iZiI6MTUwMzk0ODAxMC43NTQsInN1YiI6IjU5YTQ2Y2U4YzNhMzY4MGIxMjAwMjgxYiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.2pYaMVzWy-TNg2SBlkP_CrYWpaxcU7LZIZLPdgJp9jw" enable="false" visible="false" />
