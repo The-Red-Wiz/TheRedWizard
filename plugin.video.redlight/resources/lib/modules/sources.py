@@ -395,7 +395,8 @@ class Sources():
 		self.limit_resolve = settings.limit_resolve()
 		self.weight_size = settings.size_sort_weighted()
 		self.sort_function, self.quality_filter = settings.results_sort_order(), self._quality_filter()
-		self.quality_sort_order = settings.quality_sort_order()
+		# Distinct name — avoid colliding with settings.quality_sort_order (the callable).
+		self._quality_rank_order = settings.quality_sort_order()
 		self.include_unknown_size = get_setting('redlight.results.size_unknown', 'false') == 'true'
 		self.make_search_info()
 		if self.background and self.play_type in ('autoplay_nextep', 'autoscrape_nextep', 'random_continual'):
@@ -1600,7 +1601,10 @@ class Sources():
 
 	def _get_quality_rank(self, quality):
 		'''Sort key from Quality Sort Order (1 = first). Prerelease always after SD/configured qualities.'''
-		order = getattr(self, 'quality_sort_order', None) or settings.quality_sort_order()
+		order = getattr(self, '_quality_rank_order', None)
+		if not isinstance(order, (list, tuple)):
+			order = settings.quality_sort_order()
+			self._quality_rank_order = order
 		if quality in ('SCR', 'CAM', 'TELE'): return len(order) + 1
 		try: return order.index(quality) + 1
 		except ValueError: return len(order) + 1
@@ -2222,6 +2226,7 @@ class Sources():
 			self._prefetch_intro_segment_async()
 		self._playback_failed_notified = False
 		kodi_utils.clear_property(PROP_RESOLVE_CANCEL)
+		self._resolved_url_sent = False
 		self._claim_resolve_busy()
 		url = None
 		monitor = None

@@ -1,4 +1,4 @@
-<addon id="plugin.video.redlight" name="[COLOR red]Red Light[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]" version="2.2.0">
+<addon id="plugin.video.redlight" name="[COLOR red]Red Light[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]" version="2.2.1">
     <requires>
         <import addon="xbmc.python" version="3.0.1"/>
         <import addon="script.module.pil" version="1.1.7"/>

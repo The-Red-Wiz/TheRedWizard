@@ -1350,19 +1350,20 @@ def mdblist_get_my_calendar(dummy=None):
 					'media_ids': {'tmdb': int(show_tmdb)},
 					'season': int(season),
 					'episode': int(episode),
-					'first_aired': str(start).split('T')[0]
+					# Keep full ISO when present so Calendars UTC (+/-) can apply.
+					'first_aired': str(start)
 				})
 			except Exception:
 				continue
 		# Prefer latest occurrence when the API repeats the same show/day.
 		data = [i for n, i in enumerate(data) if i not in data[n + 1:]]
 		return data
-	# v4: request start/end so past airings are included (unscoped calendar/events is future-only).
+	# v5: keep full start timestamps (UTC adjust); start/end so past airings are included.
 	# Empty list is not a valid cache hit — refetch (failed API used to poison the cache).
 	current = get_datetime()
 	api_start = (current - timedelta(days=14)).strftime('%Y-%m-%d')
 	api_end = (current + timedelta(days=14)).strftime('%Y-%m-%d')
-	cache_key = 'mdblist_calendar_airings_v4_%s_%s' % (api_start, api_end)
+	cache_key = 'mdblist_calendar_airings_v5_%s_%s' % (api_start, api_end)
 	cached = mdblist_cache.mdblist_cache.get(cache_key)
 	if cached:
 		data = cached
@@ -1383,16 +1384,13 @@ def mdblist_get_my_calendar(dummy=None):
 	return filtered
 
 def _filter_mdblist_calendar_day_window(data):
-	# Prefer fromisoformat — datetime.strptime is unsafe in Kodi script threads
-	# unless _strptime was imported first (silent parse failures → empty calendar).
-	from datetime import date
+	# Use the same local-day logic as list labels (ISO + UTC offset, or date-only).
+	from modules.utils import calendar_service_local_date
 	start_date, end_date = settings.calendar_day_window()
 	filtered = []
 	for item in data:
-		try:
-			aired = date.fromisoformat(str(item.get('first_aired', ''))[:10])
-		except Exception:
-			continue
+		aired, _ = calendar_service_local_date(item.get('first_aired', ''))
+		if aired is None: continue
 		if start_date <= aired <= end_date:
 			filtered.append(item)
 	return filtered

@@ -1230,6 +1230,7 @@ def default_settings():
 #==================== General
 {'setting_id': 'single_ep_display', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'TITLE - SxE. EPISODE', '1': 'SxE. EPISODE', '2': 'EPISODE'}},
 {'setting_id': 'single_ep_display_widget', 'setting_type': 'action', 'setting_default': '1', 'settings_options': {'0': 'TITLE - SxE. EPISODE', '1': 'SxE. EPISODE', '2': 'EPISODE'}},
+{'setting_id': 'single_ep_widget_omit_tvshowtitle', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'single_ep_unwatched_episodes', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'single_ep_unwatched_in_title', 'setting_type': 'boolean', 'setting_default': 'false'},
 #==================== Next Episodes

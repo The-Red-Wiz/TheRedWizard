@@ -2,33 +2,21 @@
 import sys
 from modules import kodi_utils, settings, watched_status as ws
 from modules.metadata import tvshow_meta, episodes_meta, all_episodes_meta
-from modules.utils import jsondate_to_datetime, adjust_premiered_date, make_day, get_datetime, get_current_timestamp, title_key, date_difference, TaskPool, datetime_workaround
+from modules.utils import jsondate_to_datetime, adjust_premiered_date, calendar_service_local_date, make_day, get_datetime, get_current_timestamp, title_key, date_difference, TaskPool
 from datetime import timedelta
 # logger = kodi_utils.logger
 
 def _calendar_episode_date(service_first_aired, tmdb_premiered, adjust_hours):
-	"""Use Trakt/MDBList air date for calendar label + sort (not TMDb premiered).
+	"""Use Trakt/MDBList/Simkl/PunchPlay air date for calendar label + sort (not TMDb premiered).
 
 	Do not invent TMDb 20:00 / apply date_offset() here — that can push service calendar
 	days one day ahead. Date-only events keep their calendar day; ISO timestamps
 	use the user UTC (+/-) setting only.
 	"""
 	if service_first_aired:
-		fa = str(service_first_aired)
-		try:
-			if 'T' in fa:
-				dt = datetime_workaround(fa, '%Y-%m-%dT%H:%M:%S.%fZ')
-				if dt is None:
-					dt = datetime_workaround(fa.split('.')[0].rstrip('Z'), '%Y-%m-%dT%H:%M:%S')
-				if dt is not None:
-					adjusted = dt + timedelta(hours=settings.datetime_utc_offset())
-					return adjusted.date(), adjusted.strftime('%Y-%m-%d')
-			day = fa.split('T')[0][:10]
-			d = jsondate_to_datetime(day, '%Y-%m-%d', remove_time=True)
-			if d is not None:
-				return d, day
-		except Exception:
-			pass
+		d, day = calendar_service_local_date(service_first_aired)
+		if d is not None:
+			return d, day
 	return adjust_premiered_date(tmdb_premiered, adjust_hours)
 
 def _nextep_indicator_watchlist(indicators=None):
@@ -396,8 +384,15 @@ def build_single_episode(list_type, params={}):
 			if isinstance(studio, tuple): studio = list(studio)
 			elif not studio: studio = []
 			info_tag = listitem.getVideoInfoTag(True)
-			info_tag.setMediaType('episode'), info_tag.setOriginalTitle(orig_title), info_tag.setTvShowTitle(title), info_tag.setTitle(display_title), info_tag.setGenres(genre)
-			info_tag.setPlaycount(playcount), info_tag.setSeason(season), info_tag.setEpisode(episode), info_tag.setPlot(plot), info_tag.setFirstAired(premiered)
+			info_tag.setMediaType('episode'), info_tag.setOriginalTitle(orig_title), info_tag.setTitle(display_title), info_tag.setGenres(genre)
+			# Optional: widgets that bind TVShowTitle as a second line under Label.
+			if not (is_external and omit_tvshowtitle_widgets):
+				info_tag.setTvShowTitle(title)
+			info_tag.setPlaycount(playcount), info_tag.setPlot(plot), info_tag.setFirstAired(premiered)
+			# EPISODE-only format: omit Season/Episode so skins/widgets that bind
+			# ListItem.Season/Episode (e.g. under logos) don't re-add SxE.
+			if display_format != 2:
+				info_tag.setSeason(season), info_tag.setEpisode(episode)
 			info_tag.setDuration(duration), info_tag.setIMDBNumber(imdb_id), info_tag.setUniqueIDs({'imdb': imdb_id, 'tmdb': str(tmdb_id), 'tvdb': str(tvdb_id)})
 			info_tag.setCountries(meta_get('country', [])), info_tag.setTrailer(trailer), info_tag.setTvShowStatus(show_status)
 			info_tag.setStudios(studio), info_tag.setWriters(item_get('writer')), info_tag.setDirectors(item_get('director'))
@@ -435,7 +430,7 @@ def build_single_episode(list_type, params={}):
 	handle, is_external = int(sys.argv[1]), kodi_utils.external()
 	is_anime_list = 'is_anime_list' in params
 	# Calendars / Next Up are not anime-filtered shelves — never pass False into meta_valid_check.
-	if list_type in ('episode.trakt', 'episode.mdblist', 'episode.mdblist_next', 'episode.punchplay'):
+	if list_type in ('episode.trakt', 'episode.mdblist', 'episode.mdblist_next', 'episode.punchplay', 'episode.simkl'):
 		is_anime_list = None
 	elif not is_anime_list and settings.include_anime_tvshow():
 		is_anime_list = None
@@ -447,7 +442,7 @@ def build_single_episode(list_type, params={}):
 	watched_indicators = settings.watched_indicators()
 	# MDBList Lists → Next Up always uses MDBList watched history (not global Watched Status Provider).
 	if list_type == 'episode.mdblist_next': watched_indicators = 3
-	if list_type in ('episode.trakt', 'episode.mdblist', 'episode.punchplay'):
+	if list_type in ('episode.trakt', 'episode.mdblist', 'episode.punchplay', 'episode.simkl'):
 		display_format = settings.calendar_display_format(is_external)
 		calendar_date_strftime, calendar_use_words, calendar_include_date = settings.calendar_date_label_options()
 		calendar_date_format = None if calendar_use_words else calendar_date_strftime
@@ -458,6 +453,7 @@ def build_single_episode(list_type, params={}):
 	current_date, current_time, adjust_hours = get_datetime(), get_current_timestamp(), settings.date_offset()
 	unwatched_info = settings.single_ep_unwatched_episodes()
 	unwatched_in_title = settings.single_ep_unwatched_in_title()
+	omit_tvshowtitle_widgets = settings.single_ep_widget_omit_tvshowtitle()
 	hide_watched = is_external and settings.widget_hide_watched() and list_type != 'episode.recently_watched'
 	api_key, mpaa_region_value = settings.tmdb_api_key(), settings.mpaa_region()
 	cm_sort_order, ignore_articles = settings.cm_sort_order(), settings.ignore_articles()

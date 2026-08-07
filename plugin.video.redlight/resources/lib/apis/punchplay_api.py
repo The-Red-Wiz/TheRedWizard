@@ -1150,27 +1150,26 @@ def _normalize_punchplay_calendar_month(data):
 					'media_ids': {'tmdb': int(tmdb_id)},
 					'season': int(season),
 					'episode': int(episode),
-					'first_aired': str(air).split('T')[0]
+					# Keep full ISO when present so Calendars UTC (+/-) can apply.
+					'first_aired': str(air)
 				})
 		except Exception:
 			continue
 	return [i for n, i in enumerate(out) if i not in out[n + 1:]]
 
 def _filter_punchplay_calendar_day_window(data):
-	from datetime import date
+	from modules.utils import calendar_service_local_date
 	start_date, end_date = settings.calendar_day_window()
 	filtered = []
 	for item in data:
-		try:
-			aired = date.fromisoformat(str(item.get('first_aired', ''))[:10])
-		except Exception:
-			continue
+		aired, _ = calendar_service_local_date(item.get('first_aired', ''))
+		if aired is None: continue
 		if start_date <= aired <= end_date:
 			filtered.append(item)
 	return filtered
 
 def _punchplay_calendar_month_cached(month):
-	cache_key = 'punchplay_calendar_%s' % month
+	cache_key = 'punchplay_calendar_v2_%s' % month
 	cached = pp_cache.punchplay_cache.get(cache_key)
 	if cached:
 		return cached

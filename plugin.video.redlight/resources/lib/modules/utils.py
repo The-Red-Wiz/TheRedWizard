@@ -124,6 +124,40 @@ def adjust_premiered_date(orig_date, adjust_hours):
 	adjusted_string = adjusted_datetime.strftime('%Y-%m-%d')
 	return adjusted_datetime.date(), adjusted_string
 
+def parse_calendar_air_datetime(service_first_aired):
+	"""Parse ISO calendar timestamp; return None for date-only / invalid."""
+	fa = str(service_first_aired or '').strip()
+	if not fa or 'T' not in fa: return None
+	normalized = fa[:-1] + '+00:00' if fa.endswith('Z') else fa
+	try: return datetime.fromisoformat(normalized)
+	except Exception: pass
+	try: return datetime_workaround(fa, '%Y-%m-%dT%H:%M:%S.%fZ')
+	except Exception: pass
+	try: return datetime_workaround(fa.split('.')[0].rstrip('Z'), '%Y-%m-%dT%H:%M:%S')
+	except Exception: return None
+
+def calendar_service_local_date(service_first_aired, utc_offset_hours=None):
+	"""Local calendar day for a service first_aired (ISO timestamp or date-only).
+
+	ISO timestamps apply UTC (+/-) hours. Date-only values keep their calendar day.
+	Returns (date, 'YYYY-MM-DD') or (None, None).
+	"""
+	fa = str(service_first_aired or '').strip()
+	if not fa: return None, None
+	dt = parse_calendar_air_datetime(fa)
+	if dt is not None:
+		if utc_offset_hours is None:
+			from modules.settings import datetime_utc_offset
+			utc_offset_hours = datetime_utc_offset()
+		adjusted = dt + timedelta(hours=utc_offset_hours)
+		return adjusted.date(), adjusted.strftime('%Y-%m-%d')
+	day = fa.split('T')[0][:10]
+	try: return date.fromisoformat(day), day
+	except Exception:
+		d = jsondate_to_datetime(day, '%Y-%m-%d', remove_time=True)
+		if d is not None: return d, day
+	return None, None
+
 def make_day(today, date, date_format='%Y-%m-%d', use_words=True, include_date=False):
 	try: formatted = date.strftime(date_format)
 	except ValueError: formatted = date.strftime('%Y-%m-%d')

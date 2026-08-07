@@ -64,7 +64,9 @@ class TraktWatched():
 	def _delete(self, command, args):
 		dbcon = connect_database('trakt_db')
 		dbcon.execute(command, args)
-		dbcon.execute('VACUUM')
+		# No VACUUM here — rewrites the whole DB and can stall Next Episodes / list
+		# rebuilds for many seconds after playback (esp. on SD / slow Android storage).
+		# Manual Clear Cache / Clean Databases still vacuum.
 
 trakt_watched_cache = TraktWatched()
 

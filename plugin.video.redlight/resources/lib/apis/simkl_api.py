@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import json
+import os
 import time
 import calendar
 import requests
 from datetime import datetime
 from threading import Lock
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote
 from caches import simkl_cache
 from caches.settings_cache import get_setting, set_setting
 from modules import kodi_utils, settings, list_sort
@@ -16,15 +17,60 @@ BASE_URL = 'https://api.simkl.com'
 OAUTH_PIN_URL = 'https://api.simkl.com/oauth/pin'
 SIMKL_APP_NAME = 'plugin.video.redlight'
 SIMKL_CLIENT_ID = '6cacc8db22e67b2cd423ef73a9fd3a4f45146ba7fbf30fb2ae28f2fa9d0c2583'
+# Shared across plugin invokers + SimklMonitor (in-memory alone is not enough in Kodi).
+_SIMKL_MIN_REQUEST_GAP = 1.5
+_SIMKL_THROTTLE_PROP = 'redlight.simkl_last_request_at'
+_SIMKL_SYNC_BUSY_PROP = 'redlight.simkl_sync_busy'
+_SIMKL_SYNC_BUSY_AT_PROP = 'redlight.simkl_sync_busy_at'
 _request_lock = Lock()
+_sync_lock = Lock()
 _last_request_time = 0.0
+_throttle_path = None
+
+def _simkl_throttle_path():
+	global _throttle_path
+	if not _throttle_path:
+		_throttle_path = os.path.join(kodi_utils.addon_profile(), 'simkl_api_throttle')
+	return _throttle_path
+
+def _shared_last_request_at():
+	last = _last_request_time
+	try:
+		last = max(last, float(kodi_utils.get_property(_SIMKL_THROTTLE_PROP) or 0))
+	except Exception:
+		pass
+	try:
+		last = max(last, os.path.getmtime(_simkl_throttle_path()))
+	except Exception:
+		pass
+	return last
+
+def _claim_request_slot(now):
+	global _last_request_time
+	_last_request_time = now
+	try: kodi_utils.set_property(_SIMKL_THROTTLE_PROP, '%.3f' % now)
+	except Exception: pass
+	try:
+		path = _simkl_throttle_path()
+		folder = os.path.dirname(path)
+		if folder and not os.path.isdir(folder):
+			try: os.makedirs(folder)
+			except Exception: pass
+		with open(path, 'w') as handle:
+			handle.write('%.3f\n' % now)
+	except Exception:
+		pass
 
 def _throttle():
-	global _last_request_time
+	"""Space Simkl HTTP calls across threads and separate Kodi Python invokers."""
 	with _request_lock:
-		elapsed = time.time() - _last_request_time
-		if elapsed < 1.0: kodi_utils.sleep(int((1.0 - elapsed) * 1000) + 50)
-		_last_request_time = time.time()
+		while True:
+			now = time.time()
+			wait = _SIMKL_MIN_REQUEST_GAP - (now - _shared_last_request_at())
+			if wait <= 0:
+				_claim_request_slot(now)
+				return
+			kodi_utils.sleep(int(wait * 1000) + 25)
 
 def _client_id():
 	"""Prefer Meta Accounts Simkl Client ID; fall back to the shipped default."""
@@ -86,6 +132,31 @@ def call_simkl(path, data=None, method=None, is_delete=False):
 def simkl_get_pin():
 	try: return requests.get(_pin_url(), headers=_pin_headers(), timeout=META_API_TIMEOUT).json()
 	except: return None
+
+def simkl_test_client_id():
+	"""Probe PIN endpoint — same acceptance check Trakt/PunchPlay use for client keys."""
+	cid = _client_id()
+	if not cid:
+		return False, 'Simkl Client ID Key is not set.'
+	try:
+		resp = requests.get(_pin_url(), headers=_pin_headers(), timeout=META_API_TIMEOUT)
+		if resp.status_code == 200:
+			body = {}
+			try: body = resp.json() or {}
+			except: body = {}
+			if body.get('user_code'):
+				return True, 'Simkl Client ID Key is valid.'
+			return False, 'Simkl Client ID Key failed.[CR]Simkl returned an empty PIN code.'
+		detail = ''
+		try:
+			payload = resp.json() or {}
+			if isinstance(payload, dict):
+				detail = payload.get('error_description') or payload.get('message') or payload.get('error') or ''
+		except: detail = ''
+		if not detail: detail = (resp.text or '').strip() or 'No details returned.'
+		return False, 'Simkl Client ID Key failed.[CR]Simkl rejected the Client ID (HTTP %s).[CR]%s' % (resp.status_code, detail)
+	except Exception as e:
+		return False, 'Simkl Client ID Key failed.[CR]Could not reach Simkl: %s' % str(e)
 
 def simkl_poll_pin(pin):
 	user_code = pin.get('user_code')
@@ -724,14 +795,30 @@ def simkl_remove_from_list(listname, tmdb_id, media_type, imdb_id=None, tvdb_id=
 
 _SIMKL_SHOW_WATCHED_ACTIVITY_KEYS = ('watching', 'plantowatch', 'completed', 'hold', 'dropped', 'removed_from_list', 'all')
 _SIMKL_MOVIE_WATCHED_ACTIVITY_KEYS = ('plantowatch', 'completed', 'dropped', 'removed_from_list', 'all')
+# Full library pull when deletions cannot be inferred from a date_from delta.
+_SIMKL_MOVIE_FULL_SYNC_KEYS = ('completed', 'removed_from_list')
+_SIMKL_SHOW_FULL_SYNC_KEYS = ('removed_from_list',)
 _SIMKL_TV_SYNC_QUERY = 'extended=full&episode_watched_at=yes&include_all_episodes=yes'
 # full_anime_seasons adds tvdb {season,episode} so Kodi/TMDb SxE matches AniDB-backed library rows.
 _SIMKL_ANIME_SYNC_QUERY = 'extended=full_anime_seasons&episode_watched_at=yes&include_all_episodes=yes'
 
-def simkl_indicators_movies():
+def _simkl_date_from(cached_activities):
+	"""Previous activities.all for Phase 2 date_from — None means full (Phase 1) pull."""
+	ts = str((cached_activities or {}).get('all') or '').strip()
+	if not ts: return None
+	# Sentinel from default_activities() / never-synced installs.
+	if ts.startswith('2020-01-01'): return None
+	return ts
+
+def _simkl_with_date_from(query, date_from=None):
+	if not date_from: return query
+	return '%s&date_from=%s' % (query, quote(date_from, safe=''))
+
+def simkl_indicators_movies(date_from=None):
 	insert_list = []
 	insert_append = insert_list.append
-	data = call_simkl('/sync/all-items/movies/completed?extended=full', method='get') or {}
+	path = '/sync/all-items/movies/completed?%s' % _simkl_with_date_from('extended=full', date_from)
+	data = call_simkl(path, method='get') or {}
 	for item in data.get('movies', data if isinstance(data, list) else []):
 		try:
 			movie = item.get('movie', item)
@@ -740,9 +827,12 @@ def simkl_indicators_movies():
 			watched_at = item.get('last_watched_at') or item.get('watched_at') or datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.000Z')
 			insert_append(('movie', tmdb_id, '', '', watched_at, movie.get('title', '')))
 		except: pass
-	simkl_cache.simkl_watched_cache.set_bulk_movie_watched(insert_list)
+	if date_from:
+		simkl_cache.simkl_watched_cache.merge_bulk_movie_watched(insert_list)
+	else:
+		simkl_cache.simkl_watched_cache.set_bulk_movie_watched(insert_list)
 
-def _simkl_append_tv_watched(insert_append, data, item_key):
+def _simkl_append_tv_watched(insert_append, data, item_key, touched_ids=None):
 	"""Flatten shows[] or anime[] all-items into local episode watched rows."""
 	items = data.get(item_key, data if isinstance(data, list) else [])
 	for item in items:
@@ -753,6 +843,7 @@ def _simkl_append_tv_watched(insert_append, data, item_key):
 				show = item.get('show') or item
 			tmdb_id = _tmdb_id(show.get('ids', {}))
 			if not tmdb_id: continue
+			if touched_ids is not None: touched_ids.add(str(tmdb_id))
 			title = show.get('title', '')
 			for season in item.get('seasons', []):
 				try: snum = int(season.get('number', season.get('season')))
@@ -774,14 +865,18 @@ def _simkl_append_tv_watched(insert_append, data, item_key):
 					insert_append(('episode', tmdb_id, ep_snum, epnum, watched_at, title))
 		except: pass
 
-def simkl_indicators_tv():
+def simkl_indicators_tv(date_from=None):
 	insert_list = []
 	insert_append = insert_list.append
-	shows = call_simkl('/sync/all-items/shows?%s' % _SIMKL_TV_SYNC_QUERY, method='get') or {}
-	_simkl_append_tv_watched(insert_append, shows, 'shows')
-	anime = call_simkl('/sync/all-items/anime?%s' % _SIMKL_ANIME_SYNC_QUERY, method='get') or {}
-	_simkl_append_tv_watched(insert_append, anime, 'anime')
-	simkl_cache.simkl_watched_cache.set_bulk_tvshow_watched(insert_list)
+	touched_ids = set() if date_from else None
+	shows = call_simkl('/sync/all-items/shows?%s' % _simkl_with_date_from(_SIMKL_TV_SYNC_QUERY, date_from), method='get') or {}
+	_simkl_append_tv_watched(insert_append, shows, 'shows', touched_ids)
+	anime = call_simkl('/sync/all-items/anime?%s' % _simkl_with_date_from(_SIMKL_ANIME_SYNC_QUERY, date_from), method='get') or {}
+	_simkl_append_tv_watched(insert_append, anime, 'anime', touched_ids)
+	if date_from:
+		simkl_cache.simkl_watched_cache.merge_bulk_tvshow_watched(insert_list, touched_ids)
+	else:
+		simkl_cache.simkl_watched_cache.set_bulk_tvshow_watched(insert_list)
 
 def simkl_sync_playback():
 	items = call_simkl('/sync/playback', method='get') or []
@@ -816,6 +911,35 @@ def _activity_block_changed(latest_blk, cached_blk, keys):
 def simkl_sync_activities(params=None, force_update=False):
 	if isinstance(params, dict): force_update = params.get('force_update', 'false') in ('true', 'True', True) or force_update
 	if not settings.simkl_user_active(): return 'no account'
+	# Coalesce overlapping syncs (monitor + list refresh + mark-watched) across invokers.
+	if not force_update:
+		try:
+			if kodi_utils.get_property(_SIMKL_SYNC_BUSY_PROP) == 'true':
+				started = float(kodi_utils.get_property(_SIMKL_SYNC_BUSY_AT_PROP) or 0)
+				if started and (time.time() - started) < 180:
+					return 'not needed'
+		except Exception:
+			pass
+		if not _sync_lock.acquire(False):
+			return 'not needed'
+	else:
+		_sync_lock.acquire(True)
+	try:
+		try:
+			kodi_utils.set_property(_SIMKL_SYNC_BUSY_PROP, 'true')
+			kodi_utils.set_property(_SIMKL_SYNC_BUSY_AT_PROP, '%.3f' % time.time())
+		except Exception:
+			pass
+		return _simkl_sync_activities_body(force_update=force_update)
+	finally:
+		try:
+			kodi_utils.set_property(_SIMKL_SYNC_BUSY_PROP, 'false')
+			kodi_utils.clear_property(_SIMKL_SYNC_BUSY_AT_PROP)
+		except Exception:
+			pass
+		_sync_lock.release()
+
+def _simkl_sync_activities_body(force_update=False):
 	if force_update:
 		simkl_cache.clear_all_simkl_cache_data(silent=True, refresh=False)
 		clear_simkl_list_status_cache()
@@ -824,6 +948,8 @@ def simkl_sync_activities(params=None, force_update=False):
 	if not latest: return 'failed'
 	cached = simkl_cache.reset_activity(latest)
 	if not force_update and _activity_ts(latest.get('all', '')) <= _activity_ts(cached.get('all', '')): return 'not needed'
+	# Phase 2: date_from = previously saved activities.all (before this poll overwrote it).
+	date_from = None if force_update else _simkl_date_from(cached)
 	movies, shows = latest.get('movies', {}), latest.get('tv_shows', {})
 	anime = latest.get('anime', {})
 	cached_movies, cached_shows = cached.get('movies', {}), cached.get('tv_shows', {})
@@ -840,11 +966,16 @@ def simkl_sync_activities(params=None, force_update=False):
 		clear_simkl_list_status_cache('anime')
 		clear_simkl_calendar_cache()
 	if force_update or _activity_block_changed(movies, cached_movies, watched_keys_movies):
-		simkl_indicators_movies()
+		# date_from deltas omit removals — full completed pull when completed/removed move.
+		movie_from = None if (not date_from or _activity_block_changed(movies, cached_movies, _SIMKL_MOVIE_FULL_SYNC_KEYS)) else date_from
+		simkl_indicators_movies(date_from=movie_from)
 	# Anime watched history lives under activities.anime — must refresh indicators too.
 	if force_update or _activity_block_changed(shows, cached_shows, watched_keys_shows) \
 			or _activity_block_changed(anime, cached_anime, watched_keys_shows):
-		simkl_indicators_tv()
+		tv_from = None if (not date_from
+			or _activity_block_changed(shows, cached_shows, _SIMKL_SHOW_FULL_SYNC_KEYS)
+			or _activity_block_changed(anime, cached_anime, _SIMKL_SHOW_FULL_SYNC_KEYS)) else date_from
+		simkl_indicators_tv(date_from=tv_from)
 		clear_simkl_dropped_cache()
 	if force_update or _activity_block_changed(movies, cached_movies, playback_keys) or _activity_block_changed(shows, cached_shows, playback_keys):
 		simkl_sync_playback()
@@ -869,7 +1000,7 @@ def simkl_force_sync(params=None):
 
 SIMKL_TRENDING_BASE = 'https://data.simkl.in/discover/trending'
 SIMKL_CALENDAR_CDN_BASE = 'https://data.simkl.in/calendar/v2'
-SIMKL_CALENDAR_CACHE_KEY = 'simkl_calendar_v2_joined'
+SIMKL_CALENDAR_CACHE_KEY = 'simkl_calendar_v3_joined'
 _SIMKL_TRENDING_TRAKT_KEYS = {'movies': 'movie', 'tv': 'show', 'anime': 'show'}
 
 def _simkl_trending_url(media_kind):
@@ -936,7 +1067,8 @@ def _simkl_calendar_row(entry, library_row):
 	# Anime v2 rows often omit season — include as S01 when TMDb exists (better than FenLight drop).
 	if season_no <= 0: season_no = 1
 	title = library_row.get('title') or ''
-	aired = str(entry.get('date') or '').split('T')[0]
+	# Keep full ISO (…Z) so Calendars UTC (+/-) can shift Today/Tomorrow labels.
+	aired = str(entry.get('date') or '').strip()
 	if not aired: return None
 	media_ids = {'tmdb': tmdb}
 	for key in ('imdb', 'tvdb', 'simkl'):
@@ -967,14 +1099,12 @@ def _simkl_build_calendar_joined():
 	return [i for n, i in enumerate(data) if i not in data[n + 1:]]
 
 def _filter_simkl_calendar_day_window(data):
-	from datetime import date
+	from modules.utils import calendar_service_local_date
 	start_date, end_date = settings.calendar_day_window()
 	filtered = []
 	for item in data:
-		try:
-			aired = date.fromisoformat(str(item.get('first_aired', ''))[:10])
-		except Exception:
-			continue
+		aired, _ = calendar_service_local_date(item.get('first_aired', ''))
+		if aired is None: continue
 		if start_date <= aired <= end_date:
 			filtered.append(item)
 	return filtered

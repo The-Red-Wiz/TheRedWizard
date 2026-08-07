@@ -7,7 +7,7 @@ from modules.utils import datetime_workaround, jsondate_to_datetime
 from modules import kodi_utils
 
 CACHE_HOURS = 12
-_CACHE_PREFIX = 'service_expiry_'
+_CACHE_PREFIX = 'service_expiry_v2_'
 _ALERT_STATE_SETTING = 'services.expiry_alert_state'
 
 SERVICE_META = (
@@ -50,6 +50,16 @@ def parse_expiry(raw):
 		except: return None
 	raw = str(raw).strip()
 	if not raw: return None
+	# Prefer timezone-aware ISO (…Z / ±HH:MM) → naive local for comparisons.
+	if 'T' in raw:
+		normalized = raw[:-1] + '+00:00' if raw.endswith('Z') else raw
+		try:
+			dt = datetime.fromisoformat(normalized)
+			if getattr(dt, 'tzinfo', None) is not None:
+				return dt.astimezone().replace(tzinfo=None)
+			return dt
+		except Exception:
+			pass
 	for fmt in ('%Y-%m-%dT%H:%M:%S.%fZ', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d'):
 		try: return datetime_workaround(raw, fmt)
 		except: pass
@@ -77,15 +87,39 @@ def publish_settings_expiry_properties():
 		set_property('redlight.services.authorised.%s' % service_id, 'true' if authorised else 'false')
 
 
-def summary_from_expiry(expires_dt):
-	if not expires_dt: return None
-	days = (expires_dt - datetime.today()).days
-	date_str = expires_dt.strftime('%d %b %Y')
+def summary_from_expiry(expires_dt, premium_active=None, expires_raw=None):
+	"""Build display summary.
+
+	Expired when the timestamp is already past, or when the provider says premium
+	is inactive. Using timedelta.days alone wrongly reported 'today' for accounts
+	that expired earlier the same calendar day (days == 0 until midnight crossed).
+	"""
+	if expires_dt is None and premium_active is not False:
+		return None
+	now = datetime.now()
+	if premium_active is False:
+		days = -1
+	elif expires_dt is not None and expires_dt <= now:
+		days = -1
+	elif expires_dt is not None:
+		days = (expires_dt - now).days
+	else:
+		return None
+	date_str = expires_dt.strftime('%d %b %Y') if expires_dt else ''
+	if days < 0:
+		# Don't show the API date when lapsed — often still "today" and reads as not expired.
+		expires_line = '[B]Expired[/B]'
+		days_line = None
+	else:
+		expires_line = '[B]Expires:[/B] %s' % date_str
+		days_line = '[B]Days Remaining:[/B] %s' % days
 	return {
 		'days': days,
 		'date_str': date_str,
-		'expires_line': '[B]Expires:[/B] %s' % date_str,
-		'days_line': '[B]Days Remaining:[/B] %s' % days,
+		'expires_raw': expires_raw,
+		'premium_active': premium_active,
+		'expires_line': expires_line,
+		'days_line': days_line,
 		'menu_suffix': menu_suffix(days),
 	}
 
@@ -103,59 +137,78 @@ def _service_authorized(service_id):
 	return s.authorized_debrid_check(service_id)
 
 
-def _fetch_raw_expiry(service_id):
+def _fetch_expiry_payload(service_id):
+	"""Return (raw_expiry, premium_active). premium_active is True/False/None."""
 	try:
 		if service_id == 'rd':
 			from apis.real_debrid_api import RealDebrid
-			return (RealDebrid.account_info() or {}).get('expiration')
+			info = RealDebrid.account_info() or {}
+			raw = info.get('expiration')
+			acct_type = str(info.get('type') or '').lower()
+			if acct_type in ('premium', 'free'):
+				active = acct_type == 'premium'
+			elif 'premium' in info:
+				try: active = int(info.get('premium') or 0) > 0
+				except: active = None
+			else:
+				active = None
+			return raw, active
 		if service_id == 'pm':
 			from apis.premiumize_api import Premiumize
-			return (Premiumize.account_info() or {}).get('premium_until')
+			info = Premiumize.account_info() or {}
+			# premium_until timestamp only — account/info "status" is often the API result, not plan.
+			return info.get('premium_until'), None
 		if service_id == 'ad':
 			from apis.alldebrid_api import AllDebrid
 			user = (AllDebrid.account_info() or {}).get('user') or {}
-			return user.get('premiumUntil')
+			raw = user.get('premiumUntil')
+			active = bool(user.get('isPremium')) if 'isPremium' in user else None
+			return raw, active
 		if service_id == 'easynews':
 			from apis.easynews_api import EasyNews
 			account_info = EasyNews.account_info()
-			if not account_info or len(account_info) < 3: return None
-			return account_info[2]
+			if not account_info or len(account_info) < 3: return None, None
+			return account_info[2], None
 		if service_id == 'tb':
 			from apis.torbox_api import TorBox
 			response = TorBox.account_info() or {}
-			if not response.get('success'): return None
-			return (response.get('data') or {}).get('premium_expires_at')
+			if not response.get('success'): return None, None
+			data = response.get('data') or {}
+			raw = data.get('premium_expires_at')
+			active = bool(data.get('premium')) if 'premium' in data else None
+			return raw, active
 		if service_id == 'oc':
 			from apis.offcloud_api import Offcloud
 			info = Offcloud.account_info() or {}
-			return info.get('expiration_date') or info.get('expirationDate')
+			raw = info.get('expiration_date') or info.get('expirationDate')
+			return raw, None
 	except: pass
-	return None
+	return None, None
 
 
 def fetch_expiry_summary(service_id):
-	expires_dt = parse_expiry(_fetch_raw_expiry(service_id))
-	return summary_from_expiry(expires_dt)
+	raw, active = _fetch_expiry_payload(service_id)
+	expires_dt = parse_expiry(raw)
+	return summary_from_expiry(expires_dt, premium_active=active, expires_raw=raw)
 
 
 def _serialize_summary(summary):
 	if not summary: return None
 	return {
-		'days': summary['days'],
-		'date_str': summary['date_str'],
-		'menu_suffix': summary['menu_suffix'],
+		'expires_raw': summary.get('expires_raw'),
+		'premium_active': summary.get('premium_active'),
 	}
 
 
 def _deserialize_summary(data):
 	if not data: return None
-	return {
-		'days': data.get('days'),
-		'date_str': data.get('date_str'),
-		'expires_line': '[B]Expires:[/B] %s' % data.get('date_str', ''),
-		'days_line': '[B]Days Remaining:[/B] %s' % data.get('days', ''),
-		'menu_suffix': data.get('menu_suffix', ''),
-	}
+	# Always recompute days from stored expiry so a 12h cache cannot freeze "today".
+	if 'expires_raw' in data or 'premium_active' in data:
+		return summary_from_expiry(
+			parse_expiry(data.get('expires_raw')),
+			premium_active=data.get('premium_active'),
+			expires_raw=data.get('expires_raw'))
+	return None
 
 
 def get_cached_expiry_summary(service_id, refresh=False):
@@ -163,7 +216,9 @@ def get_cached_expiry_summary(service_id, refresh=False):
 	key = _cache_key(service_id)
 	if not refresh:
 		cached = main_cache.get(key)
-		if cached is not None: return _deserialize_summary(cached)
+		if cached is not None:
+			summary = _deserialize_summary(cached)
+			if summary is not None: return summary
 	summary = fetch_expiry_summary(service_id)
 	payload = _serialize_summary(summary)
 	if payload is not None: main_cache.set(key, payload, expiration=CACHE_HOURS)

@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 import xbmc
+import xbmcplugin
 import json
 import time
 from threading import Thread
@@ -58,8 +60,6 @@ class RedLightPlayer(xbmc.Player):
 
 	def play_video(self, url, obj):
 		self.set_constants(url, obj)
-		if self.is_generic:
-			ku.clear_video_playlist()
 		if not self.is_generic and self._resolve_cancelled():
 			self.playback_successful = False
 			self.cancel_all_playback = True
@@ -68,7 +68,16 @@ class RedLightPlayer(xbmc.Player):
 			return
 		ku.volume_checker()
 		ku.set_property(PROP_PLAY_OPENING, 'true')
-		self.play(self.url, self.make_listing())
+		listitem = self.make_listing()
+		# Kodi 22 home widgets / PlayMedia expect setResolvedUrl(); Player().play() from a
+		# plugin is unsupported and leaves the original plugin:// item unresolved →
+		# "One or more items failed to play" after stop. Fall back to play() when there is
+		# no resolve handle (RunPlugin, background nextep) or the handle was already used
+		# by an earlier source in this scrape (multi-resolve queue).
+		if not self._play_via_resolved_url(listitem):
+			if self.is_generic:
+				ku.clear_video_playlist()
+			self.play(self.url, listitem)
 		if self.is_generic:
 			self.check_playback_start_generic()
 			if self.playback_successful:
@@ -86,6 +95,7 @@ class RedLightPlayer(xbmc.Player):
 						self.sources_object._release_sources_busy()
 				except:
 					pass
+				self._seek_to_resume_if_needed()
 				self._register_active_playback()
 				self.monitor()
 			else:
@@ -106,6 +116,49 @@ class RedLightPlayer(xbmc.Player):
 				self.safe_stop()
 		try: del self.kodi_monitor
 		except: pass
+
+	def _plugin_handle(self):
+		try:
+			return int(sys.argv[1])
+		except Exception:
+			return -1
+
+	def _play_via_resolved_url(self, listitem):
+		handle = self._plugin_handle()
+		if handle <= 0:
+			return False
+		if not self.is_generic and getattr(self.sources_object, '_resolved_url_sent', False):
+			return False
+		try:
+			xbmcplugin.setResolvedUrl(handle, True, listitem)
+			if not self.is_generic:
+				self.sources_object._resolved_url_sent = True
+			self._played_via_resolve = True
+			return True
+		except Exception:
+			return False
+
+	def _seek_to_resume_if_needed(self):
+		# setResolvedUrl can ignore StartPercent on some Kodi builds; seek once playback is up.
+		if not getattr(self, '_played_via_resolve', False):
+			return
+		try:
+			percent = float(self.playback_percent or 0)
+		except Exception:
+			return
+		if percent <= 0:
+			return
+		try:
+			ku.sleep(500)
+			total = float(self.getTotalTime())
+			if total <= 0:
+				return
+			target = total * percent / 100.0
+			current = float(self.getTime())
+			if current < target - 5:
+				self.seekTime(target)
+		except Exception:
+			pass
 
 	def _dismiss_kodi_playback_error_dialog(self):
 		# Kodi shows DialogConfirm (okdialog) when demux/open fails. Force-close so

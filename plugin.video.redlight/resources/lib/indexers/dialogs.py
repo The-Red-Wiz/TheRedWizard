@@ -467,6 +467,11 @@ def punchplay_client_check_choice(params):
 	ok, text = punchplay_test_client_id()
 	return kodi_utils.ok_dialog(heading='Success' if ok else 'Failed', text=text)
 
+def simkl_client_check_choice(params):
+	from apis.simkl_api import simkl_test_client_id
+	ok, text = simkl_test_client_id()
+	return kodi_utils.ok_dialog(heading='Success' if ok else 'Failed', text=text)
+
 def tmdblist_read_token_check_choice(params):
 	import requests
 	from apis.tmdblist_api import TMDbListAPI

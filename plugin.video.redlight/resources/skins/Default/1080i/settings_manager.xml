@@ -1340,6 +1340,14 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(40)</visible>
+                          <property name="setting_label">Omit Show Title Tag on Widgets</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.single_ep_widget_omit_tvshowtitle)]</property>
+                          <property name="setting_description">When enabled, calendar and other single-episode widgets do not set TVShowTitle. Skins that show that as a second line under Label will not display the show name. Label/Title still follow Display Format. Within-addon lists are unchanged.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=single_ep_widget_omit_tvshowtitle)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(40)</visible>
                           <property name="setting_label">Provide Unwatched Episodes Info</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.single_ep_unwatched_episodes)]</property>
@@ -1657,16 +1665,14 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(50)</visible>
-                          <visible>!String.IsEqual(Window(10000).Property(redlight.punchplay.user),empty_setting)</visible>
                           <property name="setting_label">Client ID Key</property>
                           <property name="setting_type">string</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.punchplay.client)]</property>
-                          <property name="setting_description">Enter the Client ID from your app at punchplay.tv/developers (or leave the Red Light default)</property>
+                          <property name="setting_description">Enter the Client ID from your app at punchplay.tv/developers, or leave the Red Light default. Shown even before Authorise (same as Trakt / Simkl).</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=punchplay.client)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(50)</visible>
-                          <visible>!String.IsEqual(Window(10000).Property(redlight.punchplay.user),empty_setting)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.punchplay.client),ppc_20f43c36d33f17d01241ed83)</visible>
                           <property name="setting_label">    - Restore Default Client ID Key</property>
                           <property name="setting_type">action</property>
@@ -1676,7 +1682,6 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(50)</visible>
-                          <visible>!String.IsEqual(Window(10000).Property(redlight.punchplay.user),empty_setting)</visible>
                           <property name="setting_label">Test Client ID Key...</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">...</property>
@@ -1689,23 +1694,6 @@
                           <property name="setting_label">Simkl</property>
                           <property name="setting_type">separator</property>
                           <onclick>noop</onclick>
-                      </item>
-                      <item>
-                          <visible>Container(2000).HasFocus(50)</visible>
-                          <property name="setting_label">Client ID Key</property>
-                          <property name="setting_type">string</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.simkl.client)]</property>
-                          <property name="setting_description">Enter the Client ID from your app at simkl.com/settings/developer, or use Restore Default below for Red Light's built-in key. Shown even before Authorise so a custom key can be set first. Changing Client ID may require Authorise again (tokens are app-scoped).</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=simkl.client)</onclick>
-                      </item>
-                      <item>
-                          <visible>Container(2000).HasFocus(50)</visible>
-                          <visible>!String.IsEqual(Window(10000).Property(redlight.simkl.client),6cacc8db22e67b2cd423ef73a9fd3a4f45146ba7fbf30fb2ae28f2fa9d0c2583)</visible>
-                          <property name="setting_label">    - Restore Default Client ID Key</property>
-                          <property name="setting_type">action</property>
-                          <property name="setting_value">...</property>
-                          <property name="setting_description">Restore default Simkl Client ID Key</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.restore_setting_default&amp;setting_id=simkl.client)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(50)</visible>
@@ -1769,6 +1757,31 @@
                           <property name="setting_value">...</property>
                           <property name="setting_description">Open Simkl's official Trakt import page (QR code or copied link). Use when moving watch history from Trakt to Simkl. Red Light does not run the import.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=simkl.simkl_import_trakt)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(50)</visible>
+                          <property name="setting_label">Client ID Key</property>
+                          <property name="setting_type">string</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.simkl.client)]</property>
+                          <property name="setting_description">Enter the Client ID from your app at simkl.com/settings/developer, or use Restore Default below for Red Light's built-in key. Shown even before Authorise (same as Trakt). Changing Client ID may require Authorise again (tokens are app-scoped).</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=simkl.client)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(50)</visible>
+                          <visible>!String.IsEqual(Window(10000).Property(redlight.simkl.client),6cacc8db22e67b2cd423ef73a9fd3a4f45146ba7fbf30fb2ae28f2fa9d0c2583)</visible>
+                          <property name="setting_label">    - Restore Default Client ID Key</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">...</property>
+                          <property name="setting_description">Restore default Simkl Client ID Key</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.restore_setting_default&amp;setting_id=simkl.client)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(50)</visible>
+                          <property name="setting_label">Test Client ID Key...</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">...</property>
+                          <property name="setting_description">Check that your Simkl Client ID is accepted by Simkl</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=simkl_client_check_choice)</onclick>
                       </item>
         <!-- Trakt -->
                       <item>

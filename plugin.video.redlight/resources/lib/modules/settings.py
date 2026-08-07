@@ -514,6 +514,10 @@ def single_ep_display_format(is_external):
 	else: setting, default = 'redlight.single_ep_display', ''
 	return int(get_setting(setting, default))
 
+def single_ep_widget_omit_tvshowtitle():
+	"""Widgets only: skip TVShowTitle info tag so skins don't show show name under Label."""
+	return get_setting('redlight.single_ep_widget_omit_tvshowtitle', 'false') == 'true'
+
 def calendar_display_format(is_external):
 	if is_external:
 		setting, default = 'redlight.trakt.calendar_display_widget', '1'
