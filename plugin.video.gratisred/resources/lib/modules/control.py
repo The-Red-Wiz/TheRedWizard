@@ -73,6 +73,53 @@ skin = xbmc.getSkinDir()
 player = xbmc.Player()
 playlist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
 resolve = xbmcplugin.setResolvedUrl
+PROP_RESOLVE_DONE = 'plugin.video.gratisred.resolve_done'
+
+
+def plugin_handle():
+    try:
+        return int(sys.argv[1])
+    except Exception:
+        return -1
+
+
+def clear_resolve_state():
+    try:
+        window.clearProperty(PROP_RESOLVE_DONE)
+    except Exception:
+        pass
+
+
+def mark_resolve_sent():
+    try:
+        window.setProperty(PROP_RESOLVE_DONE, 'true')
+    except Exception:
+        pass
+
+
+def abort_plugin_resolve():
+    # Kodi 22 widget / PlayMedia: exit without setResolvedUrl(True|False) leaves plugin://
+    # "not playable" → "One or more items failed to play".
+    try:
+        if window.getProperty(PROP_RESOLVE_DONE) == 'true':
+            return False
+    except Exception:
+        pass
+    handle = plugin_handle()
+    if handle <= 0:
+        return False
+    try:
+        resolve(handle, False, item(offscreen=True))
+        mark_resolve_sent()
+        return True
+    except Exception:
+        try:
+            resolve(handle, False, item())
+            mark_resolve_sent()
+            return True
+        except Exception:
+            return False
+
 
 legalFilename = xbmc.makeLegalFilename if getKodiVersion() < 19 else xbmcvfs.makeLegalFilename
 

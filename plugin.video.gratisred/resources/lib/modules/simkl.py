@@ -44,6 +44,8 @@ _SIMKL_MOVIE_FULL_SYNC_KEYS = ('completed', 'removed_from_list')
 _SIMKL_SHOW_FULL_SYNC_KEYS = ('removed_from_list',)
 _SIMKL_TV_SYNC_QUERY = 'extended=full&episode_watched_at=yes&include_all_episodes=yes'
 _SIMKL_ANIME_SYNC_QUERY = 'extended=full_anime_seasons&episode_watched_at=yes&include_all_episodes=yes'
+# Phase 2 multi-type: one /sync/all-items?date_from=… (shows + anime + movies).
+_SIMKL_PHASE2_ALL_QUERY = 'extended=full_anime_seasons&episode_watched_at=yes&include_all_episodes=yes'
 
 _STATUSES = ('plantowatch', 'watching', 'completed', 'hold', 'dropped')
 _STATUS_LABELS = {
@@ -1022,13 +1024,22 @@ def _write_sync_cache(function, result, *args):
 def _fetch_movie_indicators(date_from=None):
     path = '/sync/all-items/movies/completed?%s' % _simkl_with_date_from('extended=full', date_from)
     data = call_simkl(path, method='get') or {}
-    rows = data.get('movies', data if isinstance(data, list) else [])
+    return _movie_indicators_from_data(data, filter_status=False)
+
+
+def _movie_indicators_from_data(data, filter_status=False):
+    rows = (data or {}).get('movies', data if isinstance(data, list) else [])
     indicators = []
     for item in rows:
         try:
             movie = item.get('movie', item)
             imdb = movie.get('ids', {}).get('imdb')
             if not imdb:
+                continue
+            status = str(item.get('status') or '').lower()
+            watched_at = item.get('last_watched_at') or item.get('watched_at')
+            # Unified Phase 2 returns all statuses — only store completed/watched movies.
+            if filter_status and not watched_at and status != 'completed':
                 continue
             indicators.append(_normalize_imdb(imdb))
         except Exception:
@@ -1078,14 +1089,36 @@ def _append_tv_indicator_rows(indicators, touched_ids, data, item_key):
             pass
 
 
-def _fetch_tv_indicators(date_from=None):
+def _tv_indicators_from_data(data, date_from=None):
     touched_ids = set() if date_from else None
     indicators = []
-    shows = call_simkl('/sync/all-items/shows?%s' % _simkl_with_date_from(_SIMKL_TV_SYNC_QUERY, date_from), method='get') or {}
-    _append_tv_indicator_rows(indicators, touched_ids, shows, 'shows')
-    anime = call_simkl('/sync/all-items/anime?%s' % _simkl_with_date_from(_SIMKL_ANIME_SYNC_QUERY, date_from), method='get') or {}
-    _append_tv_indicator_rows(indicators, touched_ids, anime, 'anime')
+    _append_tv_indicator_rows(indicators, touched_ids, data or {}, 'shows')
+    _append_tv_indicator_rows(indicators, touched_ids, data or {}, 'anime')
     return indicators, touched_ids
+
+
+def _fetch_tv_indicators(date_from=None):
+    if date_from:
+        # Phase 2: one multi-type request (shows + anime; movies ignored here).
+        data = call_simkl('/sync/all-items?%s' % _simkl_with_date_from(_SIMKL_PHASE2_ALL_QUERY, date_from), method='get') or {}
+        return _tv_indicators_from_data(data, date_from)
+    # Phase 1: sequential per-type full pulls (Simkl guidance for large libraries).
+    indicators = []
+    shows = call_simkl('/sync/all-items/shows?%s' % _SIMKL_TV_SYNC_QUERY, method='get') or {}
+    _append_tv_indicator_rows(indicators, None, shows, 'shows')
+    anime = call_simkl('/sync/all-items/anime?%s' % _SIMKL_ANIME_SYNC_QUERY, method='get') or {}
+    _append_tv_indicator_rows(indicators, None, anime, 'anime')
+    return indicators, None
+
+
+def _fetch_phase2_indicators(date_from):
+    """Phase 2 continuous sync: one /sync/all-items?date_from= for movies + shows + anime."""
+    if not date_from:
+        return [], [], None
+    data = call_simkl('/sync/all-items?%s' % _simkl_with_date_from(_SIMKL_PHASE2_ALL_QUERY, date_from), method='get') or {}
+    movies = _movie_indicators_from_data(data, filter_status=True)
+    tv, touched = _tv_indicators_from_data(data, date_from)
+    return movies, tv, touched
 
 
 def _merge_movie_indicators(existing, delta):
@@ -1348,25 +1381,35 @@ def _sync_simkl_watched_body(force_update=False):
     anime = latest.get('anime', {})
     cached_movies, cached_shows = cached.get('movies', {}), cached.get('tv_shows', {})
     cached_anime = cached.get('anime', {})
-    if force_update or _activity_block_changed(movies, cached_movies, _SIMKL_MOVIE_WATCHED_ACTIVITY_KEYS):
-        movie_from = None if (not date_from or _activity_block_changed(movies, cached_movies, _SIMKL_MOVIE_FULL_SYNC_KEYS)) else date_from
-        delta = _fetch_movie_indicators(date_from=movie_from)
-        if movie_from:
-            existing = _read_sync_cache(syncMovies, user) or []
-            _write_sync_cache(syncMovies, _merge_movie_indicators(existing, delta), user)
-        else:
-            _write_sync_cache(syncMovies, delta, user)
-    if force_update or _activity_block_changed(shows, cached_shows, _SIMKL_SHOW_WATCHED_ACTIVITY_KEYS) \
-            or _activity_block_changed(anime, cached_anime, _SIMKL_SHOW_WATCHED_ACTIVITY_KEYS):
-        tv_from = None if (not date_from
-            or _activity_block_changed(shows, cached_shows, _SIMKL_SHOW_FULL_SYNC_KEYS)
-            or _activity_block_changed(anime, cached_anime, _SIMKL_SHOW_FULL_SYNC_KEYS)) else date_from
-        delta, touched = _fetch_tv_indicators(date_from=tv_from)
-        if tv_from:
-            existing = _read_sync_cache(syncTVShows, user) or []
-            _write_sync_cache(syncTVShows, _merge_tv_indicators(existing, delta, touched), user)
-        else:
-            _write_sync_cache(syncTVShows, delta, user)
+    need_movies = force_update or _activity_block_changed(movies, cached_movies, _SIMKL_MOVIE_WATCHED_ACTIVITY_KEYS)
+    need_tv = force_update or _activity_block_changed(shows, cached_shows, _SIMKL_SHOW_WATCHED_ACTIVITY_KEYS) \
+        or _activity_block_changed(anime, cached_anime, _SIMKL_SHOW_WATCHED_ACTIVITY_KEYS)
+    movie_from = None if (not date_from or _activity_block_changed(movies, cached_movies, _SIMKL_MOVIE_FULL_SYNC_KEYS)) else date_from
+    tv_from = None if (not date_from
+        or _activity_block_changed(shows, cached_shows, _SIMKL_SHOW_FULL_SYNC_KEYS)
+        or _activity_block_changed(anime, cached_anime, _SIMKL_SHOW_FULL_SYNC_KEYS)) else date_from
+    if need_movies and need_tv and movie_from and tv_from and movie_from == tv_from:
+        # Simkl Phase 2 multi-type: one request for movies + shows + anime.
+        movie_delta, tv_delta, touched = _fetch_phase2_indicators(movie_from)
+        existing_m = _read_sync_cache(syncMovies, user) or []
+        _write_sync_cache(syncMovies, _merge_movie_indicators(existing_m, movie_delta), user)
+        existing_t = _read_sync_cache(syncTVShows, user) or []
+        _write_sync_cache(syncTVShows, _merge_tv_indicators(existing_t, tv_delta, touched), user)
+    else:
+        if need_movies:
+            delta = _fetch_movie_indicators(date_from=movie_from)
+            if movie_from:
+                existing = _read_sync_cache(syncMovies, user) or []
+                _write_sync_cache(syncMovies, _merge_movie_indicators(existing, delta), user)
+            else:
+                _write_sync_cache(syncMovies, delta, user)
+        if need_tv:
+            delta, touched = _fetch_tv_indicators(date_from=tv_from)
+            if tv_from:
+                existing = _read_sync_cache(syncTVShows, user) or []
+                _write_sync_cache(syncTVShows, _merge_tv_indicators(existing, delta, touched), user)
+            else:
+                _write_sync_cache(syncTVShows, delta, user)
     _store_cached_activities(latest)
     return True
 

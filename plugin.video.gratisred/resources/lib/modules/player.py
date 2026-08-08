@@ -98,9 +98,10 @@ class player(xbmc.Player):
             # original plugin:// item unresolved → "One or more items failed to play".
             played_via_resolve = False
             try:
-                handle = int(sys.argv[1])
+                handle = control.plugin_handle()
                 if handle > 0:
                     control.resolve(handle, True, item)
+                    control.mark_resolve_sent()
                     played_via_resolve = True
             except Exception:
                 pass
@@ -116,6 +117,7 @@ class player(xbmc.Player):
                 self._trakt_scrobble_finalize()
             except Exception:
                 pass
+            control.abort_plugin_resolve()
             return
 
 

@@ -62,6 +62,7 @@ class sources:
 
 
     def errorForSources(self):
+        control.abort_plugin_resolve()
         control.infoDialog('Error : No Stream Available.', sound=False, icon='INFO')
 
 
@@ -599,12 +600,14 @@ class sources:
         line1 = line2 = ""
         total_format = '[COLOR %s][B]%s[/B][/COLOR]'
         pdiag_format = ' 4K: %s | 1080P: %s | 720P: %s | SD: %s [CR] Total: %s | Filtered: %s' if not progressDialog == control.progressDialogBG else ' 4K: %s | 1080P: %s | 720P: %s | SD: %s | T: %s (F: -%s)'
+        scrape_cancelled = False
         for i in range(0, 4 * _timeout):
             try:
                 if control.monitor.abortRequested():
                     return sys.exit()
                 try:
                     if progressDialog.iscanceled():
+                        scrape_cancelled = True
                         break
                 except:
                     pass
@@ -691,10 +694,15 @@ class sources:
                 pass
         if progressDialog == control.progressDialogBG:
             progressDialog.close()
-            self.sourcesFilter(content, sort=True)
+            if not scrape_cancelled:
+                self.sourcesFilter(content, sort=True)
         else:
-            self.sourcesFilter(content, sort=True)
+            if not scrape_cancelled:
+                self.sourcesFilter(content, sort=True)
             progressDialog.close()
+        if scrape_cancelled:
+            control.idle()
+            return []
         if self.pre_emp == 'true':
             self.sourcesFilter(content, sort=True)
         del progressDialog
@@ -783,6 +791,7 @@ class sources:
 
     def play(self, title, year, imdb, tmdb, tvdb, season, episode, tvshowtitle, premiered, meta, select):
         try:
+            control.clear_resolve_state()
             url = None
             items = self.getSources(title, year, imdb, tmdb, tvdb, season, episode, tvshowtitle, premiered)
             select = control.setting('hosts.mode') if select == None else select
@@ -795,6 +804,8 @@ class sources:
                     control.window.clearProperty(self.metaProperty)
                     control.window.setProperty(self.metaProperty, meta)
                     control.sleep(200)
+                    # Release the PlayMedia resolve handle before switching to a folder list.
+                    control.abort_plugin_resolve()
                     return control.execute('Container.Update(%s?action=add_item&title=%s)' % (sys.argv[0], urllib_parse.quote_plus(title)))
                 elif select == '0' or select == '1':
                     url = self.sourcesDialog(items)
@@ -811,11 +822,13 @@ class sources:
             player().run(title, year, season, episode, imdb, tmdb, tvdb, url, meta)
         except:
             log_utils.log('play', 1)
+            control.abort_plugin_resolve()
             pass
 
 
     def playItem(self, title, source):
         try:
+            control.clear_resolve_state()
             meta = control.window.getProperty(self.metaProperty)
             meta = json.loads(meta)
             year = meta['year'] if 'year' in meta else None
@@ -876,7 +889,11 @@ class sources:
                             if control.monitor.abortRequested():
                                 return sys.exit()
                             if progressDialog.iscanceled():
-                                return progressDialog.close()
+                                try:
+                                    progressDialog.close()
+                                except:
+                                    pass
+                                return self.errorForSources()
                         except:
                             pass
                         k = control.condVisibility('Window.IsActive(virtualkeyboard)')
@@ -895,7 +912,11 @@ class sources:
                             if control.monitor.abortRequested():
                                 return sys.exit()
                             if progressDialog.iscanceled():
-                                return progressDialog.close()
+                                try:
+                                    progressDialog.close()
+                                except:
+                                    pass
+                                return self.errorForSources()
                         except:
                             pass
                         if m == '':
@@ -926,6 +947,7 @@ class sources:
             del progressDialog
             self.errorForSources()
         except:
+            control.abort_plugin_resolve()
             pass
 
 

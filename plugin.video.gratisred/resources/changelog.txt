@@ -1,4 +1,8 @@
 
+[B]- 1.2.5 (2026-08-08)[/B] Simkl Phase 2 unified continuous sync + Kodi 22 widget cancel:
+ * [B]Simkl[/B]: when movies and TV both need a [I]date_from[/I] delta, one multi-type [I]/sync/all-items?date_from=[/I] request covers both (merges into local indicator caches). Movies-only still uses [I]/movies/completed[/I]; first sync / Force Refresh / removal reconciliation stay sequential full pulls.
+ * [B]Playback[/B]: backing out of scrape / resolve (or no stream) now calls [I]setResolvedUrl(False)[/I] so Kodi 22 home widgets do not leave the original [I]plugin://[/I] item unresolved — that was the [B]One or more items failed to play[/B] dialog after cancel.
+
 [B]- 1.2.4 (2026-08-07)[/B] Trakt/Simkl backend (performance) cumulative update + Kodi 22 compliance:
  * [B]Simkl[/B]: continuous watched sync uses [I]/sync/activities[/I] + [I]date_from[/I] deltas (Simkl Phase 2), merging into local indicator caches instead of full [I]/sync/all-items[/I] on every poll. Full pull remains for first sync / Force Refresh / removal reconciliation. API calls spaced 1.5s across plugin/service invokers (shared throttle file + home property); overlapping syncs coalesced. Anime sync uses [I]full_anime_seasons[/I] with TVDb S/E mapping. Indicator list refresh uses activities sync instead of always forcing a full cache rebuild.
  * [B]Playback[/B]: prefer [I]setResolvedUrl()[/I] when the plugin handle expects it (home widgets / [I]PlayMedia[/I] on Kodi 22). Fall back to [I]Player().play()[/I] only when there is no resolve handle — avoids dual play+resolve and the post-stop [B]One or more items failed to play[/B] toast.
