@@ -1,3 +1,8 @@
+[COLOR red][B]Version 2.2.4[/B][/COLOR]
+- [B]Widgets / Resume[/B]: directory listitems (home widgets, Next Episodes, In Progress, in-addon lists) no longer set an InfoTag resume point at all — only [B]WatchedProgress[/B] + duration. 2.2.3 skipped resume only when [I]external()[/I] was true; Next Episodes can still be an in-progress row, and some widget refreshes still look like Red Light to [I]Container.PluginName[/I], which left Kodi's Resume / Start over before scrape. Resume is Red Light's source prompt only.
+- [B]Progress Sync[/B]: leftover ≤1% playback rows (e.g. Simkl reset that leaves a 0% [I]/sync/playback[/I] entry) no longer trigger Red Light's Resume / Start over prompt — treat as cleared. Simkl / PunchPlay playback sync now drops ≤1% the same way Trakt / MDBList already did. Opening In Progress Episodes / Movies with Simkl as Watched Status Provider refreshes playback via activities (parity with Trakt / MDBList / PunchPlay).
+- [B]Trakt Progress[/B]: playback sync now full-replaces local progress (including when remote is empty) instead of only deleting rows with a Trakt [I]resume_id[/I]. Local pause writes used [I]resume_id=0[/I], so a reset on another device could leave stale resume on this one.
+
 [COLOR red][B]Version 2.2.3[/B][/COLOR]
 - [B]Widgets / Resume[/B]: in-progress movies and episodes on home widgets no longer set an InfoTag resume point (still set [B]WatchedProgress[/B] + duration). That stops Kodi's Resume / Start over dialog before scrape so only Red Light's source resume prompt appears.
 

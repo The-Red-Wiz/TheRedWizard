@@ -49,12 +49,14 @@ class TraktWatched():
 
 	def set_bulk_movie_progress(self, insert_list):
 		dbcon = connect_database('trakt_db')
-		dbcon.execute('DELETE FROM progress WHERE db_type = ? AND resume_id != 0', ('movie',))
+		# Full replace (Simkl/MDBList/PunchPlay style). Local pause writes resume_id=0;
+		# deleting only resume_id != 0 left stale progress after remote clear.
+		dbcon.execute('DELETE FROM progress WHERE db_type = ?', ('movie',))
 		if insert_list: dbcon.executemany('INSERT OR REPLACE INTO progress VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', insert_list)
 
 	def set_bulk_tvshow_progress(self, insert_list):
 		dbcon = connect_database('trakt_db')
-		dbcon.execute('DELETE FROM progress WHERE db_type = ? AND resume_id != 0', ('episode',))
+		dbcon.execute('DELETE FROM progress WHERE db_type = ?', ('episode',))
 		if insert_list: dbcon.executemany('INSERT OR REPLACE INTO progress VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', insert_list)
 
 	def _executemany(self, command, insert_list):

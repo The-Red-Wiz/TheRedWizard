@@ -955,6 +955,7 @@ def punchplay_sync_playback():
 	for item in items:
 		try:
 			percent = float(item.get('progressPercent') or 0)
+			if percent <= 1: continue
 			updated = item.get('updatedAt') or ''
 			resume_id = item.get('id') or 0
 			if item.get('type') == 'movie':

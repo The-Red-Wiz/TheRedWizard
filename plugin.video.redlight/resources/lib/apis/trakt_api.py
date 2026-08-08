@@ -1053,7 +1053,10 @@ def trakt_progress_movies(progress_info):
 	insert_list = []
 	insert_append = insert_list.append
 	progress_items = [i for i in progress_info  if i['type'] == 'movie' and i['progress'] > 1]
-	if not progress_items: return
+	# Always replace local snapshot — empty remote must clear stale resume_id=0 rows.
+	if not progress_items:
+		trakt_cache.trakt_watched_cache.set_bulk_movie_progress([])
+		return
 	threads = TaskPool().tasks(_process, progress_items, min(len(progress_items), settings.max_threads()))
 	[i.join() for i in threads]
 	trakt_cache.trakt_watched_cache.set_bulk_movie_progress(insert_list)
@@ -1077,7 +1080,9 @@ def trakt_progress_tv(progress_info):
 	tmdb_list = []
 	tmdb_list_append = tmdb_list.append
 	progress_items = [i for i in progress_info if i['type'] == 'episode' and i['progress'] > 1]
-	if not progress_items: return
+	if not progress_items:
+		trakt_cache.trakt_watched_cache.set_bulk_tvshow_progress([])
+		return
 	all_shows = [i['show'] for i in progress_items]
 	all_shows = [i for n, i in enumerate(all_shows) if not i in all_shows[n + 1:]] # remove duplicates
 	threads = TaskPool().tasks(_process_tmdb_ids, all_shows, min(len(all_shows), settings.max_threads()))

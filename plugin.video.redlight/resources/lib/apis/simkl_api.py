@@ -914,16 +914,18 @@ def simkl_sync_playback():
 	movie_ins, ep_ins = [], []
 	for item in items:
 		try:
+			progress = float(item.get('progress') or 0)
+			if progress <= 1: continue
 			if item.get('type') == 'movie':
 				tmdb_id = _tmdb_id(item.get('movie', {}).get('ids', {}))
 				if not tmdb_id: continue
-				movie_ins.append(('movie', tmdb_id, '', '', str(round(item['progress'], 1)), 0, item.get('paused_at', ''), item['id'], item['movie'].get('title', '')))
+				movie_ins.append(('movie', tmdb_id, '', '', str(round(progress, 1)), 0, item.get('paused_at', ''), item['id'], item['movie'].get('title', '')))
 			elif item.get('type') == 'episode':
 				show = item.get('show', {})
 				tmdb_id = _tmdb_id(show.get('ids', {}))
 				if not tmdb_id: continue
 				ep = item.get('episode', {})
-				ep_ins.append(('episode', tmdb_id, ep.get('season'), ep.get('number'), str(round(item['progress'], 1)), 0,
+				ep_ins.append(('episode', tmdb_id, ep.get('season'), ep.get('number'), str(round(progress, 1)), 0,
 					item.get('paused_at', ''), item['id'], show.get('title', '')))
 		except: pass
 	simkl_cache.simkl_watched_cache.set_bulk_movie_progress(movie_ins)

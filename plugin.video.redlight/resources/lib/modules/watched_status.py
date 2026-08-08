@@ -211,10 +211,21 @@ def get_bookmarks_movie(watched_db=None):
 	except: info = {}
 	return info
 
+def meaningful_progress_percent(resume_point):
+	"""Return rounded percent string only when progress is >1% (In Progress shelf threshold).
+
+	Providers can leave a 0%/≤1% playback row after reset; string '0' is truthy in Python
+	and would still show Red Light's Resume / Start over prompt.
+	"""
+	try:
+		percent = float(resume_point)
+		if percent > 1: return str(round(percent))
+	except: pass
+	return None
+
 def get_progress_status_movie(progress_info, media_id):
-	try: percent = str(round(float(progress_info[media_id]['resume_point'])))
-	except: percent = None
-	return percent
+	try: return meaningful_progress_percent(progress_info[media_id]['resume_point'])
+	except: return None
 
 def watched_info_tvshow(watched_db=None):
 	if not watched_db: watched_db = get_database()
@@ -310,31 +321,27 @@ def get_bookmarks_all_episode(media_id, total_seasons, watched_db=None):
 	return all_seasons_info
 
 def get_progress_status_episode(progress_info, episode):
-	try: percent = str(round(float(progress_info[episode]['resume_point'])))
-	except: percent = None
-	return percent
+	try: return meaningful_progress_percent(progress_info[episode]['resume_point'])
+	except: return None
 
 def get_progress_status_all_episode(progress_info, season, episode):
-	try: percent = str(round(float(progress_info[season][episode]['resume_point'])))
-	except: percent = None
-	return percent
+	try: return meaningful_progress_percent(progress_info[season][episode]['resume_point'])
+	except: return None
 
 def get_resume_seconds(progress, duration):
 	return float(int(float(progress)/100 * duration))
 
 def apply_listitem_progress(info_tag, set_properties, progress, duration, is_external=False):
-	"""Set progress for skins without making widgets Kodi-resumable.
+	"""Expose progress to skins without making the row Kodi-resumable.
 
-	Widgets / PlayMedia can show Resume/Start over before the plugin runs when the
-	InfoTag resume point is part-way. Keep WatchedProgress always; only set
-	ResumeTime (without total) inside the addon so Red Light's source dialog stays
-	the sole resume prompt from home widgets.
+	Never set InfoTag resume on directory listitems (widgets, Next Episodes,
+	In Progress, or in-addon lists). Duration + ResumePoint is what triggers
+	Kodi's Resume / Start over before scrape — including when Container.PluginName
+	still looks like Red Light on a home widget refresh. WatchedProgress alone
+	keeps skin bars; Red Light's source dialog is the only resume prompt.
 	"""
-	if not progress: return
+	if not meaningful_progress_percent(progress): return
 	set_properties({'WatchedProgress': progress})
-	if is_external: return
-	try: info_tag.setResumePoint(get_resume_seconds(progress, duration))
-	except: pass
 
 def clear_local_bookmarks():
 	try:
@@ -717,6 +724,19 @@ def _refresh_simkl_tvshow_watched():
 		simkl_sync_activities()
 	except: pass
 
+def _refresh_simkl_progress():
+	# Activity-gated playback refresh — parity with Trakt/MDBList/PunchPlay on In Progress open.
+	try:
+		if settings.watched_indicators() != 2 or not settings.simkl_user_active(): return
+		from apis.simkl_api import simkl_sync_activities
+		simkl_sync_activities()
+	except: pass
+
+def _purge_negligible_progress(dbcon):
+	# Drop leftover ≤1% rows so local DB matches In Progress / resume thresholds.
+	try: dbcon.execute('DELETE FROM progress WHERE CAST(resume_point AS FLOAT) <= 1')
+	except: pass
+
 def _refresh_mdblist_watched():
 	# Activity-gated (same as MDBListMonitor / TV show lists) — skip full watched pull when unchanged.
 	try:
@@ -805,6 +825,11 @@ def get_in_progress_movies(dummy_arg, page_no):
 		_refresh_trakt_movie_progress()
 		data = _movie_progress_list(dbcon)
 		if data: source = 'trakt'
+	elif watched_indicators == 2 and settings.simkl_user_active():
+		_refresh_simkl_progress()
+		_purge_negligible_progress(dbcon)
+		data = _movie_progress_list(dbcon)
+		if data: source = 'simkl'
 	elif watched_indicators == 3 and settings.mdblist_user_active():
 		_refresh_mdblist_movie_progress()
 		data = _movie_progress_list(dbcon)
@@ -813,6 +838,9 @@ def get_in_progress_movies(dummy_arg, page_no):
 		_refresh_punchplay_progress()
 		data = _movie_progress_list(dbcon)
 		if data: source = 'punchplay'
+	else:
+		_purge_negligible_progress(dbcon)
+		data = _movie_progress_list(dbcon)
 	logger('Red Light', 'get_in_progress_movies: %s item(s) from %s' % (len(data), source))
 	return _sort_progress_list(data)
 
@@ -856,6 +884,11 @@ def get_in_progress_episodes():
 		_refresh_trakt_episode_progress()
 		episode_list = _episode_progress_list(dbcon)
 		if episode_list: source = 'trakt'
+	elif watched_indicators == 2 and settings.simkl_user_active():
+		_refresh_simkl_progress()
+		_purge_negligible_progress(dbcon)
+		episode_list = _episode_progress_list(dbcon)
+		if episode_list: source = 'simkl'
 	elif watched_indicators == 3 and settings.mdblist_user_active():
 		_refresh_mdblist_episode_progress()
 		episode_list = _episode_progress_list(dbcon)
@@ -864,6 +897,9 @@ def get_in_progress_episodes():
 		_refresh_punchplay_progress()
 		episode_list = _episode_progress_list(dbcon)
 		if episode_list: source = 'punchplay'
+	else:
+		_purge_negligible_progress(dbcon)
+		episode_list = _episode_progress_list(dbcon)
 	logger('Red Light', 'get_in_progress_episodes: %s item(s) from %s' % (len(episode_list), source))
 	if settings.lists_sort_order('progress') == 0: episode_list = sort_for_article(episode_list, 'title', settings.ignore_articles())
 	else: episode_list.sort(key=lambda k: k['date'], reverse=True)

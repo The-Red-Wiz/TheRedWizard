@@ -447,7 +447,7 @@ def build_single_episode(list_type, params={}):
 					'writer': item_get('writer'), 'director': item_get('director'), 'year': int(year),
 					'rating': item_get('rating'), 'votes': item_get('votes'), 'mpaa': mpaa,
 					'cast': [{'name': i['name'], 'role': i['role'], 'thumbnail': i['thumbnail']} for i in full_cast],
-					'resume_secs': ws.get_resume_seconds(progress, duration) if progress and not unaired else None,
+					'resume_secs': None,
 					'unaired': unaired, 'first_aired': premiered,
 					'name': '%s - %sx%s' % (title, str(season), str_episode_zfill2),
 					'last_played': ep_data_get('last_played', resinsert), 'sort_order': _position,
@@ -554,8 +554,6 @@ def build_single_episode(list_type, params={}):
 					info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
 					info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
 					info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
-					if packet.get('resume_secs') is not None and not is_external:
-						info_tag.setResumePoint(packet['resume_secs'])
 					listitem.setLabel(packet['display'])
 					listitem.addContextMenuItems(packet.get('cm') or [])
 					listitem.setArt(packet.get('art') or {})
@@ -726,8 +724,6 @@ def build_single_episode(list_type, params={}):
 					info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
 					info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
 					info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
-					if packet.get('resume_secs') is not None and not is_external:
-						info_tag.setResumePoint(packet['resume_secs'])
 					listitem.setLabel(packet['display'])
 					listitem.addContextMenuItems(packet.get('cm') or [])
 					listitem.setArt(packet.get('art') or {})
