@@ -287,6 +287,10 @@ class SettingsCache:
 
 	def set(self, setting_id, setting_value=None):
 		setting_id = setting_id.replace('redlight.', '')
+		prev_watched_indicators = None
+		if setting_id == 'watched_indicators':
+			try: prev_watched_indicators = str(self.read_db_value('watched_indicators') or '0')
+			except: prev_watched_indicators = '0'
 		self._db_cache.pop(setting_id, None)
 		self._db_cache.pop('%s_name' % setting_id, None)
 		dbcon = connect_database('settings_db')
@@ -311,6 +315,8 @@ class SettingsCache:
 				from apis.aiostreams_api import apply_profile
 				apply_profile(instance_switch)
 			except: pass
+		if setting_id == 'watched_indicators' and str(setting_value) != str(prev_watched_indicators):
+			_sync_watched_provider_on_switch(setting_value)
 		if _properties_loaded():
 			self.set_memory_cache(setting_id, setting_value)
 			if setting_id in _SERVICE_AUTH_VISIBILITY_SETTINGS:
@@ -602,7 +608,7 @@ def run_deferred_setup_background_if_needed():
 _DIRECTORY_LISTING_MODES = frozenset((
 	'build_movie_list', 'build_tvshow_list', 'build_season_list', 'build_episode_list',
 	'build_in_progress_episode', 'build_recently_watched_episode', 'build_next_episode',
-	'build_my_calendar', 'build_mdbl_calendar', 'build_punchplay_calendar', 'build_simkl_calendar', 'build_mdbl_next_up', 'build_next_episode_manager'))
+	'build_my_calendar', 'build_mdbl_calendar', 'build_punchplay_calendar', 'build_simkl_calendar', 'build_simkl_public_calendar', 'build_mdbl_next_up', 'build_next_episode_manager'))
 
 # The five settings the unified-list-sort migration reads. They are no longer in default_settings(),
 # so the obsolete-id purge in sync_settings() would delete them on the same pass that migrates them -
@@ -1024,7 +1030,6 @@ def set_from_list(params):
 				except:
 					pass
 				return
-	prev_value = get_setting('redlight.%s' % setting_id) if setting_id == 'watched_indicators' else None
 	set_setting(setting_id, setting_value)
 	if setting_id == 'external_scraper.run_mode':
 		try:
@@ -1033,21 +1038,7 @@ def set_from_list(params):
 			settings_cache.set_memory_cache('%s_name' % setting_id, mode_opts.get(str(setting_value), ''))
 		except:
 			pass
-	if setting_id == 'watched_indicators' and setting_value == '3' and str(prev_value) != '3':
-		try:
-			from apis.mdblist_api import mdblist_sync_activities
-			mdblist_sync_activities(force_update=True)
-		except: pass
-	if setting_id == 'watched_indicators' and setting_value == '2' and str(prev_value) != '2':
-		try:
-			from apis.simkl_api import simkl_sync_activities
-			simkl_sync_activities(force_update=True)
-		except: pass
-	if setting_id == 'watched_indicators' and setting_value == '4' and str(prev_value) != '4':
-		try:
-			from apis.punchplay_api import punchplay_sync_activities
-			punchplay_sync_activities(force_update=True)
-		except: pass
+	# watched_indicators sync runs inside SettingsCache.set (activity-gated; force if empty).
 
 def set_source_folder_path(params):
 	setting_id = params['setting_id']
@@ -1070,6 +1061,42 @@ def restore_setting_default(params):
 def default_setting_values(setting_id):
 	if 'redlight.' in setting_id: setting_id = setting_id.replace('redlight.', '')
 	return _get_defaults_map().get(setting_id)
+
+def _provider_watched_db_empty(provider_index):
+	try:
+		from modules.watched_status import get_database
+		dbcon = get_database(int(provider_index))
+		return dbcon.execute('SELECT 1 FROM watched LIMIT 1').fetchone() is None
+	except:
+		return True
+
+def _sync_watched_provider_on_switch(provider_value):
+	"""When Watched Status Provider switches to a remote service: activity-gated sync.
+	Force full pull only if that provider's local watched table is empty (first enable).
+	Stale-but-populated DBs catch up via activities / Phase 2. Tools > Force Sync still wipes.
+	"""
+	try:
+		provider = int(provider_value)
+	except Exception:
+		return
+	if provider not in (1, 2, 3, 4):
+		return
+	force = _provider_watched_db_empty(provider)
+	try:
+		if provider == 1:
+			from apis.trakt_api import trakt_sync_activities
+			trakt_sync_activities(force_update=force)
+		elif provider == 2:
+			from apis.simkl_api import simkl_sync_activities
+			simkl_sync_activities(force_update=force)
+		elif provider == 3:
+			from apis.mdblist_api import mdblist_sync_activities
+			mdblist_sync_activities(force_update=force)
+		elif provider == 4:
+			from apis.punchplay_api import punchplay_sync_activities
+			punchplay_sync_activities(force_update=force)
+	except Exception:
+		pass
 
 def _get_defaults_map():
 	global _DEFAULTS_MAP
@@ -1182,6 +1209,10 @@ def default_settings():
 {'setting_id': 'default_all_episodes', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'Never', '1': 'If Only One Season', '2': 'Always'}},
 {'setting_id': 'avoid_episode_spoilers', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'include_anime_tvshow', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'show_public_calendars', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'public_calendar_include_anime', 'setting_type': 'boolean', 'setting_default': 'true'},
+{'setting_id': 'public_calendar_max_items', 'setting_type': 'action', 'setting_default': '250', 'min_value': '0', 'max_value': '2000'},
+{'setting_id': 'public_calendar_cache_list', 'setting_type': 'boolean', 'setting_default': 'true'},
 {'setting_id': 'anime.seasons_episode_group_fallback', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'show_unaired_watchlist', 'setting_type': 'boolean', 'setting_default': 'true'},
 {'setting_id': 'meta_filter', 'setting_type': 'boolean', 'setting_default': 'false'},
@@ -1231,6 +1262,7 @@ def default_settings():
 {'setting_id': 'single_ep_display', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'TITLE - SxE. EPISODE', '1': 'SxE. EPISODE', '2': 'EPISODE'}},
 {'setting_id': 'single_ep_display_widget', 'setting_type': 'action', 'setting_default': '1', 'settings_options': {'0': 'TITLE - SxE. EPISODE', '1': 'SxE. EPISODE', '2': 'EPISODE'}},
 {'setting_id': 'single_ep_widget_omit_tvshowtitle', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'single_ep_widget_omit_season_episode', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'single_ep_unwatched_episodes', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'single_ep_unwatched_in_title', 'setting_type': 'boolean', 'setting_default': 'false'},
 #==================== Next Episodes
@@ -1543,7 +1575,7 @@ def default_settings():
 #==================== Playback Utilities
 {'setting_id': 'playback.limit_resolve', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'easynews.playback_method', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'None', '1': 'Retry', '2': 'No Seek', '3': 'Both'}},
-{'setting_id': 'easynews.playback_method_retries', 'setting_type': 'action', 'setting_default': '1', 'min_value': '1', 'max_value': '4'},
+{'setting_id': 'easynews.playback_method_retries', 'setting_type': 'action', 'setting_default': '1', 'min_value': '1', 'max_value': '8'},
 {'setting_id': 'easynews.playback_method_limited', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'playback.volumecheck_enabled', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'playback.volumecheck_percent', 'setting_type': 'action', 'setting_default': '50', 'min_value': '1', 'max_value': '100'},

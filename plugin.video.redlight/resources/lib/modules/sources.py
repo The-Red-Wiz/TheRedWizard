@@ -2,7 +2,9 @@
 import json
 import os
 import pickle
+import sys
 import time
+import xbmcplugin
 from threading import Thread, current_thread
 from windows.base_window import open_window, create_window
 from caches.episode_groups_cache import episode_groups_cache
@@ -241,6 +243,8 @@ class Sources():
 		self.progress_dialog, self.progress_thread = None, None
 		self.playing_filename = ''
 		self._resolve_user_cancelled, self.cancel_all_playback = False, False
+		self._resolved_url_sent = False
+		self._resolved_url_aborted = False
 		# Defaults so Download File (fresh Sources()) can resolve without playback_prep.
 		self.background = False
 		self.play_type = ''
@@ -265,6 +269,32 @@ class Sources():
 		'oc_browse': ('apis.offcloud_api', 'OffcloudAPI'), 'TorBox': ('apis.torbox_api', 'TorBoxAPI'), 'tb_cloud': ('apis.torbox_api', 'TorBoxAPI'),
 		'tb_browse': ('apis.torbox_api', 'TorBoxAPI')}
 		self.retry_actions = settings.rescrape_settings()
+
+	def _plugin_handle(self):
+		try:
+			return int(sys.argv[1])
+		except Exception:
+			return -1
+
+	def _abort_plugin_resolve(self):
+		# Kodi 22 widget / PlayMedia paths wait on setResolvedUrl. Exiting scrape/resolve
+		# without True or False leaves plugin:// "not playable" → "One or more items failed
+		# to play", and a second widget click hits the sources busy lock toast.
+		if getattr(self, 'background', False):
+			return False
+		if getattr(self, '_resolved_url_sent', False) or getattr(self, '_resolved_url_aborted', False):
+			return False
+		handle = self._plugin_handle()
+		if handle <= 0:
+			return False
+		try:
+			listitem = kodi_utils.make_listitem()
+			xbmcplugin.setResolvedUrl(handle, False, listitem)
+			self._resolved_url_aborted = True
+			self._resolved_url_sent = True
+			return True
+		except Exception:
+			return False
 
 	def _playback_already_active(self):
 		if kodi_utils.playback_is_paused():
@@ -486,10 +516,12 @@ class Sources():
 			if kodi_utils.get_property(PROP_RESOLVE_BUSY) == 'true' and not allow_concurrent:
 				if not self.background:
 					kodi_utils.notification('Resolve or playback in progress.', 2500)
+					self._abort_plugin_resolve()
 				return
 			if kodi_utils.get_property(PROP_SOURCES_BUSY) == 'true' and not allow_concurrent:
 				if not self.background:
 					kodi_utils.notification('Source search already running.', 2500)
+					self._abort_plugin_resolve()
 				return
 			self._scrape_user_cancelled = False
 			self._sources_busy_owner = str(id(self))
@@ -1077,6 +1109,7 @@ class Sources():
 				kodi_utils.logger('Red Light', 'Play source skipped: resolve already in progress')
 			except:
 				pass
+			self._abort_plugin_resolve()
 			return
 		if self.background:
 			autoplay_queue = results
@@ -1184,6 +1217,7 @@ class Sources():
 					uncached_results=self.uncached_results, cache_check_override=self.cache_check_override)
 			if not window_result:
 				self._kill_progress_dialog()
+				self._abort_plugin_resolve()
 				return
 			action, chosen_item = window_result
 			if not action:
@@ -1196,6 +1230,7 @@ class Sources():
 					if not self._reclaim_sources_busy():
 						self._kill_progress_dialog(join_timeout=1.0)
 						self.resolve_dialog_made = False
+						self._abort_plugin_resolve()
 						return
 					continue
 				if self._playback_already_active():
@@ -1204,6 +1239,7 @@ class Sources():
 					return
 				self._kill_progress_dialog(join_timeout=3.0)
 				self.resolve_dialog_made = False
+				self._abort_plugin_resolve()
 				return
 			elif action == 'play':
 				kodi_utils.clear_property(PROP_RESOLVE_CANCEL)
@@ -1404,6 +1440,7 @@ class Sources():
 		if self._playback_failed_notified:
 			return
 		self._playback_failed_notified = True
+		self._abort_plugin_resolve()
 		self._close_progress_before_modal()
 		message = text or self._playback_failed_default_message()
 		if self.autoplay or self.background:
@@ -1413,6 +1450,7 @@ class Sources():
 	def _no_results(self):
 		if self.random_continual and self.media_type == 'episode' and self.tmdb_id:
 			return self._random_continual_skip()
+		self._abort_plugin_resolve()
 		self._close_progress_before_modal()
 		return self._show_no_results()
 
@@ -1802,6 +1840,7 @@ class Sources():
 	def _finish_scrape_cancel(self):
 		self._kill_progress_dialog(join_timeout=2.0)
 		self._release_sources_busy()
+		self._abort_plugin_resolve()
 		kodi_utils.hide_busy_dialog()
 
 	def _ensure_progress_dialog_dead(self, join_timeout=2.0):
@@ -1971,6 +2010,7 @@ class Sources():
 		kodi_utils.clear_property(PROP_RESOLVE_CANCEL)
 		self._request_player_stop(light=True)
 		self._kill_progress_dialog(join_timeout=0.5, resolve_cancel=True)
+		self._abort_plugin_resolve()
 		kodi_utils.hide_busy_dialog()
 
 	def _force_close_sources_overlay_windows(self, retries=None):

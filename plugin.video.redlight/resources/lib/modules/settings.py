@@ -374,6 +374,22 @@ def stingers_percentage():
 def include_anime_tvshow():
 	return get_setting('redlight.include_anime_tvshow', 'false') == 'true'
 
+def show_public_calendars():
+	return get_setting('redlight.show_public_calendars', 'false') == 'true'
+
+def public_calendar_include_anime():
+	return get_setting('redlight.public_calendar_include_anime', 'true') == 'true'
+
+def public_calendar_max_items():
+	"""0 = unlimited; otherwise 1–2000 listitem cap after the day window."""
+	try: value = int(get_setting('redlight.public_calendar_max_items', '250'))
+	except (TypeError, ValueError): value = 250
+	if value <= 0: return 0
+	return max(1, min(2000, value))
+
+def public_calendar_cache_list():
+	return get_setting('redlight.public_calendar_cache_list', 'true') == 'true'
+
 def anime_seasons_episode_group_fallback():
 	return get_setting('redlight.anime.seasons_episode_group_fallback', 'false') == 'true'
 
@@ -517,6 +533,10 @@ def single_ep_display_format(is_external):
 def single_ep_widget_omit_tvshowtitle():
 	"""Widgets only: skip TVShowTitle info tag so skins don't show show name under Label."""
 	return get_setting('redlight.single_ep_widget_omit_tvshowtitle', 'false') == 'true'
+
+def single_ep_widget_omit_season_episode():
+	"""Widgets only: skip Season/Episode info tags (Label still has SxE via Display Format)."""
+	return get_setting('redlight.single_ep_widget_omit_season_episode', 'false') == 'true'
 
 def calendar_display_format(is_external):
 	if is_external:

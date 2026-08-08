@@ -31,6 +31,8 @@ def get_key_id(params):
 	elif search_type == 'people': string = 'people_queries'
 	elif search_type == 'tmdb_keyword':
 		url_params, string = {'mode': 'navigator.keyword_results', 'media_type': media_type}, 'keyword_tmdb_%s_queries' % media_type
+	elif search_type == 'tmdb_collection':
+		url_params, string = {'mode': 'navigator.collection_results'}, 'collection_tmdb_queries'
 	elif search_type == 'easynews_video':
 		url_params, string = {'mode': 'easynews.search_easynews'}, 'easynews_video_queries'
 	elif search_type == 'easynews_image':
@@ -83,6 +85,7 @@ def clear_search():
 	('Clear Anime Search History', 'anime_queries'),
 	('Clear TV Show & Anime Search History', 'tvshow_anime_queries'),
 	('Clear People Search History', 'people_queries'),
+	('Clear Collections Search History', 'collection_tmdb_queries'),
 	('Clear Keywords Movie Search History', 'keyword_tmdb_movie_queries'),
 	('Clear Keywords TV Show Search History', 'keyword_tmdb_tvshow_queries'),
 	('Clear EasyNews Search History', 'easynews_video_queries'),
@@ -91,7 +94,8 @@ def clear_search():
 	('Clear Trakt User Lists Search History', 'trakt_list_queries'),
 	('Clear Trakt My Lists Search History', 'trakt_my_list_queries'),
 	('Clear MDBList My Lists Search History', 'mdblist_my_list_queries'),
-	('Clear Simkl List Search History', 'simkl_list_queries')]
+	('Clear Simkl List Search History', 'simkl_list_queries'),
+	('Clear PunchPlay List Search History', 'punchplay_list_queries')]
 	try:
 		list_items = [{'line1': item[0]} for item in clear_history_list]
 		kwargs = {'items': json.dumps(list_items), 'narrow_window': 'true'}

@@ -50,6 +50,7 @@ class Navigator:
 		else: browse_list = nc.currently_used_list(self.list_name)
 		if not browse_list:
 			browse_list = list(nc.main_menus.get(self.list_name, []))
+		browse_list = self._with_optional_public_calendar(browse_list)
 		can_move = len(browse_list) > 1
 		results = sorted(list(_process()), key=lambda k: k[1])
 		if not results and browse_list:
@@ -146,8 +147,8 @@ class Navigator:
 			self._safe_add({'mode': 'navigator.mdblist_lists'}, 'MDBList Lists', 'mdblist')
 		if s.punchplay_user_active():
 			self._safe_add({'mode': 'navigator.punchplay_lists'}, 'PunchPlay Lists', 'punchplay')
-		if s.simkl_user_active():
-			self._safe_add(self._simkl_lists_menu(), 'Simkl Lists', 'simkl')
+		# Always show Simkl Lists so Public Calendar stays reachable without auth (Trakt Public Lists pattern).
+		self._safe_add(self._simkl_lists_menu(), 'Simkl Lists', 'simkl')
 		if s.tmdblist_user_active(): self._safe_add({'mode': 'navigator.tmdb_lists_personal'}, 'TMDb Lists', 'tmdb')
 		if s.trakt_user_active(): self._safe_add({'mode': 'navigator.trakt_lists_personal'}, 'Trakt Lists', 'trakt')
 		self._safe_add({'mode': 'navigator.trakt_lists_public'}, 'Trakt Public Lists', 'trakt')
@@ -245,18 +246,26 @@ class Navigator:
 		return link
 
 	def simkl_lists(self):
-		"""Grouped status shelves — Plan to Watch → Watching → On Hold → Completed → Dropped → Calendar."""
+		"""Grouped status shelves — Plan to Watch → Watching → On Hold → Completed → Dropped → Calendar.
+
+		Personal shelves / personal Calendar / Search need auth. Public Calendar is always shown
+		(CDN feed, same idea as My Lists > Trakt Public Lists).
+		"""
 		self.category_name = 'Simkl Lists'
-		for mode, label, icon in (
-			('simkl_watchlists', 'Plan to Watch', 'lists'),
-			('simkl_watching', 'Watching', 'player'),
-			('simkl_hold', 'On Hold', 'ontheair'),
-			('simkl_completed', 'Completed', 'watched_1'),
-			('simkl_dropped', 'Dropped', 'lists'),
-		):
-			self._safe_add({'mode': 'navigator.%s' % mode}, label, icon)
-		self._safe_add({'mode': 'build_simkl_calendar'}, 'Calendar', 'calender')
-		self._safe_add({'mode': 'navigator.search_history', 'action': 'simkl_lists'}, 'Search My Simkl Lists', 'search')
+		if s.simkl_user_active():
+			for mode, label, icon in (
+				('simkl_watchlists', 'Plan to Watch', 'lists'),
+				('simkl_watching', 'Watching', 'player'),
+				('simkl_hold', 'On Hold', 'ontheair'),
+				('simkl_completed', 'Completed', 'watched_1'),
+				('simkl_dropped', 'Dropped', 'lists'),
+			):
+				self._safe_add({'mode': 'navigator.%s' % mode}, label, icon)
+			self._safe_add({'mode': 'build_simkl_calendar'}, 'Calendar', 'calender')
+		self._safe_add({'mode': 'build_simkl_public_calendar', 'feeds': 'all'},
+			'Public Calendar', 'calender')
+		if s.simkl_user_active():
+			self._safe_add({'mode': 'navigator.search_history', 'action': 'simkl_lists'}, 'Search My Simkl Lists', 'search')
 		self._set_exit_params({'mode': 'navigator.my_lists'})
 		self.end_directory()
 
@@ -464,6 +473,7 @@ class Navigator:
 		self.add({'mode': 'navigator.search_history', 'action': 'anime', 'name': 'Search History Anime'}, 'Search Anime', 'anime')
 		self.add({'mode': 'navigator.search_history', 'action': 'tvshow_anime', 'name': 'Search History TV Show & Anime'}, 'Search TV Show & Anime', 'tv_anime')
 		self.add({'mode': 'navigator.search_history', 'action': 'people', 'name': 'Search History People'}, 'Search People', 'people')
+		self.add({'mode': 'navigator.search_history', 'action': 'tmdb_collections', 'name': 'Search History Collections'}, 'Search Collections', 'movies')
 		self.add({'mode': 'navigator.search_history', 'action': 'tmdb_keyword_movie', 'name': 'Search History Keywords (Movies)'}, 'Search Keywords (Movies)', 'tmdb')
 		self.add({'mode': 'navigator.search_history', 'action': 'tmdb_keyword_tvshow', 'name': 'Search History Keywords (TV Shows)'}, 'Search Keywords (TV Shows)', 'tmdb')
 		self.add({'mode': 'navigator.search_history', 'action': 'trakt_lists'}, 'Search Trakt User Lists', 'trakt')
@@ -662,6 +672,7 @@ class Navigator:
 		'people': ('people_queries', {'mode': 'search.get_key_id', 'search_type': 'people', 'isFolder': 'false'}),
 		'tmdb_keyword_movie': ('keyword_tmdb_movie_queries', {'mode': 'search.get_key_id', 'search_type': 'tmdb_keyword', 'media_type': 'movie', 'isFolder': 'false'}),
 		'tmdb_keyword_tvshow': ('keyword_tmdb_tvshow_queries', {'mode': 'search.get_key_id', 'search_type': 'tmdb_keyword', 'media_type': 'tvshow', 'isFolder': 'false'}),
+		'tmdb_collections': ('collection_tmdb_queries', {'mode': 'search.get_key_id', 'search_type': 'tmdb_collection', 'isFolder': 'false'}),
 		'easynews_video': ('easynews_video_queries', {'mode': 'search.get_key_id', 'search_type': 'easynews_video', 'isFolder': 'false'}),
 		'easynews_image': ('easynews_image_queries', {'mode': 'search.get_key_id', 'search_type': 'easynews_image', 'isFolder': 'false'}),
 		'nzb_search': ('nzb_queries', {'mode': 'search.get_key_id', 'search_type': 'nzb_search', 'isFolder': 'false'}),
@@ -699,9 +710,30 @@ class Navigator:
 			name = item['name'].upper()
 			self.add({'mode': mode, 'action': action, 'key_id': item['id'], 'iconImage': 'tmdb', 'category_name': name}, name, iconImage='tmdb')
 		if data['total_pages'] > page_no:
-			new_page = {'mode': 'navigator.keyword_results', 'key_id': key_id, 'category_name': self.category_name, 'new_page': str(data['page'] + 1)}
+			new_page = {'mode': 'navigator.keyword_results', 'key_id': key_id, 'media_type': media_type, 'category_name': self.category_name, 'new_page': str(data['page'] + 1)}
 			self.add(new_page, 'Next Page (%s) >>' % new_page['new_page'], 'nextpage', False)
 		self.category_name = 'Search Results for %s' % key_id.upper()
+		self.end_directory()
+
+	def collection_results(self):
+		from apis.tmdb_api import tmdb_collections_by_query
+		key_id = self.params_get('key_id') or self.params_get('query')
+		try: page_no = int(self.params_get('new_page', '1'))
+		except: page_no = self.params_get('new_page')
+		data = tmdb_collections_by_query(key_id, page_no) or {}
+		results = data.get('results') or []
+		for item in results:
+			name = (item.get('name') or '').upper()
+			if not name or not item.get('id'): continue
+			self.add({'mode': 'build_movie_list', 'action': 'tmdb_movies_sets', 'key_id': item['id'], 'iconImage': 'movies',
+				'category_name': name}, name, iconImage='movies')
+		try:
+			if int(data.get('total_pages') or 0) > page_no:
+				new_page = {'mode': 'navigator.collection_results', 'key_id': key_id, 'category_name': self.category_name, 'new_page': str(int(data.get('page') or page_no) + 1)}
+				self.add(new_page, 'Next Page (%s) >>' % new_page['new_page'], 'nextpage', False)
+		except Exception:
+			pass
+		self.category_name = 'Search Results for %s' % str(key_id).upper()
 		self.end_directory()
 
 	def choose_view(self):
@@ -897,6 +929,22 @@ class Navigator:
 		if media_type is not None: params['media_type'] = media_type
 		if fallback is not None: params['fallback'] = fallback
 		return [('[B]%s[/B]' % label, self.run_plugin % self.build_url(params))]
+
+	def _with_optional_public_calendar(self, browse_list):
+		"""Append Public Calendar to TV/Anime menus only when the setting is on (default off)."""
+		if not browse_list or not s.show_public_calendars(): return browse_list
+		if self.list_name == 'TVShowList':
+			feeds = 'all' if s.public_calendar_include_anime() else 'tv'
+			name = 'Public Calendar'
+		elif self.list_name == 'AnimeList':
+			feeds, name = 'anime', 'Public Calendar'
+		else:
+			return browse_list
+		if any(i.get('mode') == 'build_simkl_public_calendar' for i in browse_list):
+			return browse_list
+		out = list(browse_list)
+		out.append({'name': name, 'mode': 'build_simkl_public_calendar', 'feeds': feeds, 'iconImage': 'calender'})
+		return out
 
 	def _safe_add(self, url_params, list_name, iconImage='folder', original_image=False, cm_items=[]):
 		try: self.add(url_params, list_name, iconImage, original_image, cm_items)

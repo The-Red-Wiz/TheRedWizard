@@ -93,6 +93,13 @@ def tmdb_keywords_by_query(query, page_no):
 	url = 'https://api.themoviedb.org/3/search/keyword?api_key=%s&query=%s&page=%s' % (api_key, query, page_no)
 	return cache_function(get_tmdb, string, url, expiration=168)
 
+def tmdb_collections_by_query(query, page_no):
+	api_key = tmdb_api_key()
+	if api_key in (None, 'empty_setting', ''): return no_api_key()
+	string = 'tmdb_collections_by_query_%s_%s' % (query, page_no)
+	url = 'https://api.themoviedb.org/3/search/collection?api_key=%s&language=en-US&query=%s&page=%s' % (api_key, query, page_no)
+	return cache_function(get_tmdb, string, url, expiration=168)
+
 def tmdb_movie_keywords(tmdb_id):
 	api_key = tmdb_api_key()
 	if api_key in (None, 'empty_setting', ''): return no_api_key()

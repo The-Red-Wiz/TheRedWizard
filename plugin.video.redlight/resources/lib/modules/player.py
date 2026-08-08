@@ -65,6 +65,10 @@ class RedLightPlayer(xbmc.Player):
 			self.cancel_all_playback = True
 			self.sources_object.cancel_all_playback = True
 			self.sources_object._resolve_user_cancelled = True
+			try:
+				self.sources_object._abort_plugin_resolve()
+			except Exception:
+				pass
 			return
 		ku.volume_checker()
 		ku.set_property(PROP_PLAY_OPENING, 'true')
@@ -109,6 +113,10 @@ class RedLightPlayer(xbmc.Player):
 				if cancelled:
 					if not self.sources_object._resolve_user_cancelled:
 						self.kill_dialog()
+					try:
+						self.sources_object._abort_plugin_resolve()
+					except Exception:
+						pass
 				else:
 					# Keep the resolver progress UI so play_file can try the next queued source.
 					self.run_error()

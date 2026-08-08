@@ -61,6 +61,7 @@ class source:
 		seen = {i.get('url_dl') for i in files if i.get('url_dl')}
 		for query in queries:
 			for item in EasyNews.search(query, expiry) or []:
+				if not isinstance(item, dict): continue
 				url = item.get('url_dl')
 				if url and url not in seen:
 					seen.add(url)

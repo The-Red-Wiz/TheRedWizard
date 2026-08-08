@@ -1348,6 +1348,14 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(40)</visible>
+                          <property name="setting_label">Omit Season/Episode Tags on Widgets</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.single_ep_widget_omit_season_episode)]</property>
+                          <property name="setting_description">When enabled, calendar and other single-episode widgets do not set Season/Episode info tags — even if Display Format includes SxE in Label/Title. Stops skins that bind those tags (e.g. under logos) from duplicating SxE. Label/Title still follow Display Format. Within-addon lists are unchanged (EPISODE format still omits those tags). Use with TITLE - SxE. EPISODE for show + SxE + episode name in one line without duplication.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=single_ep_widget_omit_season_episode)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(40)</visible>
                           <property name="setting_label">Provide Unwatched Episodes Info</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.single_ep_unwatched_episodes)]</property>
@@ -1448,15 +1456,47 @@
                           <visible>Container(2000).HasFocus(40)</visible>
                           <property name="setting_label">Calendars</property>
                           <property name="setting_type">separator</property>
-                          <property name="setting_description">Shared options for [B]MDBList Calendar[/B], [B]PunchPlay Calendar[/B], [B]Simkl Calendar[/B], and [B]Trakt Calendar[/B] (same episode-list UI under My Lists).</property>
+                          <property name="setting_description">Shared options for [B]MDBList Calendar[/B], [B]PunchPlay Calendar[/B], [B]Simkl Calendar[/B], [B]Public Calendar[/B], and [B]Trakt Calendar[/B] (same episode-list UI).</property>
                           <onclick>noop</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(40)</visible>
+                          <property name="setting_label">Show Public Calendar on TV / Anime Menus</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.show_public_calendars)]</property>
+                          <property name="setting_description">Off by default to keep menus lean. When on, adds [B]Public Calendar[/B] to the TV Shows menu (honours Include Anime below) and the Anime menu (anime airings only). Always available under My Lists > Simkl Lists > Public Calendar (TV + anime).</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=show_public_calendars)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(40)</visible>
+                          <property name="setting_label">Include Anime in Public TV Calendar</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.public_calendar_include_anime)]</property>
+                          <property name="setting_description">When on, the TV Shows menu Public Calendar includes anime airings with TV. Turn off for TV-only on that menu. My Lists > Simkl Lists > Public Calendar always includes TV and anime. The Anime menu Public Calendar is always anime-only.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=public_calendar_include_anime)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(40)</visible>
+                          <property name="setting_label">Public Calendar Max Items</property>
+                          <property name="setting_type">numeric</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.public_calendar_max_items)]</property>
+                          <property name="setting_description">Cap how many public airings are built into the list (after Show Previous/Future Days). Keeps episodes closest to today. Default 250; range 1–2000, or [B]0[/B] for unlimited. Higher values paint slower.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_numeric&amp;setting_id=public_calendar_max_items)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(40)</visible>
+                          <property name="setting_label">Cache Public Calendar List</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.public_calendar_cache_list)]</property>
+                          <property name="setting_description">When on, reopening Public Calendar reuses built rows until the feed, day window, max items, display settings, or watched activity change (same idea as Next Episodes cache).</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=public_calendar_cache_list)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(40)</visible>
                           <property name="setting_label">Flatten TV Shows Airing on Same Day</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.flatten_episodes)]</property>
-                          <property name="setting_description">Enable this to limit to the first instance of a TV Show episode when that TV Show has multiple episodes airing on the same day in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, and Trakt Calendar.</property>
+                          <property name="setting_description">Enable this to limit to the first instance of a TV Show episode when that TV Show has multiple episodes airing on the same day in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, Public Calendar, and Trakt Calendar.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=trakt.flatten_episodes)</onclick>
                       </item>
                       <item>
@@ -1464,7 +1504,7 @@
                           <property name="setting_label">Calendar Display Format - Within Addon</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_display_name)]</property>
-                          <property name="setting_description">Choose the display format Red Light uses when naming episodes in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, and Trakt Calendar within the addon.</property>
+                          <property name="setting_description">Choose the display format Red Light uses when naming episodes in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, Public Calendar, and Trakt Calendar within the addon.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=trakt.calendar_display)</onclick>
                       </item>
                       <item>
@@ -1472,7 +1512,7 @@
                           <property name="setting_label">Calendar Display Format - Widgets</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_display_widget_name)]</property>
-                          <property name="setting_description">Choose the display format Red Light uses when naming episodes in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, and Trakt Calendar for widgets.</property>
+                          <property name="setting_description">Choose the display format Red Light uses when naming episodes in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, Public Calendar, and Trakt Calendar for widgets.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=trakt.calendar_display_widget)</onclick>
                       </item>
                       <item>
@@ -1480,7 +1520,7 @@
                           <property name="setting_label">Calendar Date Labels</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_date_labels_name)]</property>
-                          <property name="setting_description">Choose how Red Light labels the airdate of episodes in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, and Trakt Calendar. Words / date uses Today, Tomorrow and weekday names for the near week, and the chosen date format outside that. Day + date always shows both. Date-only formats keep the list in plain chronological order (no pin-today). Each group is ordered YYYY-MM-DD, MM-DD-YYYY, DD-MM-YYYY.</property>
+                          <property name="setting_description">Choose how Red Light labels the airdate of episodes in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, Public Calendar, and Trakt Calendar. Words / date uses Today, Tomorrow and weekday names for the near week, and the chosen date format outside that. Day + date always shows both. Date-only formats keep the list in plain chronological order (no pin-today). Each group is ordered YYYY-MM-DD, MM-DD-YYYY, DD-MM-YYYY.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=trakt.calendar_date_labels)</onclick>
                       </item>
                       <item>
@@ -1488,7 +1528,7 @@
                           <property name="setting_label">Sort Order</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_sort_order_name)]</property>
-                          <property name="setting_description">Choose the sort direction of MDBList Calendar, PunchPlay Calendar, Simkl Calendar, and Trakt Calendar. Ascending or Descending.</property>
+                          <property name="setting_description">Choose the sort direction of MDBList Calendar, PunchPlay Calendar, Simkl Calendar, Public Calendar, and Trakt Calendar. Ascending or Descending.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=trakt.calendar_sort_order)</onclick>
                       </item>
                       <item>
@@ -1496,7 +1536,7 @@
                           <property name="setting_label">Show Previous Days</property>
                           <property name="setting_type">numeric</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_previous_days)]</property>
-                          <property name="setting_description">Choose how many previous days will be shown in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, and Trakt Calendar. Simkl Calendar uses Simkl's public TV/Anime airing feeds (joined to your Watching / Plan to Watch shows), not a personal date-range calendar — those feeds only go back about one day, so a higher previous-days value will not show older Simkl airings.</property>
+                          <property name="setting_description">Choose how many previous days will be shown in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, Public Calendar, and Trakt Calendar. Simkl personal and public calendars use Simkl's public TV/Anime airing feeds — those feeds only go back about one day, so a higher previous-days value will not show older Simkl airings. Personal Simkl Calendar is still filtered to your Watching / Plan to Watch shows.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_numeric&amp;setting_id=trakt.calendar_previous_days)</onclick>
                       </item>
                       <item>
@@ -1504,7 +1544,7 @@
                           <property name="setting_label">Show Future Days</property>
                           <property name="setting_type">numeric</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.trakt.calendar_future_days)]</property>
-                          <property name="setting_description">Choose how many future days will be shown in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, and Trakt Calendar.</property>
+                          <property name="setting_description">Choose how many future days will be shown in MDBList Calendar, PunchPlay Calendar, Simkl Calendar, Public Calendar, and Trakt Calendar.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_numeric&amp;setting_id=trakt.calendar_future_days)</onclick>
                       </item>
 <!-- META ACCOUNTS 50 -->
@@ -4261,7 +4301,7 @@
                           <property name="setting_label">    - Set Max. Retries for Playback</property>
                           <property name="setting_type">numeric</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.easynews.playback_method_retries)]</property>
-                          <property name="setting_description">Choose the maximum retries allowed for EasyNews playback attempts (native EasyNews and AIOStreams EN)</property>
+                          <property name="setting_description">Choose the maximum retries allowed for EasyNews playback attempts (native EasyNews and AIOStreams EN). 1–8.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_numeric&amp;setting_id=easynews.playback_method_retries)</onclick>
                       </item>
                       <item>

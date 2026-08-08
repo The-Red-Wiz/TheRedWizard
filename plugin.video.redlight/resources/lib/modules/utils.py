@@ -32,26 +32,61 @@ class TaskPool:
 					else: target(*args)
 				except Exception as e: logger('thread queue error', str(e))
 
+	def _worker_count(self, _max_size, list_len):
+		workers = max(1, min(int(_max_size or 1), int(list_len or 1)))
+		# Soft throttle when many widget/plugin invokers already hold threads
+		# (AF3 / Skin Variables home refresh — "can't start new thread").
+		try:
+			busy = activeCount()
+			if busy >= 48: workers = 1
+			elif busy >= 32: workers = min(workers, 2)
+			elif busy >= 24: workers = min(workers, 4)
+		except: pass
+		return workers
+
+	def _start_workers(self, _target, db_name, workers):
+		threads = []
+		for _ in range(workers):
+			thread = Thread(target=self._thread_target, args=(self._queue, _target, db_name))
+			try:
+				thread.start()
+				threads.append(thread)
+			except RuntimeError:
+				# OS/Kodi thread limit — keep workers already started; they still drain the queue.
+				break
+		if not threads:
+			# No spare threads: process on the calling invoker so lists/widgets still populate.
+			try: self._thread_target(self._queue, _target, db_name)
+			except Exception as e: logger('TaskPool sync fallback', str(e))
+		return threads
+
 	def tasks(self, _target, _list, _max_size=20, db_name=None):
 		if not _list: return []
 		if not isinstance(_list[0], tuple): _list = [(i,) for i in _list]
 		[self._queue.put(tag) for tag in _list]
-		threads = [Thread(target=self._thread_target, args=(self._queue, _target, db_name)) for i in range(_max_size)]
-		[i.start() for i in threads]
-		return threads
+		return self._start_workers(_target, db_name, self._worker_count(_max_size, len(_list)))
 
 	def tasks_enumerate(self, _target, _list, _max_size=20, db_name=None):
+		if not _list: return []
 		[self._queue.put((p, tag)) for p, tag in enumerate(_list, 1)]
-		threads = [Thread(target=self._thread_target, args=(self._queue, _target, db_name)) for i in range(_max_size)]
-		[i.start() for i in threads]
-		return threads
+		return self._start_workers(_target, db_name, self._worker_count(_max_size, len(_list)))
 
 def make_thread_list(_target, _list):
 	_max_threads = max_threads()
 	for item in _list:
 		while activeCount() > _max_threads: sleep(1)
 		threaded_object = Thread(target=_target, args=(item,))
-		threaded_object.start()
+		try:
+			threaded_object.start()
+		except RuntimeError:
+			for _ in range(50):
+				if activeCount() <= max(2, _max_threads // 2): break
+				sleep(20)
+			try: threaded_object.start()
+			except RuntimeError:
+				try: _target(item)
+				except Exception as e: logger('make_thread_list sync fallback', str(e))
+				continue
 		yield threaded_object
 
 def make_thread_list_enumerate(_target, _list):
@@ -59,7 +94,17 @@ def make_thread_list_enumerate(_target, _list):
 	for count, item in enumerate(_list):
 		while activeCount() > _max_threads: sleep(1)
 		threaded_object = Thread(target=_target, args=(count, item))
-		threaded_object.start()
+		try:
+			threaded_object.start()
+		except RuntimeError:
+			for _ in range(50):
+				if activeCount() <= max(2, _max_threads // 2): break
+				sleep(20)
+			try: threaded_object.start()
+			except RuntimeError:
+				try: _target(count, item)
+				except Exception as e: logger('make_thread_list_enumerate sync fallback', str(e))
+				continue
 		yield threaded_object
 
 def change_image_resolution(image, replace_res):

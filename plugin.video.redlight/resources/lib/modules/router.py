@@ -122,6 +122,9 @@ def routing(sys):
 		elif mode == 'build_simkl_calendar':
 			from indexers.episodes import build_single_episode
 			return build_single_episode('episode.simkl', params)
+		elif mode == 'build_simkl_public_calendar':
+			from indexers.episodes import build_single_episode
+			return build_single_episode('episode.simkl_public', params)
 		elif mode == 'build_mdbl_next_up':
 			from indexers.episodes import build_single_episode
 			return build_single_episode('episode.mdblist_next', params)

@@ -564,6 +564,12 @@ def unmark_previous_episode(params):
 		return mark_episode(params)
 	except: notification('Error')
 
+def _invalidate_nextep_list_cache():
+	try:
+		from caches.nextep_cache import invalidate
+		invalidate()
+	except: pass
+
 def watched_status_mark(watched_indicators, media_type='', media_id='', action='', season='', episode='', title=''):
 	try:
 		last_played = get_last_played_value(watched_indicators)
@@ -573,6 +579,7 @@ def watched_status_mark(watched_indicators, media_type='', media_id='', action='
 		elif action == 'mark_as_unwatched':
 			dbcon.execute('DELETE FROM watched WHERE (db_type = ? and media_id = ? and season = ? and episode = ?)', (media_type, media_id, season, episode))
 		erase_bookmark(media_type, media_id, season, episode)
+		if media_type == 'episode': _invalidate_nextep_list_cache()
 		# if media_type == 'episode': clear_cache_watched_tvshow_status()
 	except: notification('Error')
 
@@ -584,6 +591,7 @@ def batch_watched_status_mark(watched_indicators, insert_list, action):
 		elif action == 'mark_as_unwatched':
 			dbcon.executemany('DELETE FROM watched WHERE (db_type = ? and media_id = ? and season = ? and episode = ?)', insert_list)
 		batch_erase_bookmark(watched_indicators, insert_list, action)
+		_invalidate_nextep_list_cache()
 		# clear_cache_watched_tvshow_status()
 	except: notification('Error')
 
@@ -755,12 +763,14 @@ def _refresh_trakt_episode_progress():
 	except: pass
 
 def _refresh_trakt_tvshow_watched():
+	# Activity-gated (same as Simkl/MDBList/PunchPlay / TraktMonitor) — skip full
+	# sync/watched/shows pull when Trakt activities say nothing changed.
 	try:
 		if settings.watched_indicators() != 1 or not settings.trakt_user_active(): return
 		from modules.kodi_utils import boot_trakt_list_refresh_allowed
 		if not boot_trakt_list_refresh_allowed(): return
-		from apis.trakt_api import trakt_indicators_tv
-		trakt_indicators_tv()
+		from apis.trakt_api import trakt_sync_activities
+		trakt_sync_activities()
 	except: pass
 
 def _episode_progress_list(dbcon):

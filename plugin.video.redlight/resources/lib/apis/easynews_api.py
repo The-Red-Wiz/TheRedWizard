@@ -109,11 +109,13 @@ class EasyNewsAPI:
 				except Exception as e:
 					from modules.kodi_utils import logger
 					logger('easynews API Exception', str(e))
+		if not isinstance(files, dict):
+			return {'total_results': 0, 'total_pages': 0, 'results': []}
 		down_url = files.get('downURL')
 		download_url = 'https://%s:%s@members.easynews.com/dl' % (quote(self.username), quote(self.password))
 		dl_farm, dl_port = files.get('dlFarm'), files.get('dlPort')
 		total_results, total_pages = files.get('results'), files.get('numPages')
-		files = files.get('data', [])
+		files = files.get('data', []) or []
 		results = list(chunks(list(list(_process())), 50))
 		return {'total_results': total_results, 'total_pages': len(results), 'results': results}
 
@@ -121,6 +123,7 @@ class EasyNewsAPI:
 		def _process():
 			for item in files:
 				try:
+					if not isinstance(item, dict): continue
 					post_hash, size, post_title, ext, duration = item['0'], item['4'], item['10'], item['11'], item['14']
 					if 'alangs' in item and item['alangs']: language = item['alangs']
 					else: language = ''
@@ -147,10 +150,13 @@ class EasyNewsAPI:
 				except Exception as e:
 					from modules.kodi_utils import logger
 					logger('easynews API Exception', str(e))
+		# Empty/failed HTTP (_get → None) or non-JSON body must not raise on .get (scraper log noise).
+		if not isinstance(files, dict):
+			return []
 		down_url = files.get('downURL')
 		streaming_url = 'https://%s:%s@members.easynews.com/dl' % (quote(self.username), quote(self.password))
 		dl_farm, dl_port = files.get('dlFarm'), files.get('dlPort')
-		files = files.get('data', [])
+		files = files.get('data', []) or []
 		results = list(_process())
 		return results
 
@@ -170,6 +176,8 @@ class EasyNewsAPI:
 
 	def _process_search(self, url):
 		results = self._get(url, self.params)
+		if results is None:
+			return [] if self.base_process is self._process_files else {'total_results': 0, 'total_pages': 0, 'results': []}
 		return self.base_process(results)
 
 	def _get(self, url, params={}):
