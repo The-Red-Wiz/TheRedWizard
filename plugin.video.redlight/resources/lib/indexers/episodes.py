@@ -115,10 +115,7 @@ def build_episode_list(params):
 				full_cast = cast + (item_get('guest_stars') or [])
 				info_tag.setCast([kodi_actor(name=item['name'], role=item['role'], thumbnail=item['thumbnail']) for item in full_cast])
 				if progress and not unaired:
-					# Time only — total would make Kodi/skins show a resume dialog we cannot honour.
-					resume_secs = ws.get_resume_seconds(progress, duration)
-					info_tag.setResumePoint(resume_secs)
-					set_properties({'WatchedProgress': progress})
+					ws.apply_listitem_progress(info_tag, set_properties, progress, duration, is_external)
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
 				listitem.setArt({'poster': show_poster, 'fanart': show_fanart, 'thumb': thumb, 'icon':thumb, 'clearlogo': show_clearlogo, 'landscape': show_landscape,
@@ -402,10 +399,7 @@ def build_single_episode(list_type, params={}):
 			full_cast = cast + (item_get('guest_stars') or [])
 			info_tag.setCast([kodi_actor(name=item['name'], role=item['role'], thumbnail=item['thumbnail']) for item in full_cast])
 			if progress and not unaired:
-				# Time only — total would make Kodi/skins show a resume dialog we cannot honour.
-				resume_secs = ws.get_resume_seconds(progress, duration)
-				info_tag.setResumePoint(resume_secs)
-				set_properties({'WatchedProgress': progress})
+				ws.apply_listitem_progress(info_tag, set_properties, progress, duration, is_external)
 			listitem.setLabel(display)
 			listitem.addContextMenuItems(cm)
 			listitem.setArt({'poster': show_poster, 'fanart': show_fanart, 'thumb': thumb, 'icon':thumb, 'clearlogo': show_clearlogo, 'landscape': show_landscape,
@@ -560,7 +554,7 @@ def build_single_episode(list_type, params={}):
 					info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
 					info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
 					info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
-					if packet.get('resume_secs') is not None:
+					if packet.get('resume_secs') is not None and not is_external:
 						info_tag.setResumePoint(packet['resume_secs'])
 					listitem.setLabel(packet['display'])
 					listitem.addContextMenuItems(packet.get('cm') or [])
@@ -732,7 +726,7 @@ def build_single_episode(list_type, params={}):
 					info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
 					info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
 					info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
-					if packet.get('resume_secs') is not None:
+					if packet.get('resume_secs') is not None and not is_external:
 						info_tag.setResumePoint(packet['resume_secs'])
 					listitem.setLabel(packet['display'])
 					listitem.addContextMenuItems(packet.get('cm') or [])

@@ -322,6 +322,20 @@ def get_progress_status_all_episode(progress_info, season, episode):
 def get_resume_seconds(progress, duration):
 	return float(int(float(progress)/100 * duration))
 
+def apply_listitem_progress(info_tag, set_properties, progress, duration, is_external=False):
+	"""Set progress for skins without making widgets Kodi-resumable.
+
+	Widgets / PlayMedia can show Resume/Start over before the plugin runs when the
+	InfoTag resume point is part-way. Keep WatchedProgress always; only set
+	ResumeTime (without total) inside the addon so Red Light's source dialog stays
+	the sole resume prompt from home widgets.
+	"""
+	if not progress: return
+	set_properties({'WatchedProgress': progress})
+	if is_external: return
+	try: info_tag.setResumePoint(get_resume_seconds(progress, duration))
+	except: pass
+
 def clear_local_bookmarks():
 	try:
 		dbcon = database.connect(get_video_database_path())
