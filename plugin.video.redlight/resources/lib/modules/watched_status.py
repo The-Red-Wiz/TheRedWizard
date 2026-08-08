@@ -7,7 +7,7 @@ from apis.mdblist_api import mdblist_watched_status_mark, mdblist_progress, mdbl
 from apis.punchplay_api import punchplay_watched_status_mark, punchplay_progress, punchplay_official_status
 from caches.base_cache import connect_database, database
 from caches.trakt_cache import clear_trakt_collection_watchlist_data
-from modules.kodi_utils import kodi_progress_background, sleep, get_video_database_path, notification, kodi_refresh, logger
+from modules.kodi_utils import kodi_progress_background, sleep, get_video_database_path, notification, kodi_refresh, logger, translate_path
 from modules.utils import get_datetime, adjust_premiered_date, sort_for_article, TaskPool
 from modules import metadata, settings
 # from modules.kodi_utils import logger
@@ -334,20 +334,63 @@ def get_resume_seconds(progress, duration):
 def apply_listitem_progress(info_tag, set_properties, progress, duration, is_external=False):
 	"""Expose progress to skins without making the row Kodi-resumable.
 
-	Never set InfoTag resume on directory listitems (widgets, Next Episodes,
-	In Progress, or in-addon lists). Duration + ResumePoint is what triggers
-	Kodi's Resume / Start over before scrape — including when Container.PluginName
-	still looks like Red Light on a home widget refresh. WatchedProgress alone
-	keeps skin bars; Red Light's source dialog is the only resume prompt.
+	Never set a non-zero InfoTag resume on directory listitems. Also force
+	resume to 0 so Kodi does not treat the row as resumable from a stale
+	MyVideos bookmark for the same plugin:// path (that dialog runs before
+	the plugin is invoked — skipping setResumePoint alone is not enough).
+	WatchedProgress keeps skin bars; Red Light's source dialog is the resume prompt.
 	"""
+	try: info_tag.setResumePoint(0.0)
+	except: pass
 	if not meaningful_progress_percent(progress): return
 	set_properties({'WatchedProgress': progress})
 
 def clear_local_bookmarks():
+	"""Remove Kodi MyVideos bookmarks for Red Light plugin paths.
+
+	Kodi stores resume by filename for plugin:// URLs (via setResolvedUrl) and can
+	show Resume / Start over on the home widget before scrape. Clear every non-empty
+	MyVideos*.db — the version map alone can miss the live DB (e.g. empty 124 vs 131).
+	"""
+	import os
+	db_dir = translate_path('special://profile/Database')
+	paths = set()
 	try:
-		dbcon = database.connect(get_video_database_path())
-		file_ids = dbcon.execute("SELECT idFile FROM files WHERE strFilename LIKE 'plugin.video.redlight%'").fetchall()
-		for i in ('bookmark', 'streamdetails', 'files'): dbcon.executemany("DELETE FROM %s WHERE idFile=?" % i, file_ids)
+		paths.add(get_video_database_path())
+	except Exception:
+		pass
+	try:
+		for name in os.listdir(db_dir):
+			if name.startswith('MyVideos') and name.endswith('.db'):
+				path = os.path.join(db_dir, name)
+				try:
+					if os.path.getsize(path) > 0: paths.add(path)
+				except Exception:
+					pass
+	except Exception:
+		pass
+	for path in paths:
+		try:
+			dbcon = database.connect(path)
+			try:
+				file_ids = dbcon.execute(
+					"SELECT idFile FROM files WHERE strFilename LIKE '%plugin.video.redlight%'").fetchall()
+			except Exception:
+				dbcon.close()
+				continue
+			if file_ids:
+				for i in ('bookmark', 'streamdetails', 'files'):
+					try: dbcon.executemany("DELETE FROM %s WHERE idFile=?" % i, file_ids)
+					except Exception: pass
+				try: dbcon.commit()
+				except Exception: pass
+			dbcon.close()
+		except Exception:
+			pass
+
+def clear_listitem_kodi_resume(info_tag):
+	"""Force directory rows non-resumable for Kodi's native prompt."""
+	try: info_tag.setResumePoint(0.0)
 	except: pass
 
 def _write_local_progress(watched_indicators, media_type, tmdb_id, season, episode, resume_point, curr_time, title):
@@ -817,6 +860,7 @@ def _sort_progress_list(data):
 	return sorted(data, key=lambda x: x['last_played'], reverse=True)
 
 def get_in_progress_movies(dummy_arg, page_no):
+	clear_local_bookmarks()
 	watched_indicators = settings.watched_indicators()
 	dbcon = get_database(watched_indicators)
 	data = _movie_progress_list(dbcon)
@@ -845,6 +889,7 @@ def get_in_progress_movies(dummy_arg, page_no):
 	return _sort_progress_list(data)
 
 def get_in_progress_tvshows(dummy_arg, page_no):
+	clear_local_bookmarks()
 	source = 'local'
 	if settings.watched_indicators() == 1 and settings.trakt_user_active():
 		_refresh_trakt_tvshow_watched()
@@ -876,6 +921,7 @@ def get_in_progress_tvshow_ids(watched_db=None):
 		return set()
 
 def get_in_progress_episodes():
+	clear_local_bookmarks()
 	watched_indicators = settings.watched_indicators()
 	dbcon = get_database(watched_indicators)
 	episode_list = _episode_progress_list(dbcon)

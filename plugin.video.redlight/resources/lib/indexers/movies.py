@@ -324,6 +324,9 @@ class Movies:
 			info_tag.setWriters(meta_get('writer')), info_tag.setDirectors(meta_get('director'))
 			cast = meta_get('short_cast', []) or meta_get('cast', []) or []
 			info_tag.setCast([self.kodi_actor(name=item['name'], role=item['role'], thumbnail=item['thumbnail']) for item in cast])
+			watched_status.clear_listitem_kodi_resume(info_tag)
+			try: listitem.setContentLookup(False)
+			except: pass
 			if progress:
 				watched_status.apply_listitem_progress(info_tag, set_properties, progress, duration, self.is_external)
 			listitem.setLabel(title)

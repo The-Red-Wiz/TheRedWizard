@@ -343,6 +343,7 @@ class TVShows:
 			info_tag.setTvShowStatus(meta_get('status')), info_tag.setRating(meta_get('rating'))
 			cast = meta_get('short_cast', []) or meta_get('cast', []) or []
 			info_tag.setCast([self.kodi_actor(name=item['name'], role=item['role'], thumbnail=item['thumbnail']) for item in cast])
+			watched_status.clear_listitem_kodi_resume(info_tag)
 			set_properties({
 				'redlight.extras_params': extras_params,
 				'redlight.options_params': options_params,

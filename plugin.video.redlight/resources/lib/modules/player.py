@@ -419,6 +419,12 @@ class RedLightPlayer(xbmc.Player):
 			if not autoplay_stash_scheduled:
 				ku.hide_busy_dialog()
 			if not playback_superseded and not self.media_marked: self.media_watched_marker()
+			# Wipe Kodi MyVideos bookmarks for plugin:// paths so the next home-widget
+			# click does not show Resume/Start over before scrape (Umbrella pattern).
+			try:
+				from modules.watched_status import clear_local_bookmarks
+				clear_local_bookmarks()
+			except: pass
 			self.clear_playback_properties(clear_navigation=False)
 			self._release_active_playback()
 		except:

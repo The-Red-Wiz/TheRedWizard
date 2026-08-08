@@ -37,6 +37,7 @@ def _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, 
 		settings.date_offset(),
 		settings.playback_key(),
 		settings.ignore_articles(),
+		2,  # cache schema: no InfoTag resume; live progress on paint
 	)
 	return '_'.join(str(p) for p in parts)
 
@@ -46,21 +47,33 @@ def cache_id(watched_indicators, mdblist_menu_next, is_anime_list, is_external):
 
 
 def activity_token(watched_indicators):
-	"""Changes when next-up membership / resume / hide state changes."""
+	"""Changes when next-up membership / resume / hide state changes.
+
+	Resume must fingerprint the actual percent values — COUNT/last_played alone
+	stays stable when Simkl resets a row to 0% (In Progress empties, but a cached
+	Next Episodes packet can still carry the old WatchedProgress / resume secs).
+	"""
 	try:
 		from modules.watched_status import get_database, get_hidden_progress_items
 		dbcon = get_database(watched_indicators)
 		watched = dbcon.execute(
 			'SELECT COUNT(*), COALESCE(MAX(last_played), "") FROM watched WHERE db_type = ?', ('episode',)
 		).fetchone() or (0, '')
+		# Only meaningful (>1%) progress — matches In Progress shelf + resume prompt.
 		progress = dbcon.execute(
-			'SELECT COUNT(*), COALESCE(MAX(last_played), "") FROM progress WHERE db_type = ?', ('episode',)
-		).fetchone() or (0, '')
+			'SELECT COUNT(*), COALESCE(MAX(last_played), ""), '
+			'COALESCE(SUM(CAST(resume_point AS FLOAT)), 0), '
+			'COALESCE(GROUP_CONCAT(media_id || ":" || season || "x" || episode || ":" || resume_point), "") '
+			'FROM progress WHERE db_type = ? AND CAST(resume_point AS FLOAT) > 1',
+			('episode',)
+		).fetchone() or (0, '', 0, '')
 		hidden = get_hidden_progress_items(watched_indicators) or []
 		try: hidden_key = ','.join(str(i) for i in sorted(int(x) for x in hidden))
 		except: hidden_key = str(len(hidden))
-		return '%s|%s|%s|%s|%s|%s|%s' % (
-			watched_indicators, watched[0], watched[1], progress[0], progress[1], len(hidden), hidden_key
+		return '%s|%s|%s|%s|%s|%s|%s|%s|%s' % (
+			watched_indicators, watched[0], watched[1],
+			progress[0], progress[1], progress[2], progress[3],
+			len(hidden), hidden_key
 		)
 	except:
 		return '0'

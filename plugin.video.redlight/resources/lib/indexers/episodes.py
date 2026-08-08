@@ -114,6 +114,9 @@ def build_episode_list(params):
 				info_tag.setStudios(studios), info_tag.setWriters(item_get('writer'))
 				full_cast = cast + (item_get('guest_stars') or [])
 				info_tag.setCast([kodi_actor(name=item['name'], role=item['role'], thumbnail=item['thumbnail']) for item in full_cast])
+				ws.clear_listitem_kodi_resume(info_tag)
+				try: listitem.setContentLookup(False)
+				except: pass
 				if progress and not unaired:
 					ws.apply_listitem_progress(info_tag, set_properties, progress, duration, is_external)
 				listitem.setLabel(display)
@@ -398,6 +401,9 @@ def build_single_episode(list_type, params={}):
 			info_tag.setYear(int(year)), info_tag.setRating(item_get('rating')), info_tag.setVotes(item_get('votes')), info_tag.setMpaa(mpaa)
 			full_cast = cast + (item_get('guest_stars') or [])
 			info_tag.setCast([kodi_actor(name=item['name'], role=item['role'], thumbnail=item['thumbnail']) for item in full_cast])
+			ws.clear_listitem_kodi_resume(info_tag)
+			try: listitem.setContentLookup(False)
+			except: pass
 			if progress and not unaired:
 				ws.apply_listitem_progress(info_tag, set_properties, progress, duration, is_external)
 			listitem.setLabel(display)
@@ -503,6 +509,9 @@ def build_single_episode(list_type, params={}):
 	play_mode = 'playback.%s' % playback_key
 	watched_db = ws.get_database(watched_indicators)
 	if list_type in ('episode.next', 'episode.mdblist_next'):
+		ws.clear_local_bookmarks()
+		try: ws._purge_negligible_progress(ws.get_database(watched_indicators))
+		except: pass
 		mdblist_menu_next = list_type == 'episode.mdblist_next'
 		include_unwatched, include_unaired, nextep_content = settings.nextep_include_unwatched(), settings.nextep_include_unaired(), settings.nextep_method()
 		sort_key, sort_direction = settings.nextep_sort_key(), settings.nextep_sort_direction()
@@ -554,11 +563,23 @@ def build_single_episode(list_type, params={}):
 					info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
 					info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
 					info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
+					ws.clear_listitem_kodi_resume(info_tag)
+					try: listitem.setContentLookup(False)
+					except: pass
 					listitem.setLabel(packet['display'])
 					listitem.addContextMenuItems(packet.get('cm') or [])
 					listitem.setArt(packet.get('art') or {})
-					props = packet.get('properties') or {}
+					# Never trust cached WatchedProgress / resume — re-read live progress so a
+					# Simkl 0% reset cannot leave a stale 17:40 widget resume on Next Episodes.
+					props = dict(packet.get('properties') or {})
+					props.pop('WatchedProgress', None)
 					if props: set_properties(props)
+					try:
+						_bm = ws.get_bookmarks_episode(packet['tmdb_id'], packet['season'], watched_db)
+						_prog = ws.get_progress_status_episode(_bm, packet['episode'])
+						if _prog and not packet.get('unaired'):
+							ws.apply_listitem_progress(info_tag, set_properties, _prog, packet.get('duration') or 0, is_external)
+					except: pass
 					item_list_append({'list_items': (packet['play_params'], listitem, False), 'first_aired': packet.get('first_aired'),
 									'name': packet.get('name'), 'unaired': packet.get('unaired'), 'last_played': packet.get('last_played'),
 									'sort_order': packet.get('sort_order'), 'unwatched': packet.get('unwatched')})
@@ -605,7 +626,9 @@ def build_single_episode(list_type, params={}):
 									for i in favorites if not int(i['tmdb_id']) in [x['media_ids']['tmdb'] for x in data]])
 				except: pass
 			data += unwatched
-	elif list_type == 'episode.progress': data = ws.get_in_progress_episodes()
+	elif list_type == 'episode.progress':
+		ws.clear_local_bookmarks()
+		data = ws.get_in_progress_episodes()
 	elif list_type == 'episode.recently_watched': data = ws.get_recently_watched('episode', short_list=True)
 	elif list_type == 'episode.trakt':
 		from apis.trakt_api import trakt_get_my_calendar
@@ -724,6 +747,7 @@ def build_single_episode(list_type, params={}):
 					info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
 					info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
 					info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
+					ws.clear_listitem_kodi_resume(info_tag)
 					listitem.setLabel(packet['display'])
 					listitem.addContextMenuItems(packet.get('cm') or [])
 					listitem.setArt(packet.get('art') or {})
