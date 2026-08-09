@@ -1,4 +1,9 @@
 
+[B]- 1.2.6 (2026-08-09)[/B] Lists Manager open performance:
+ * [B]Simkl Lists Manager[/B]: no longer re-downloads every status list on open (was many throttled API calls) — one [I]/sync/all-items/{type}/all[/I] warm fills the list-status cache; later opens and My Simkl shelves reuse it until activities / Manager edits. Same pattern as Red Light 2.2.6.
+ * [B]Trakt Lists Manager[/B]: watchlist / library / personal-list membership checks use the short-TTL Trakt cache (cleared on Manager add/remove) instead of live re-paging every open.
+ * [B]TMDb Lists Manager[/B]: unchanged — already uses per-title account/list status endpoints (not full-list downloads).
+
 [B]- 1.2.5 (2026-08-08)[/B] Simkl Phase 2 unified continuous sync + Kodi 22 widget cancel:
  * [B]Simkl[/B]: when movies and TV both need a [I]date_from[/I] delta, one multi-type [I]/sync/all-items?date_from=[/I] request covers both (merges into local indicator caches). Movies-only still uses [I]/movies/completed[/I]; first sync / Force Refresh / removal reconciliation stay sequential full pulls.
  * [B]Playback[/B]: backing out of scrape / resolve (or no stream) now calls [I]setResolvedUrl(False)[/I] so Kodi 22 home widgets do not leave the original [I]plugin://[/I] item unresolved — that was the [B]One or more items failed to play[/B] dialog after cancel.

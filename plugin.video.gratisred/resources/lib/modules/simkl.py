@@ -55,6 +55,9 @@ _STATUS_LABELS = {
     'hold': 'On Hold',
     'dropped': 'Dropped',
 }
+# List-status shelves / manager membership (hours). Cleared on list edits + activities.
+_SIMKL_LIST_CACHE_HOURS = 48
+_SIMKL_LIST_ACTIVITY_KEYS = ('plantowatch', 'watching', 'completed', 'hold', 'dropped', 'removed_from_list')
 
 _request_lock = Lock()
 _sync_lock = Lock()
@@ -464,25 +467,118 @@ def _all_items(media_kind, status):
     return items if isinstance(items, list) else []
 
 
+def _normalize_list_item(item, media_kind):
+    if not isinstance(item, dict) or item.get('is_rewatch'):
+        return None
+    ids, block = _media_ids(item, media_kind)
+    if not ids:
+        return None
+    return {
+        'ids': ids,
+        'title': block.get('title', '') or '',
+        'year': block.get('year') or 0,
+        'collected_at': item.get('added_to_watchlist_at') or '',
+    }
+
+
+def _simkl_list_cache_key(media_kind, status):
+    return 'simkl_list_status_%s_%s' % (media_kind, status)
+
+
+def _simkl_list_cache_get(media_kind, status):
+    try:
+        row = cache.cache_get(_simkl_list_cache_key(media_kind, status))
+        if not row or not cache._is_cache_valid(row['date'], _SIMKL_LIST_CACHE_HOURS):
+            return None
+        data = pickle.loads(zlib.decompress(row['value']))
+        if isinstance(data, dict) and 'items' in data:
+            return data['items']
+        return data if isinstance(data, list) else None
+    except Exception:
+        return None
+
+
+def _simkl_list_cache_set(media_kind, status, items):
+    try:
+        # Wrap so empty shelves still store (cache.get treats [] as miss).
+        payload = Binary(zlib.compress(pickle.dumps({'items': items or []})))
+        cache.cache_insert(_simkl_list_cache_key(media_kind, status), payload)
+    except Exception:
+        pass
+
+
+def clear_simkl_list_status_cache(media_kind=None, status=None):
+    try:
+        if media_kind == 'movies':
+            kinds = ('movies',)
+        elif media_kind == 'anime':
+            kinds = ('anime',)
+        elif media_kind == 'shows':
+            kinds = ('shows', 'anime')
+        elif media_kind:
+            kinds = (media_kind,)
+        else:
+            kinds = ('movies', 'shows', 'anime')
+        statuses = (status,) if status else _STATUSES
+        cur = cache._get_connection_cursor()
+        for kind in kinds:
+            for st in statuses:
+                cur.execute('DELETE FROM %s WHERE key = ?' % cache.cache_table, [_simkl_list_cache_key(kind, st)])
+        cur.connection.commit()
+    except Exception:
+        pass
+
+
+def _fetch_status_live(media_kind, status):
+    items = _all_items(media_kind, status)
+    if items is None:
+        return None
+    result = []
+    for item in items:
+        entry = _normalize_list_item(item, media_kind)
+        if entry:
+            result.append(entry)
+    return result
+
+
+def _warm_status_caches(media_kind):
+    """One /sync/all-items/{type}/all pull; fill every status bucket (avoids 5× throttle)."""
+    items = _all_items(media_kind, 'all')
+    if items is None:
+        return False
+    buckets = {st: [] for st in _STATUSES}
+    unstatused = 0
+    for item in items:
+        if not isinstance(item, dict) or item.get('is_rewatch'):
+            continue
+        st = (item.get('status') or '').lower()
+        if st not in buckets:
+            unstatused += 1
+            continue
+        entry = _normalize_list_item(item, media_kind)
+        if entry:
+            buckets[st].append(entry)
+    if unstatused and not any(buckets.values()):
+        log_utils.log('Simkl list %s/all: %s items missing status; using per-status fetch' % (media_kind, unstatused))
+        return False
+    for st, result in buckets.items():
+        _simkl_list_cache_set(media_kind, st, result)
+    return True
+
+
 def _fetch_status(media_kind, status):
     if not getSimklCredentialsInfo():
         return []
-    items = _all_items(media_kind, status)
-    if items is None:
-        return []
-    result = []
-    for item in items:
-        if not isinstance(item, dict):
-            continue
-        ids, block = _media_ids(item, media_kind)
-        if not ids:
-            continue
-        result.append({
-            'ids': ids,
-            'title': block.get('title', '') or '',
-            'year': block.get('year') or 0,
-            'collected_at': item.get('added_to_watchlist_at') or '',
-        })
+    cached = _simkl_list_cache_get(media_kind, status)
+    if cached is not None:
+        return cached
+    if _warm_status_caches(media_kind):
+        cached = _simkl_list_cache_get(media_kind, status)
+        if cached is not None:
+            return cached
+    result = _fetch_status_live(media_kind, status)
+    result = [] if result is None else result
+    _simkl_list_cache_set(media_kind, status, result)
     return result
 
 
@@ -1384,6 +1480,12 @@ def _sync_simkl_watched_body(force_update=False):
     need_movies = force_update or _activity_block_changed(movies, cached_movies, _SIMKL_MOVIE_WATCHED_ACTIVITY_KEYS)
     need_tv = force_update or _activity_block_changed(shows, cached_shows, _SIMKL_SHOW_WATCHED_ACTIVITY_KEYS) \
         or _activity_block_changed(anime, cached_anime, _SIMKL_SHOW_WATCHED_ACTIVITY_KEYS)
+    if force_update or _activity_block_changed(movies, cached_movies, _SIMKL_LIST_ACTIVITY_KEYS):
+        clear_simkl_list_status_cache('movies')
+    if force_update or _activity_block_changed(shows, cached_shows, _SIMKL_LIST_ACTIVITY_KEYS):
+        clear_simkl_list_status_cache('shows')
+    if force_update or _activity_block_changed(anime, cached_anime, _SIMKL_LIST_ACTIVITY_KEYS):
+        clear_simkl_list_status_cache('anime')
     movie_from = None if (not date_from or _activity_block_changed(movies, cached_movies, _SIMKL_MOVIE_FULL_SYNC_KEYS)) else date_from
     tv_from = None if (not date_from
         or _activity_block_changed(shows, cached_shows, _SIMKL_SHOW_FULL_SYNC_KEYS)
@@ -1424,6 +1526,7 @@ def _bust_sync_cache():
         cache.remove(syncTVShows, user)
     except Exception:
         pass
+    clear_simkl_list_status_cache()
 
 
 def refreshSimklCache(silent=False):
@@ -1482,6 +1585,7 @@ def manager(name, imdb, tmdb, content):
             verb = 'add to' if action == 'add' else 'remove from'
             return control.infoDialog('Could not %s %s.' % (verb, label), heading=str(name), sound=True, icon='ERROR')
         message = ('Added to %s.' if action == 'add' else 'Removed from %s.') % label
+        clear_simkl_list_status_cache('movies' if is_movie else 'shows')
         control.infoDialog(message, heading=str(name), sound=True, icon=control.infoLabel('ListItem.Icon'))
         try:
             refreshSimklCache(silent=True)
