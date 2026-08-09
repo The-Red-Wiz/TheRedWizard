@@ -245,6 +245,8 @@ class Sources():
 		self._resolve_user_cancelled, self.cancel_all_playback = False, False
 		self._resolved_url_sent = False
 		self._resolved_url_aborted = False
+		# Autoscrape nextep handoff: reuse spent PlayMedia handle — use Player.play().
+		self._use_player_play = False
 		# Defaults so Download File (fresh Sources()) can resolve without playback_prep.
 		self.background = False
 		self.play_type = ''
@@ -276,11 +278,35 @@ class Sources():
 		except Exception:
 			return -1
 
-	def _abort_plugin_resolve(self):
+	def _dismiss_playback_failed_dialog(self):
+		# setResolvedUrl(False) after a user cancel still makes Kodi flash
+		# DialogConfirm ("One or more items failed to play") on widget PlayMedia.
+		# Call only after scrape/results UI is already closed (avoids progress flash).
+		for _ in range(6):
+			try:
+				if kodi_utils.get_visibility('Window.IsVisible(okdialog)'):
+					kodi_utils.close_dialog('okdialog')
+					try:
+						kodi_utils.execute_builtin('SendClick(okdialog, 11)')
+					except Exception:
+						pass
+					return True
+			except Exception:
+				pass
+			kodi_utils.sleep(20)
+		return False
+
+	def _abort_plugin_resolve(self, clear_playlist=True, dismiss_failed_dialog=True):
 		# Kodi 22 widget / PlayMedia paths wait on setResolvedUrl. Exiting scrape/resolve
 		# without True or False leaves plugin:// "not playable" → "One or more items failed
 		# to play", and a second widget click hits the sources busy lock toast.
+		# User cancel: clear the playlist item, setResolvedUrl(False), then dismiss
+		# DialogConfirm. Caller should close scrape/results UI before this when possible.
 		if getattr(self, 'background', False):
+			return False
+		# Autoscrape handoff: previous episode already answered this handle — do not
+		# setResolvedUrl(False) again (noop / can confuse a later waiting PlayMedia).
+		if getattr(self, '_use_player_play', False):
 			return False
 		if getattr(self, '_resolved_url_sent', False) or getattr(self, '_resolved_url_aborted', False):
 			return False
@@ -288,10 +314,15 @@ class Sources():
 		if handle <= 0:
 			return False
 		try:
-			listitem = kodi_utils.make_listitem()
+			if clear_playlist and not self._playback_already_active():
+				kodi_utils.clear_video_playlist()
+			# Empty ListItem (not offscreen) — some Kodi builds still toast less with this.
+			listitem = kodi_utils.xbmcgui.ListItem()
 			xbmcplugin.setResolvedUrl(handle, False, listitem)
 			self._resolved_url_aborted = True
 			self._resolved_url_sent = True
+			if dismiss_failed_dialog:
+				self._dismiss_playback_failed_dialog()
 			return True
 		except Exception:
 			return False
@@ -1216,6 +1247,7 @@ class Sources():
 					scraper_settings=self.scraper_settings, prescrape=self.prescrape, filters_ignored=self.filters_ignored,
 					uncached_results=self.uncached_results, cache_check_override=self.cache_check_override)
 			if not window_result:
+				# Close leftover scrape UI first so abort's okdialog poll cannot flash it.
 				self._kill_progress_dialog()
 				self._abort_plugin_resolve()
 				return
@@ -1234,10 +1266,14 @@ class Sources():
 						return
 					continue
 				if self._playback_already_active():
-					self._kill_progress_dialog(join_timeout=1.0)
+					# Browse / mid-play close: do not clear the active playlist, but still
+					# answer a pending widget resolve handle if one was never consumed.
+					self._kill_progress_dialog(join_timeout=1.0, close_overlays=False)
 					self.resolve_dialog_made = False
+					self._abort_plugin_resolve(clear_playlist=False)
 					return
-				self._kill_progress_dialog(join_timeout=3.0)
+				# Close any leftover scrape/resolve under results, then answer PlayMedia.
+				self._kill_progress_dialog(join_timeout=1.0)
 				self.resolve_dialog_made = False
 				self._abort_plugin_resolve()
 				return
@@ -1838,6 +1874,8 @@ class Sources():
 		return False
 
 	def _finish_scrape_cancel(self):
+		# Kill scrape UI first (avoids progress flash during okdialog dismiss), release the
+		# busy lock so a quick re-scrape is not blocked, then answer PlayMedia.
 		self._kill_progress_dialog(join_timeout=2.0)
 		self._release_sources_busy()
 		self._abort_plugin_resolve()
@@ -2846,6 +2884,10 @@ class Sources():
 		self.autoscrape = False
 		self.autoscrape_nextep = True
 		self.play_type = 'autoscrape_nextep'
+		# Same invoker as the episode that just ended: its PlayMedia handle was already
+		# answered via setResolvedUrl. First pick must use Player.play() or resolve is a
+		# noop and the queue only succeeds on the second source.
+		self._use_player_play = True
 		return self.display_results(results)
 
 	def debrid_importer(self, debrid_provider):

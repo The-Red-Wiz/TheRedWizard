@@ -232,12 +232,42 @@ class IntroSkipPrompt(BaseDialog):
 		except: self.countdown_sec = 15
 		self.set_properties()
 
+	def _log_intro_prompt(self, message):
+		try:
+			from modules.kodi_utils import logger
+			logger('Red Light', 'Intro skip prompt: %s' % message)
+		except:
+			pass
+
 	def onInit(self):
-		self.setFocusId(10)
+		# Re-apply after XML load — Window.Property(mode) from __init__ can be empty on some Android builds,
+		# which hides the Skip Intro heading/buttons (only dim + thumb remain).
+		self.set_properties()
+		try:
+			self.setFocusId(10)
+		except Exception as exc:
+			self._log_intro_prompt('setFocusId failed: %s' % exc)
+		mode = ''
+		focus_id = -1
+		try: mode = self.getProperty('mode') or ''
+		except: pass
+		try: focus_id = self.getFocusId()
+		except: pass
+		fs = False
+		playing = False
+		try: fs = bool(get_visibility('Window.IsActive(fullscreenvideo)'))
+		except: pass
+		try:
+			playing = bool(self.player.isPlayingVideo() or self.player.isPlaying())
+		except: pass
+		self._log_intro_prompt('onInit mode=%r focus=%s fullscreenvideo=%s playing=%s countdown=%ss' % (
+			mode, focus_id, fs, playing, self.countdown_sec))
 		Thread(target=self.monitor, daemon=True).start()
 
 	def run(self):
+		self._log_intro_prompt('doModal begin')
 		self.doModal()
+		self._log_intro_prompt('doModal end timed_out=%s selected=%s' % (self.timed_out, self.selected))
 		self.clearProperties()
 		player = getattr(self, 'player', None)
 		self.clear_modals()

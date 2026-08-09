@@ -326,6 +326,7 @@ def _simkl_release_key(item, media_kind):
 
 _SIMKL_STATUS_CACHE_PREFIX = 'simkl_all_items'
 _SIMKL_LIST_ACTIVITY_KEYS = ('plantowatch', 'watching', 'completed', 'hold', 'dropped', 'removed_from_list', 'all')
+_SIMKL_STATUS_KEYS = ('plantowatch', 'watching', 'completed', 'hold', 'dropped')
 _SIMKL_STATUS_LABELS = {'plantowatch': 'Plan to Watch', 'watching': 'Watching', 'completed': 'Completed', 'hold': 'On Hold', 'dropped': 'Dropped'}
 
 def _simkl_list_cache_key(media_kind, status):
@@ -341,7 +342,7 @@ def clear_simkl_list_status_cache(media_kind=None, status=None):
 			elif media_kind == 'anime': kinds = ('anime',)
 			else: kinds = ('shows', 'anime')
 			for kind in kinds:
-				for st in ('plantowatch', 'completed', 'watching', 'hold', 'dropped'):
+				for st in _SIMKL_STATUS_KEYS:
 					lists_cache.delete(_simkl_list_cache_key(kind, st))
 		else:
 			lists_cache.delete_like('%s_%%' % _SIMKL_STATUS_CACHE_PREFIX)
@@ -351,23 +352,16 @@ def _simkl_item_block(item, media_kind):
 	if media_kind == 'movies': return item.get('movie', {}) or {}
 	return item.get('show') or item.get('anime') or {}
 
-def _simkl_fetch_status_live(media_kind, status):
-	items = _simkl_all_items(media_kind, status)
-	if items is None: return None
-	result = []
-	skipped = 0
-	for count, item in enumerate(items, 1):
-		if not isinstance(item, dict): continue
-		media_ids = _simkl_media_ids(item, media_kind)
-		if not media_ids:
-			skipped += 1
-			continue
-		block = _simkl_item_block(item, media_kind)
-		result.append({'order': count, 'media_ids': media_ids, 'type': 'movie' if media_kind == 'movies' else 'show',
-			'title': block.get('title', ''), 'collected_at': item.get('added_to_watchlist_at') or '',
-			'released': _simkl_release_key(item, media_kind)})
-	if skipped and not result:
-		kodi_utils.logger('Simkl', 'list %s/%s: %s items had no tmdb/imdb/tvdb ids' % (media_kind, status, skipped))
+def _simkl_normalize_list_item(item, media_kind, order):
+	if not isinstance(item, dict) or item.get('is_rewatch'): return None
+	media_ids = _simkl_media_ids(item, media_kind)
+	if not media_ids: return None
+	block = _simkl_item_block(item, media_kind)
+	return {'order': order, 'media_ids': media_ids, 'type': 'movie' if media_kind == 'movies' else 'show',
+		'title': block.get('title', ''), 'collected_at': item.get('added_to_watchlist_at') or '',
+		'released': _simkl_release_key(item, media_kind)}
+
+def _simkl_sort_status_list(result, status, media_kind):
 	# Anime shelves use the shows sort default (same episode content type in Red Light).
 	sort_media = 'movies' if media_kind == 'movies' else 'shows'
 	try: return list_sort.sort_source(result, 'simkl.%s' % status, sort_media, 'simkl')
@@ -375,10 +369,71 @@ def _simkl_fetch_status_live(media_kind, status):
 		kodi_utils.logger('Simkl', 'sort %s/%s failed: %s' % (media_kind, status, e))
 		return result
 
+def _simkl_store_status_list(media_kind, status, result):
+	try:
+		from caches.lists_cache import lists_cache
+		lists_cache.set(_simkl_list_cache_key(media_kind, status), result, expiration=settings.lists_cache_duraton())
+	except: pass
+
+def _simkl_fetch_status_live(media_kind, status):
+	items = _simkl_all_items(media_kind, status)
+	if items is None: return None
+	result, skipped = [], 0
+	for count, item in enumerate(items, 1):
+		entry = _simkl_normalize_list_item(item, media_kind, count)
+		if entry is None:
+			if isinstance(item, dict) and not item.get('is_rewatch'): skipped += 1
+			continue
+		result.append(entry)
+	if skipped and not result:
+		kodi_utils.logger('Simkl', 'list %s/%s: %s items had no tmdb/imdb/tvdb ids' % (media_kind, status, skipped))
+	return _simkl_sort_status_list(result, status, media_kind)
+
+def _simkl_warm_status_caches(media_kind):
+	"""One /sync/all-items/{type}/all pull; fill every status bucket (avoids 5× throttle)."""
+	items = _simkl_all_items(media_kind, 'all')
+	if items is None: return False
+	buckets = {st: [] for st in _SIMKL_STATUS_KEYS}
+	skipped, unstatused = 0, 0
+	for item in items:
+		if not isinstance(item, dict) or item.get('is_rewatch'): continue
+		st = (item.get('status') or '').lower()
+		if st not in buckets:
+			unstatused += 1
+			continue
+		entry = _simkl_normalize_list_item(item, media_kind, len(buckets[st]) + 1)
+		if entry is None:
+			skipped += 1
+			continue
+		buckets[st].append(entry)
+	# Rows without status mean we cannot bucket — fall back to per-status fetches.
+	if unstatused and not any(buckets.values()):
+		kodi_utils.logger('Simkl', 'list %s/all: %s items missing status; using per-status fetch' % (media_kind, unstatused))
+		return False
+	if skipped:
+		kodi_utils.logger('Simkl', 'list %s/all: skipped %s items without ids' % (media_kind, skipped))
+	for st, result in buckets.items():
+		_simkl_store_status_list(media_kind, st, _simkl_sort_status_list(result, st, media_kind))
+	return True
+
 def _simkl_fetch_status(media_kind, status):
 	if not settings.simkl_user_active(): return []
+	try:
+		from caches.lists_cache import lists_cache
+		cached = lists_cache.get(_simkl_list_cache_key(media_kind, status))
+		if cached is not None: return cached
+	except: pass
+	# Prefer one /all pull so manager + multi-shelf opens don't pay 5× API throttle.
+	if _simkl_warm_status_caches(media_kind):
+		try:
+			from caches.lists_cache import lists_cache
+			cached = lists_cache.get(_simkl_list_cache_key(media_kind, status))
+			if cached is not None: return cached
+		except: pass
 	result = _simkl_fetch_status_live(media_kind, status)
-	return [] if result is None else result
+	result = [] if result is None else result
+	_simkl_store_status_list(media_kind, status, result)
+	return result
 
 def _simkl_fetch_tv_status(status):
 	"""Shows + anime combined (Next Episodes watchlist, manager membership, dropped IDs)."""
@@ -478,10 +533,12 @@ def _simkl_id_match(item_ids, imdb_id=None, tvdb_id=None, tmdb_id=None, simkl_id
 	if tmdb_id and tmdb_id not in _SIMKL_ID_EMPTY and str(item_ids.get('tmdb')) == str(tmdb_id): return True
 	return False
 
-def _simkl_item_in_status(media_type, status, imdb_id=None, tvdb_id=None, tmdb_id=None, simkl_id=None):
+def _simkl_item_in_status(media_type, status, imdb_id=None, tvdb_id=None, tmdb_id=None, simkl_id=None, media_kind=None):
 	try:
 		if media_type == 'movie':
 			items = _simkl_fetch_status('movies', status)
+		elif media_kind in ('shows', 'anime'):
+			items = _simkl_fetch_status(media_kind, status)
 		else:
 			items = _simkl_fetch_tv_status(status)
 		for item in items:
@@ -533,14 +590,15 @@ def simkl_manager_choice(params):
 		status_map.insert(1, ('watching', 'Add to [B]Watching[/B]', 'Remove from [B]Watching[/B]'))
 		status_map.insert(3, ('hold', 'Add to [B]On Hold[/B]', 'Remove from [B]On Hold[/B]'))
 	choices = []
+	kind = media_kind if media_kind in ('shows', 'anime', 'movies') else None
 	for status, add_label, remove_label in status_map:
-		if _simkl_item_in_status(list_media, status, imdb_id, tvdb_id, tmdb_id, simkl_id):
+		if _simkl_item_in_status(list_media, status, imdb_id, tvdb_id, tmdb_id, simkl_id, kind):
 			choices.append((remove_label, 'remove_%s' % status))
 		else:
 			choices.append((add_label, status))
+	from indexers.dialogs import _manager_mark_watched_choices
+	choices.extend(_manager_mark_watched_choices(params))
 	choices.extend([
-		('Mark as [B]Watched[/B]', 'mark_watched'),
-		('Mark as [B]Unwatched[/B]', 'mark_unwatched'),
 		('Reset [B]Scrobble[/B]', 'reset_scrobble'),
 		('Open [B]Plan to Watch[/B]', 'open_plantowatch'),
 		('Open [B]Completed[/B]', 'open_completed'),

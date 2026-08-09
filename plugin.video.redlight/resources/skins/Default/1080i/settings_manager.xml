@@ -2496,7 +2496,6 @@
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.ad.token),empty_setting)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.ad.enabled),true)</visible>
                           <property name="setting_label">Revoke Authorisation</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.ad.account_id)]</property>
@@ -2596,10 +2595,10 @@
                       <item>
                           <visible>Container(2000).HasFocus(62)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.provider.easynews),true)</visible>
-                          <property name="setting_label">Login</property>
+                          <property name="setting_label">Username</property>
                           <property name="setting_type">numeric</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.easynews_user)]</property>
-                          <property name="setting_description">Enter the Login of your EasyNews account</property>
+                          <property name="setting_description">Enter the Username of your EasyNews account</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=easynews_user)</onclick>
                       </item>
                       <item>
@@ -2978,7 +2977,6 @@
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.oc.token),empty_setting)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.oc.enabled),true)</visible>
                           <property name="setting_label">Revoke Authorisation</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.oc.token)]</property>
@@ -3121,7 +3119,6 @@
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.pm.token),empty_setting)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.pm.enabled),true)</visible>
                           <property name="setting_label">Revoke Authorisation</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.pm.account_id)]</property>
@@ -3254,7 +3251,6 @@
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.rd.token),empty_setting)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.rd.enabled),true)</visible>
                           <property name="setting_label">Revoke Authorisation</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.rd.account_id)]</property>
@@ -3395,7 +3391,6 @@
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.tb.token),empty_setting)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.tb.enabled),true)</visible>
                           <property name="setting_label">Revoke Authorisation</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.tb.token)]</property>

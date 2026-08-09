@@ -41,6 +41,52 @@ def _nextep_indicator_watchlist(indicators=None):
 	except: pass
 	return []
 
+def _paint_episode_list_packet(packet, item_list_append, make_listitem, kodi_actor, watched_db, is_external,
+								live_progress=True, log_label='episode list cache'):
+	"""Paint a cached row packet into item_list. Re-reads live WatchedProgress when requested."""
+	try:
+		listitem = make_listitem()
+		set_properties = listitem.setProperties
+		info_tag = listitem.getVideoInfoTag(True)
+		info_tag.setMediaType('episode'), info_tag.setOriginalTitle(packet['orig_title']), info_tag.setTitle(packet['display_title'])
+		info_tag.setGenres(packet['genre'] or [])
+		if not packet.get('omit_tvshowtitle'): info_tag.setTvShowTitle(packet['tvshowtitle'])
+		info_tag.setPlaycount(packet['playcount']), info_tag.setPlot(packet['plot']), info_tag.setFirstAired(packet['premiered'])
+		if not (packet.get('omit_season_episode') or packet.get('display_format') == 2):
+			info_tag.setSeason(packet['season']), info_tag.setEpisode(packet['episode'])
+		info_tag.setDuration(packet['duration']), info_tag.setIMDBNumber(packet['imdb_id'])
+		info_tag.setUniqueIDs({'imdb': packet['imdb_id'], 'tmdb': str(packet['tmdb_id']), 'tvdb': str(packet['tvdb_id'])})
+		info_tag.setCountries(packet.get('country') or []), info_tag.setTrailer(packet['trailer']), info_tag.setTvShowStatus(packet['show_status'])
+		studio = packet.get('studio')
+		if isinstance(studio, tuple): studio = list(studio)
+		elif not studio: studio = []
+		info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
+		info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
+		info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
+		ws.clear_listitem_kodi_resume(info_tag)
+		try: listitem.setContentLookup(False)
+		except: pass
+		listitem.setLabel(packet['display'])
+		listitem.addContextMenuItems(packet.get('cm') or [])
+		listitem.setArt(packet.get('art') or {})
+		props = dict(packet.get('properties') or {})
+		props.pop('WatchedProgress', None)
+		if props: set_properties(props)
+		if live_progress:
+			try:
+				_bm = ws.get_bookmarks_episode(packet['tmdb_id'], packet['season'], watched_db)
+				_prog = ws.get_progress_status_episode(_bm, packet['episode'])
+				if _prog and not packet.get('unaired'):
+					ws.apply_listitem_progress(info_tag, set_properties, _prog, packet.get('duration') or 0, is_external)
+			except: pass
+		item_list_append({'list_items': (packet['play_params'], listitem, False), 'first_aired': packet.get('first_aired'),
+						'name': packet.get('name'), 'unaired': packet.get('unaired'), 'last_played': packet.get('last_played'),
+						'sort_order': packet.get('sort_order'), 'unwatched': packet.get('unwatched'),
+						'row_packet': packet})
+	except Exception as e:
+		try: kodi_utils.logger('Red Light', '%s paint failed: %s' % (log_label, e))
+		except: pass
+
 def build_episode_list(params):
 	def _process():
 		for item in episodes_data:
@@ -421,8 +467,16 @@ def build_single_episode(list_type, params={}):
 				'redlight.tmdb_manager_params': tmdb_manager_params,
 				'redlight.favorites_manager_params': favorites_manager_params
 				})
-			_nextep_packet, _pubcal_packet = None, None
-			if list_type_starts_with('next_') or list_type_compare == 'simkl_public_calendar':
+			_row_packet = None
+			_cacheable_row = (
+				list_type_starts_with('next_')
+				or list_type_compare in (
+					'simkl_public_calendar', 'progress', 'recently_watched',
+					'trakt_calendar', 'trakt_recently_aired', 'mdblist_calendar',
+					'punchplay_calendar', 'simkl_calendar'
+				)
+			)
+			if _cacheable_row:
 				props = {
 					'episode_type': episode_type, 'redlight.extras_params': extras_params, 'redlight.options_params': options_params,
 					'redlight.playback_options_params': playback_options_params,
@@ -438,7 +492,7 @@ def build_single_episode(list_type, params={}):
 				if unwatched_info and total_unwatched is not None and progress_aired_eps != total_unwatched:
 					props['watchedepisodes'] = '1'
 					props['unwatchedepisodes'] = str(total_unwatched)
-				_packet = {
+				_row_packet = {
 					'play_params': play_params, 'display': display, 'display_title': display_title, 'cm': list(cm),
 					'art': {'poster': show_poster, 'fanart': show_fanart, 'thumb': thumb, 'icon': thumb, 'clearlogo': show_clearlogo,
 							'landscape': show_landscape, 'season.poster': season_poster, 'tvshow.poster': show_poster, 'tvshow.clearlogo': show_clearlogo},
@@ -459,11 +513,9 @@ def build_single_episode(list_type, params={}):
 					'last_played': ep_data_get('last_played', resinsert), 'sort_order': _position,
 					'unwatched': ep_data_get('unwatched')
 				}
-				if list_type_starts_with('next_'): _nextep_packet = _packet
-				else: _pubcal_packet = _packet
 			item_list_append({'list_items': (play_params, listitem, False), 'first_aired': premiered, 'name': '%s - %sx%s' % (title, str(season), str_episode_zfill2),
 							'unaired': unaired, 'last_played': ep_data_get('last_played', resinsert), 'sort_order': _position, 'unwatched': ep_data_get('unwatched'),
-							'nextep_packet': _nextep_packet, 'public_cal_packet': _pubcal_packet})
+							'row_packet': _row_packet})
 		except Exception as e:
 			# Silent drops blank calendars/next-ep lists; log so meta/InfoTag failures are visible.
 			try: kodi_utils.logger('Red Light', 'build_single_episode item failed (%s): %s' % (list_type, e))
@@ -481,7 +533,7 @@ def build_single_episode(list_type, params={}):
 	resinsert = ''
 	item_list_append = item_list.append
 	window_command = 'ActivateWindow(Videos,%s,return)' if is_external else 'Container.Update(%s)'
-	_nextep_ck, _nextep_token = None, None
+	_nextep_ck, _nextep_token, _nextep_busy = None, None, False
 	no_spoilers = settings.avoid_episode_spoilers()
 	watched_indicators = settings.watched_indicators()
 	# MDBList Lists → Next Up always uses MDBList watched history (not global Watched Status Provider).
@@ -543,89 +595,66 @@ def build_single_episode(list_type, params={}):
 		except:
 			_nextep_ck, _nextep_token, _cached_packets = None, None, None
 		if _cached_packets:
-			def _paint_nextep_packet(packet):
-				try:
-					listitem = make_listitem()
-					set_properties = listitem.setProperties
-					info_tag = listitem.getVideoInfoTag(True)
-					info_tag.setMediaType('episode'), info_tag.setOriginalTitle(packet['orig_title']), info_tag.setTitle(packet['display_title'])
-					info_tag.setGenres(packet['genre'] or [])
-					if not packet.get('omit_tvshowtitle'): info_tag.setTvShowTitle(packet['tvshowtitle'])
-					info_tag.setPlaycount(packet['playcount']), info_tag.setPlot(packet['plot']), info_tag.setFirstAired(packet['premiered'])
-					if not (packet.get('omit_season_episode') or packet.get('display_format') == 2):
-						info_tag.setSeason(packet['season']), info_tag.setEpisode(packet['episode'])
-					info_tag.setDuration(packet['duration']), info_tag.setIMDBNumber(packet['imdb_id'])
-					info_tag.setUniqueIDs({'imdb': packet['imdb_id'], 'tmdb': str(packet['tmdb_id']), 'tvdb': str(packet['tvdb_id'])})
-					info_tag.setCountries(packet.get('country') or []), info_tag.setTrailer(packet['trailer']), info_tag.setTvShowStatus(packet['show_status'])
-					studio = packet.get('studio')
-					if isinstance(studio, tuple): studio = list(studio)
-					elif not studio: studio = []
-					info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
-					info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
-					info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
-					ws.clear_listitem_kodi_resume(info_tag)
-					try: listitem.setContentLookup(False)
-					except: pass
-					listitem.setLabel(packet['display'])
-					listitem.addContextMenuItems(packet.get('cm') or [])
-					listitem.setArt(packet.get('art') or {})
-					# Never trust cached WatchedProgress / resume — re-read live progress so a
-					# Simkl 0% reset cannot leave a stale 17:40 widget resume on Next Episodes.
-					props = dict(packet.get('properties') or {})
-					props.pop('WatchedProgress', None)
-					if props: set_properties(props)
-					try:
-						_bm = ws.get_bookmarks_episode(packet['tmdb_id'], packet['season'], watched_db)
-						_prog = ws.get_progress_status_episode(_bm, packet['episode'])
-						if _prog and not packet.get('unaired'):
-							ws.apply_listitem_progress(info_tag, set_properties, _prog, packet.get('duration') or 0, is_external)
-					except: pass
-					item_list_append({'list_items': (packet['play_params'], listitem, False), 'first_aired': packet.get('first_aired'),
-									'name': packet.get('name'), 'unaired': packet.get('unaired'), 'last_played': packet.get('last_played'),
-									'sort_order': packet.get('sort_order'), 'unwatched': packet.get('unwatched')})
-				except Exception as e:
-					try: kodi_utils.logger('Red Light', 'nextep cache paint failed: %s' % e)
-					except: pass
 			for _packet in _cached_packets:
-				_paint_nextep_packet(_packet)
+				_paint_episode_list_packet(
+					_packet, item_list_append, make_listitem, kodi_actor, watched_db, is_external,
+					live_progress=True, log_label='nextep cache')
 			kodi_utils.add_items(handle, [i['list_items'] for i in item_list])
 			kodi_utils.set_content(handle, 'episodes')
 			kodi_utils.set_category(handle, _get_category_name())
 			kodi_utils.end_directory(handle, cacheToDisc=False)
 			kodi_utils.set_view_mode('view.episodes_single', 'episodes', is_external, fallback_view_types=('view.episodes',))
 			return
-		# Keep external watched DBs fresh before building Next (In Progress already refreshes).
-		if watched_indicators == 3 and settings.mdblist_user_active():
-			try: ws._refresh_mdblist_tvshow_watched()
+		# Cold rebuild (#203): Kodi's GetDirectory busy often dies when fullscreen closes after
+		# Stop; keep an explicit spinner until rows are ready (warm cache hits skip this).
+		_nextep_busy = True
+		try: kodi_utils.show_busy_dialog()
+		except: pass
+		try:
+			# Right after Stop, local watched/progress is already written — blocking Simkl/Trakt/etc.
+			# sync is the main wait even with one row. Skip ~30s; monitors / later opens still sync.
+			_skip_provider_refresh = False
+			try: _skip_provider_refresh = kodi_utils.playback_list_sync_skip_recent()
 			except: pass
-		elif watched_indicators == 1 and settings.trakt_user_active():
-			try: ws._refresh_trakt_tvshow_watched()
-			except: pass
-		elif watched_indicators == 2 and settings.simkl_user_active():
-			try: ws._refresh_simkl_tvshow_watched()
-			except: pass
-		elif watched_indicators == 4 and settings.punchplay_user_active():
-			try: ws._refresh_punchplay_tvshow_watched()
-			except: pass
-		data = ws.get_next_episodes(nextep_content, watched_indicators)
-		if settings.nextep_limit_history(): data = data[:settings.nextep_limit()]
-		hidden_list = set(ws.get_hidden_progress_items(watched_indicators) or [])
-		if hidden_list:
-			data = [i for i in data if int(i['media_ids']['tmdb']) not in hidden_list]
-		if include_unwatched != 0:
-			if include_unwatched in (1, 3):
-				try:
-					watchlist = _nextep_indicator_watchlist(watched_indicators)
-					unwatched.extend([{'media_ids': i['media_ids'], 'season': 1, 'episode': 0, 'unwatched': True, 'title': i['title']} for i in watchlist])
+			if _skip_provider_refresh:
+				try: kodi_utils.logger('Red Light', 'Next Episodes: skip provider sync (recent playback)')
 				except: pass
-			if include_unwatched in (2, 3):
-				from caches.favorites_cache import favorites_cache
-				try:
-					favorites = favorites_cache.get_favorites('tvshow')
-					unwatched.extend([{'media_ids': {'tmdb': int(i['tmdb_id'])}, 'season': 1, 'episode': 0, 'unwatched': True, 'title': i['title']} \
-									for i in favorites if not int(i['tmdb_id']) in [x['media_ids']['tmdb'] for x in data]])
+			elif watched_indicators == 3 and settings.mdblist_user_active():
+				try: ws._refresh_mdblist_tvshow_watched()
 				except: pass
-			data += unwatched
+			elif watched_indicators == 1 and settings.trakt_user_active():
+				try: ws._refresh_trakt_tvshow_watched()
+				except: pass
+			elif watched_indicators == 2 and settings.simkl_user_active():
+				try: ws._refresh_simkl_tvshow_watched()
+				except: pass
+			elif watched_indicators == 4 and settings.punchplay_user_active():
+				try: ws._refresh_punchplay_tvshow_watched()
+				except: pass
+			data = ws.get_next_episodes(nextep_content, watched_indicators)
+			if settings.nextep_limit_history(): data = data[:settings.nextep_limit()]
+			hidden_list = set(ws.get_hidden_progress_items(watched_indicators) or [])
+			if hidden_list:
+				data = [i for i in data if int(i['media_ids']['tmdb']) not in hidden_list]
+			if include_unwatched != 0:
+				if include_unwatched in (1, 3):
+					try:
+						watchlist = _nextep_indicator_watchlist(watched_indicators)
+						unwatched.extend([{'media_ids': i['media_ids'], 'season': 1, 'episode': 0, 'unwatched': True, 'title': i['title']} for i in watchlist])
+					except: pass
+				if include_unwatched in (2, 3):
+					from caches.favorites_cache import favorites_cache
+					try:
+						favorites = favorites_cache.get_favorites('tvshow')
+						unwatched.extend([{'media_ids': {'tmdb': int(i['tmdb_id'])}, 'season': 1, 'episode': 0, 'unwatched': True, 'title': i['title']} \
+										for i in favorites if not int(i['tmdb_id']) in [x['media_ids']['tmdb'] for x in data]])
+					except: pass
+				data += unwatched
+		except Exception:
+			try: kodi_utils.hide_busy_dialog()
+			except: pass
+			_nextep_busy = False
+			data = []
 	elif list_type == 'episode.progress':
 		ws.clear_local_bookmarks()
 		data = ws.get_in_progress_episodes()
@@ -717,6 +746,70 @@ def build_single_episode(list_type, params={}):
 	list_type_compare = list_type.split('episode.')[1]
 	list_type_starts_with = list_type_compare.startswith
 	_pubcal_ck, _pubcal_token = None, None
+	_progress_ck, _progress_token = None, None
+	_recent_ck, _recent_token = None, None
+	_pcal_ck, _pcal_token = None, None
+
+	def _finish_cached_directory(use_calendar_sort=False):
+		kodi_utils.add_items(handle, [i['list_items'] for i in item_list])
+		kodi_utils.set_content(handle, 'episodes')
+		kodi_utils.set_category(handle, _get_category_name())
+		if use_calendar_sort:
+			kodi_utils.set_sort_method(handle, 'none', labelMask='%L')
+		kodi_utils.end_directory(handle, cacheToDisc=False)
+		kodi_utils.set_view_mode('view.episodes_single', 'episodes', is_external, fallback_view_types=('view.episodes',))
+
+	# In Progress: refresh already ran in get_in_progress_episodes — then token-check.
+	if list_type_compare == 'progress':
+		try:
+			from caches import progress_episodes_cache
+			_progress_ck = progress_episodes_cache.cache_id(watched_indicators, is_external)
+			_progress_token = progress_episodes_cache.activity_token(watched_indicators, data)
+			_cached_packets = progress_episodes_cache.get_packets(_progress_ck, _progress_token)
+		except:
+			_progress_ck, _progress_token, _cached_packets = None, None, None
+		if _cached_packets:
+			for _packet in _cached_packets:
+				_paint_episode_list_packet(
+					_packet, item_list_append, make_listitem, kodi_actor, watched_db, is_external,
+					live_progress=True, log_label='progress episodes cache')
+			_finish_cached_directory()
+			return
+
+	# Recently Watched: data already fetched (MDBList/PunchPlay refresh inside get_recently_watched).
+	if list_type_compare == 'recently_watched':
+		try:
+			from caches import recent_watched_cache
+			_recent_ck = recent_watched_cache.cache_id(watched_indicators, is_external, short_list=True)
+			_recent_token = recent_watched_cache.activity_token(watched_indicators, data)
+			_cached_packets = recent_watched_cache.get_packets(_recent_ck, _recent_token)
+		except:
+			_recent_ck, _recent_token, _cached_packets = None, None, None
+		if _cached_packets:
+			for _packet in _cached_packets:
+				_paint_episode_list_packet(
+					_packet, item_list_append, make_listitem, kodi_actor, watched_db, is_external,
+					live_progress=True, log_label='recent watched cache')
+			_finish_cached_directory()
+			return
+
+	# Personal calendars: feed already fetched — then token-check (day in fingerprint).
+	if list_type_compare in ('trakt_calendar', 'trakt_recently_aired', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar'):
+		try:
+			from caches import personal_calendar_cache
+			_pcal_ck = personal_calendar_cache.cache_id(list_type_compare, is_external)
+			_pcal_token = personal_calendar_cache.activity_token(data, watched_indicators)
+			_cached_packets = personal_calendar_cache.get_packets(_pcal_ck, _pcal_token)
+		except:
+			_pcal_ck, _pcal_token, _cached_packets = None, None, None
+		if _cached_packets:
+			for _packet in _cached_packets:
+				_paint_episode_list_packet(
+					_packet, item_list_append, make_listitem, kodi_actor, watched_db, is_external,
+					live_progress=True, log_label='personal calendar cache')
+			_finish_cached_directory(use_calendar_sort=True)
+			return
+
 	if list_type_compare == 'simkl_public_calendar' and settings.public_calendar_cache_list():
 		try:
 			from caches import public_calendar_cache
@@ -727,108 +820,135 @@ def build_single_episode(list_type, params={}):
 		except:
 			_pubcal_ck, _pubcal_token, _cached_packets = None, None, None
 		if _cached_packets:
-			def _paint_pubcal_packet(packet):
-				try:
-					listitem = make_listitem()
-					set_properties = listitem.setProperties
-					info_tag = listitem.getVideoInfoTag(True)
-					info_tag.setMediaType('episode'), info_tag.setOriginalTitle(packet['orig_title']), info_tag.setTitle(packet['display_title'])
-					info_tag.setGenres(packet['genre'] or [])
-					if not packet.get('omit_tvshowtitle'): info_tag.setTvShowTitle(packet['tvshowtitle'])
-					info_tag.setPlaycount(packet['playcount']), info_tag.setPlot(packet['plot']), info_tag.setFirstAired(packet['premiered'])
-					if not (packet.get('omit_season_episode') or packet.get('display_format') == 2):
-						info_tag.setSeason(packet['season']), info_tag.setEpisode(packet['episode'])
-					info_tag.setDuration(packet['duration']), info_tag.setIMDBNumber(packet['imdb_id'])
-					info_tag.setUniqueIDs({'imdb': packet['imdb_id'], 'tmdb': str(packet['tmdb_id']), 'tvdb': str(packet['tvdb_id'])})
-					info_tag.setCountries(packet.get('country') or []), info_tag.setTrailer(packet['trailer']), info_tag.setTvShowStatus(packet['show_status'])
-					studio = packet.get('studio')
-					if isinstance(studio, tuple): studio = list(studio)
-					elif not studio: studio = []
-					info_tag.setStudios(studio), info_tag.setWriters(packet.get('writer')), info_tag.setDirectors(packet.get('director'))
-					info_tag.setYear(int(packet['year'])), info_tag.setRating(packet.get('rating')), info_tag.setVotes(packet.get('votes')), info_tag.setMpaa(packet.get('mpaa'))
-					info_tag.setCast([kodi_actor(name=i['name'], role=i['role'], thumbnail=i['thumbnail']) for i in (packet.get('cast') or [])])
-					ws.clear_listitem_kodi_resume(info_tag)
-					listitem.setLabel(packet['display'])
-					listitem.addContextMenuItems(packet.get('cm') or [])
-					listitem.setArt(packet.get('art') or {})
-					props = packet.get('properties') or {}
-					if props: set_properties(props)
-					item_list_append({'list_items': (packet['play_params'], listitem, False), 'first_aired': packet.get('first_aired'),
-									'name': packet.get('name'), 'unaired': packet.get('unaired'), 'last_played': packet.get('last_played'),
-									'sort_order': packet.get('sort_order'), 'unwatched': packet.get('unwatched')})
-				except Exception as e:
-					try: kodi_utils.logger('Red Light', 'public calendar cache paint failed: %s' % e)
-					except: pass
 			for _packet in _cached_packets:
-				_paint_pubcal_packet(_packet)
-			kodi_utils.add_items(handle, [i['list_items'] for i in item_list])
-			kodi_utils.set_content(handle, 'episodes')
-			kodi_utils.set_category(handle, _get_category_name())
-			kodi_utils.set_sort_method(handle, 'none', labelMask='%L')
-			kodi_utils.end_directory(handle, cacheToDisc=False)
-			kodi_utils.set_view_mode('view.episodes_single', 'episodes', is_external, fallback_view_types=('view.episodes',))
+				_paint_episode_list_packet(
+					_packet, item_list_append, make_listitem, kodi_actor, watched_db, is_external,
+					live_progress=True, log_label='public calendar cache')
+			_finish_cached_directory(use_calendar_sort=True)
 			return
-	threads = TaskPool().tasks_enumerate(_process, data, min(len(data), settings.max_threads()))
-	[i.join() for i in threads]
-	if return_results: return [(i['list_items'], i['sort_order']) for i in item_list]
-	if list_type_starts_with('next_'):
-		def func(function):
-			if sort_key == 'name': return title_key(function, ignore_articles)
-			elif sort_key == 'last_played': return jsondate_to_datetime(function, resformat)
-			else: return function
-		if settings.nextep_airing_today():
-			airing_today = sorted([i for i in item_list if date_difference(current_date, jsondate_to_datetime(i.get('first_aired', '2100-12-31'), '%Y-%m-%d').date(), 0)],
-									key=lambda i: func(i[sort_key]), reverse=sort_direction)
-			item_list = [i for i in item_list if not i in airing_today]
-		else: airing_today = []
-		if sort_key == 'last_played':
-			unwatched = sorted([i for i in item_list if i['unwatched']], key=lambda i: title_key(i['name'], ignore_articles))
-			item_list = sorted([i for i in item_list if not i['unwatched']], key=lambda i: func(i[sort_key]), reverse=sort_direction) + unwatched
-		else: item_list = sorted(item_list, key=lambda i: func(i[sort_key]), reverse=sort_direction)
-		item_list = airing_today + item_list
-	else:
-		item_list.sort(key=lambda i: i['sort_order'])
-		if list_type_compare in ('trakt_calendar', 'trakt_recently_aired', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar', 'simkl_public_calendar'):
-			if list_type_compare in ('trakt_calendar', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar', 'simkl_public_calendar'): reverse = settings.calendar_sort_order() == 0
-			else: reverse = True
-			try: item_list = sorted(item_list, key=lambda i: i.get('first_aired', '2100-12-31'), reverse=reverse)
+	try:
+		process_data = data
+		# Next Episodes incremental: token miss but stale packets exist — rebuild dirty shows only.
+		if list_type_starts_with('next_') and _nextep_ck:
+			try:
+				from caches import nextep_cache
+				_stale = nextep_cache.get_stale_payload(_nextep_ck)
+				if _stale:
+					_stale_packets = _stale.get('packets') or []
+					_stale_activity = _stale.get('show_activity') or {}
+					_cur_activity = nextep_cache.show_activity(watched_indicators)
+					_stale_by_tmdb = {}
+					for _p in _stale_packets:
+						try: _stale_by_tmdb[str(_p['tmdb_id'])] = _p
+						except: pass
+					dirty_data, clean_ok = [], True
+					for _item in data:
+						try: _tmdb = str(_item['media_ids']['tmdb'])
+						except:
+							dirty_data.append(_item)
+							continue
+						_stale_p = _stale_by_tmdb.get(_tmdb)
+						if not _stale_p or _stale_activity.get(_tmdb) != _cur_activity.get(_tmdb):
+							dirty_data.append(_item)
+						else:
+							try:
+								_paint_episode_list_packet(
+									_stale_p, item_list_append, make_listitem, kodi_actor, watched_db, is_external,
+									live_progress=True, log_label='nextep incremental')
+							except:
+								clean_ok = False
+								break
+					if clean_ok:
+						process_data = dirty_data
+					else:
+						del item_list[:]
+						process_data = data
 			except:
-				item_list = [i for i in item_list if i.get('first_aired') not in (None, 'None', '')]
-				item_list = sorted(item_list, key=lambda i: i.get('first_aired'), reverse=reverse)
-			if list_type_compare in ('trakt_calendar', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar', 'simkl_public_calendar') and not calendar_date_format:
+				del item_list[:]
+				process_data = data
+		if process_data:
+			threads = TaskPool().tasks_enumerate(_process, process_data, min(len(process_data), settings.max_threads()))
+			[i.join() for i in threads]
+		if return_results: return [(i['list_items'], i['sort_order']) for i in item_list]
+		if list_type_starts_with('next_'):
+			def func(function):
+				if sort_key == 'name': return title_key(function, ignore_articles)
+				elif sort_key == 'last_played': return jsondate_to_datetime(function, resformat)
+				else: return function
+			if settings.nextep_airing_today():
 				airing_today = sorted([i for i in item_list if date_difference(current_date, jsondate_to_datetime(i.get('first_aired', '2100-12-31'), '%Y-%m-%d').date(), 0)],
-										key=lambda i: i['first_aired'])
+										key=lambda i: func(i[sort_key]), reverse=sort_direction)
 				item_list = [i for i in item_list if not i in airing_today]
-				item_list = airing_today + item_list
-	if list_type_starts_with('next_') and _nextep_ck:
-		try:
-			from caches import nextep_cache
-			_nextep_token = nextep_cache.activity_token(watched_indicators)
-			if include_unwatched != 0:
-				_uw_extra = []
-				if include_unwatched in (1, 3):
-					try: _uw_extra.extend(str(i['media_ids'].get('tmdb')) for i in (_nextep_indicator_watchlist(watched_indicators) or []) if i.get('media_ids'))
-					except: pass
-				if include_unwatched in (2, 3):
-					try:
-						from caches.favorites_cache import favorites_cache
-						_uw_extra.extend(str(i['tmdb_id']) for i in (favorites_cache.get_favorites('tvshow') or []))
-					except: pass
-				_nextep_token = '%s|uw:%s|%s' % (_nextep_token, include_unwatched, ','.join(sorted(set(_uw_extra))))
-			_packets = [i['nextep_packet'] for i in item_list if i.get('nextep_packet')]
-			if _packets: nextep_cache.set_packets(_nextep_ck, _nextep_token, _packets)
-		except: pass
-	if list_type_compare == 'simkl_public_calendar' and _pubcal_ck:
-		try:
-			from caches import public_calendar_cache
-			_packets = [i['public_cal_packet'] for i in item_list if i.get('public_cal_packet')]
-			if _packets: public_calendar_cache.set_packets(_pubcal_ck, _pubcal_token, _packets)
-		except: pass
-	kodi_utils.add_items(handle, [i['list_items'] for i in item_list])
-	kodi_utils.set_content(handle, 'episodes')
-	kodi_utils.set_category(handle, _get_category_name())
-	# Keep plugin order for calendars — Kodi "Sort by Date" was reordering vs day labels.
-	if list_type_compare in ('trakt_calendar', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar', 'simkl_public_calendar', 'trakt_recently_aired'):
-		kodi_utils.set_sort_method(handle, 'none', labelMask='%L')
-	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.episodes_single', 'episodes', is_external, fallback_view_types=('view.episodes',))
+			else: airing_today = []
+			if sort_key == 'last_played':
+				unwatched = sorted([i for i in item_list if i['unwatched']], key=lambda i: title_key(i['name'], ignore_articles))
+				item_list = sorted([i for i in item_list if not i['unwatched']], key=lambda i: func(i[sort_key]), reverse=sort_direction) + unwatched
+			else: item_list = sorted(item_list, key=lambda i: func(i[sort_key]), reverse=sort_direction)
+			item_list = airing_today + item_list
+		else:
+			item_list.sort(key=lambda i: i['sort_order'])
+			if list_type_compare in ('trakt_calendar', 'trakt_recently_aired', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar', 'simkl_public_calendar'):
+				if list_type_compare in ('trakt_calendar', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar', 'simkl_public_calendar'): reverse = settings.calendar_sort_order() == 0
+				else: reverse = True
+				try: item_list = sorted(item_list, key=lambda i: i.get('first_aired', '2100-12-31'), reverse=reverse)
+				except:
+					item_list = [i for i in item_list if i.get('first_aired') not in (None, 'None', '')]
+					item_list = sorted(item_list, key=lambda i: i.get('first_aired'), reverse=reverse)
+				if list_type_compare in ('trakt_calendar', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar', 'simkl_public_calendar') and not calendar_date_format:
+					airing_today = sorted([i for i in item_list if date_difference(current_date, jsondate_to_datetime(i.get('first_aired', '2100-12-31'), '%Y-%m-%d').date(), 0)],
+											key=lambda i: i['first_aired'])
+					item_list = [i for i in item_list if not i in airing_today]
+					item_list = airing_today + item_list
+		_row_packets = [i['row_packet'] for i in item_list if i.get('row_packet')]
+		if list_type_starts_with('next_') and _nextep_ck:
+			try:
+				from caches import nextep_cache
+				_nextep_token = nextep_cache.activity_token(watched_indicators)
+				if include_unwatched != 0:
+					_uw_extra = []
+					if include_unwatched in (1, 3):
+						try: _uw_extra.extend(str(i['media_ids'].get('tmdb')) for i in (_nextep_indicator_watchlist(watched_indicators) or []) if i.get('media_ids'))
+						except: pass
+					if include_unwatched in (2, 3):
+						try:
+							from caches.favorites_cache import favorites_cache
+							_uw_extra.extend(str(i['tmdb_id']) for i in (favorites_cache.get_favorites('tvshow') or []))
+						except: pass
+					_nextep_token = '%s|uw:%s|%s' % (_nextep_token, include_unwatched, ','.join(sorted(set(_uw_extra))))
+				if _row_packets:
+					nextep_cache.set_packets(
+						_nextep_ck, _nextep_token, _row_packets,
+						show_activity_map=nextep_cache.show_activity(watched_indicators))
+			except: pass
+		if list_type_compare == 'simkl_public_calendar' and _pubcal_ck:
+			try:
+				from caches import public_calendar_cache
+				if _row_packets: public_calendar_cache.set_packets(_pubcal_ck, _pubcal_token, _row_packets)
+			except: pass
+		if list_type_compare == 'progress' and _progress_ck:
+			try:
+				from caches import progress_episodes_cache
+				if _row_packets: progress_episodes_cache.set_packets(_progress_ck, _progress_token, _row_packets)
+			except: pass
+		if list_type_compare == 'recently_watched' and _recent_ck:
+			try:
+				from caches import recent_watched_cache
+				if _row_packets: recent_watched_cache.set_packets(_recent_ck, _recent_token, _row_packets)
+			except: pass
+		if list_type_compare in ('trakt_calendar', 'trakt_recently_aired', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar') and _pcal_ck:
+			try:
+				from caches import personal_calendar_cache
+				if _row_packets: personal_calendar_cache.set_packets(_pcal_ck, _pcal_token, _row_packets)
+			except: pass
+		kodi_utils.add_items(handle, [i['list_items'] for i in item_list])
+		kodi_utils.set_content(handle, 'episodes')
+		kodi_utils.set_category(handle, _get_category_name())
+		# Keep plugin order for calendars — Kodi "Sort by Date" was reordering vs day labels.
+		if list_type_compare in ('trakt_calendar', 'mdblist_calendar', 'punchplay_calendar', 'simkl_calendar', 'simkl_public_calendar', 'trakt_recently_aired'):
+			kodi_utils.set_sort_method(handle, 'none', labelMask='%L')
+		kodi_utils.end_directory(handle, cacheToDisc=False)
+		kodi_utils.set_view_mode('view.episodes_single', 'episodes', is_external, fallback_view_types=('view.episodes',))
+	finally:
+		if _nextep_busy:
+			try: kodi_utils.hide_busy_dialog()
+			except: pass

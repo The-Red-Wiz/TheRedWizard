@@ -673,6 +673,37 @@ def _trakt_manager_mark(params, action):
 	except: pass
 	return ws.mark_tvshow(mark_params)
 
+def _manager_mark_watched_choices(params):
+	"""Mark Watched / Unwatched rows gated by playcount (main context-menu parity)."""
+	from modules import watched_status as ws
+	media_type = params.get('media_type')
+	tmdb_id = params.get('tmdb_id')
+	season, episode = params.get('season'), params.get('episode')
+	show_watched, show_unwatched = True, True
+	try:
+		if media_type == 'movie':
+			playcount = ws.get_watched_status_movie(ws.watched_info_movie(), str(tmdb_id))
+			show_watched, show_unwatched = not playcount, bool(playcount)
+		elif media_type == 'episode' or (season not in ('', None) and episode not in ('', None) and int(season) > 0 and int(episode) > 0):
+			playcount = ws.get_watched_status_episode(ws.watched_info_episode(str(tmdb_id)), (season, episode))
+			show_watched, show_unwatched = not playcount, bool(playcount)
+		else:
+			from modules import metadata
+			from modules.utils import get_datetime
+			meta = metadata.tvshow_meta('tmdb_id', tmdb_id, settings.tmdb_api_key(), settings.mpaa_region(), get_datetime())
+			aired = ws.progress_aired_eps(meta) if meta else 0
+			if not aired:
+				show_watched, show_unwatched = False, False
+			else:
+				playcount, total_watched, _ = ws.get_watched_status_tvshow(
+					ws.watched_info_tvshow().get(str(tmdb_id)), aired)
+				show_watched, show_unwatched = not playcount, total_watched > 0
+	except: pass
+	choices = []
+	if show_watched: choices.append(('Mark as [B]Watched[/B]', 'mark_watched'))
+	if show_unwatched: choices.append(('Mark as [B]Unwatched[/B]', 'mark_unwatched'))
+	return choices
+
 def _trakt_episode_context(params):
 	season, episode = params.get('season'), params.get('episode')
 	try:
@@ -770,9 +801,8 @@ def trakt_manager_choice(params):
 	collection_label = 'Movies Library' if list_media == 'movie' else 'TV Shows Library'
 	favorites_label = 'Favorite Movies' if list_media == 'movie' else 'Favorite TV Shows'
 	list_mode = 'build_movie_list' if list_media == 'movie' else 'build_tvshow_list'
+	choices.extend(_manager_mark_watched_choices(params))
 	choices.extend([
-		('Mark as [B]Watched[/B]', 'mark_watched'),
-		('Mark as [B]Unwatched[/B]', 'mark_unwatched'),
 		('Reset [B]Scrobble[/B]', 'reset_scrobble'),
 		('Open [B]Watchlist[/B]', 'open_watchlist'),
 		('Open [B]Library[/B]', 'open_collection'),
@@ -864,7 +894,8 @@ def simkl_plantowatch_shortcut_choice(params):
 	tmdb_id, imdb_id, tvdb_id = params.get('tmdb_id'), params.get('imdb_id'), params.get('tvdb_id')
 	simkl_id, media_kind = params.get('simkl_id'), params.get('simkl_media_kind')
 	heading = params.get('title') or 'Simkl Plan to Watch'
-	in_list = simkl_api._simkl_item_in_status(list_media, 'plantowatch', imdb_id, tvdb_id, tmdb_id, simkl_id)
+	kind = media_kind if media_kind in ('shows', 'anime', 'movies') else None
+	in_list = simkl_api._simkl_item_in_status(list_media, 'plantowatch', imdb_id, tvdb_id, tmdb_id, simkl_id, kind)
 	text = 'Remove from Plan to Watch?' if in_list else 'Add to Plan to Watch?'
 	if not kodi_utils.confirm_dialog(heading=heading, text=text): return
 	if in_list: return simkl_api.simkl_remove_from_list('plantowatch', tmdb_id, list_media, imdb_id, tvdb_id, simkl_id, media_kind)

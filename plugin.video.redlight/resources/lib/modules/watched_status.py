@@ -458,7 +458,8 @@ def batch_erase_bookmark(watched_indicators, insert_list, action):
 		watched_db.executemany('DELETE FROM progress where db_type = ? and media_id = ? and season = ? and episode = ?', modified_list)
 	except: pass
 
-def set_bookmark(params):
+def set_bookmark(params, remote=True):
+	'''Write resume progress. remote=False writes local DB only (playback stop path).'''
 	try:
 		media_type, tmdb_id, curr_time, total_time = params.get('media_type'), params.get('tmdb_id'), params.get('curr_time'), params.get('total_time')
 		refresh = False if params.get('from_playback', 'false') == 'true' else True
@@ -467,6 +468,8 @@ def set_bookmark(params):
 		resume_point = round(adjusted_current_time/float(total_time)*100,1)
 		watched_indicators = settings.watched_indicators()
 		_write_local_progress(watched_indicators, media_type, tmdb_id, season, episode, resume_point, curr_time, title)
+		if not remote:
+			return
 		if watched_indicators == 1 and trakt_official_status(media_type):
 			trakt_progress('set_progress', media_type, tmdb_id, resume_point, season, episode, refresh_trakt=False)
 		elif watched_indicators == 2 and simkl_official_status(media_type):
@@ -629,10 +632,10 @@ def unmark_previous_episode(params):
 	except: notification('Error')
 
 def _invalidate_nextep_list_cache():
-	try:
-		from caches.nextep_cache import invalidate
-		invalidate()
-	except: pass
+	# Soft no-op: activity_token already changes on mark watched / progress writes.
+	# Hard-deleting packets forced a full Next Episodes rebuild and blocked incremental
+	# reuse of clean show rows from the stale payload.
+	return
 
 def watched_status_mark(watched_indicators, media_type='', media_id='', action='', season='', episode='', title=''):
 	try:
@@ -926,7 +929,16 @@ def get_in_progress_episodes():
 	dbcon = get_database(watched_indicators)
 	episode_list = _episode_progress_list(dbcon)
 	source = 'local'
-	if watched_indicators == 1 and settings.trakt_user_active():
+	_skip_sync = False
+	try:
+		from modules.kodi_utils import playback_list_sync_skip_recent
+		_skip_sync = playback_list_sync_skip_recent()
+	except: pass
+	if _skip_sync:
+		_purge_negligible_progress(dbcon)
+		episode_list = _episode_progress_list(dbcon)
+		logger('Red Light', 'get_in_progress_episodes: %s item(s) from local (skip provider sync)' % len(episode_list))
+	elif watched_indicators == 1 and settings.trakt_user_active():
 		_refresh_trakt_episode_progress()
 		episode_list = _episode_progress_list(dbcon)
 		if episode_list: source = 'trakt'
@@ -946,7 +958,8 @@ def get_in_progress_episodes():
 	else:
 		_purge_negligible_progress(dbcon)
 		episode_list = _episode_progress_list(dbcon)
-	logger('Red Light', 'get_in_progress_episodes: %s item(s) from %s' % (len(episode_list), source))
+	if not _skip_sync:
+		logger('Red Light', 'get_in_progress_episodes: %s item(s) from %s' % (len(episode_list), source))
 	if settings.lists_sort_order('progress') == 0: episode_list = sort_for_article(episode_list, 'title', settings.ignore_articles())
 	else: episode_list.sort(key=lambda k: k['date'], reverse=True)
 	return episode_list

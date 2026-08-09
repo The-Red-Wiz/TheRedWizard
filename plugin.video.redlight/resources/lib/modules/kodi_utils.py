@@ -757,6 +757,8 @@ SHUTTING_DOWN_PROP = 'redlight.shutting_down'
 PROP_AUTOSCRAPE_TOAST_SHOWN = 'redlight.autoscrape_nextep_toast_shown'
 PLAYBACK_WIDGET_REFRESH_PROP = 'redlight.playback_widget_refresh_at'
 PLAYBACK_WIDGET_REFRESH_COOLDOWN_SEC = 120
+# Next Episodes / In Progress: skip blocking provider sync this long after Stop (local DB already written).
+PLAYBACK_LIST_SYNC_SKIP_SEC = 30
 BOOT_SYNC_STARTED_PROP = 'redlight.boot_sync_started_at'
 BOOT_TRAKT_SYNC_READY_PROP = 'redlight.boot_trakt_sync_ready'
 BOOT_SYNC_GATE_TIMEOUT_SEC = 180
@@ -798,10 +800,11 @@ def prepare_service_shutdown():
 	set_property(SHUTTING_DOWN_PROP, 'true')
 	cancel_widget_refresh_alarms()
 
-def schedule_widget_refresh(silent=True, reload_skin=False):
+def schedule_widget_refresh(silent=True, reload_skin=False, defer_browsing=False, delay='00:00:02'):
 	if service_shutting_down(): return
-	url = 'plugin://plugin.video.redlight/?mode=refresh_widgets&silent=%s&reload_skin=%s' % ('true' if silent else 'false', 'true' if reload_skin else 'false')
-	execute_builtin('AlarmClock(redlight_widget_refresh,RunPlugin(%s),00:00:02,silent)' % url)
+	url = 'plugin://plugin.video.redlight/?mode=refresh_widgets&silent=%s&reload_skin=%s&defer_browsing=%s' % (
+		'true' if silent else 'false', 'true' if reload_skin else 'false', 'true' if defer_browsing else 'false')
+	execute_builtin('AlarmClock(redlight_widget_refresh,RunPlugin(%s),%s,silent)' % (url, delay))
 
 def mark_playback_widget_refresh():
 	try:
@@ -818,13 +821,35 @@ def playback_widget_refresh_recent():
 	except:
 		return False
 
+def playback_list_sync_skip_recent():
+	"""True shortly after playback wrote local watched/progress — list UIs can paint without a blocking sync."""
+	try:
+		from time import time
+		at = float(get_property(PLAYBACK_WIDGET_REFRESH_PROP) or 0)
+		return at > 0 and (time() - at) < PLAYBACK_LIST_SYNC_SKIP_SEC
+	except:
+		return False
+
 def schedule_playback_widget_refresh():
+	"""Refresh home widgets after playback without reloading the in-addon Videos list.
+
+	UpdateLibrary refreshes the active container too. After Stop from Next Episodes that
+	re-enters build_next_episode; Back during that GetDirectory fails and Kodi dumps to Files.
+	"""
 	if service_shutting_down(): return
 	mark_playback_widget_refresh()
-	schedule_widget_refresh(silent=True)
+	schedule_widget_refresh(silent=True, defer_browsing=True)
 
-def refresh_widgets(silent=False, reload_skin=False):
+def refresh_widgets(silent=False, reload_skin=False, defer_browsing=False):
 	if service_shutting_down(): return
+	# Playback-scheduled refresh: wait until Home (or leave Red Light Videos) so we do not
+	# interrupt Next Episodes / In Progress with a second GetDirectory.
+	if defer_browsing:
+		try:
+			if not home() and path_check('plugin.video.redlight'):
+				schedule_widget_refresh(silent=silent, reload_skin=reload_skin, defer_browsing=True, delay='00:00:05')
+				return
+		except: pass
 	from caches.settings_cache import get_setting
 	from caches.random_widgets_cache import RandomWidgets
 	from caches.lists_cache import lists_cache

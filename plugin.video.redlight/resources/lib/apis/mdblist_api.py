@@ -1159,30 +1159,27 @@ def mdblist_remove_from_library(tmdb_id, media_type, imdb_id=None):
 		return kodi_utils.notification('Removed from MDBList Library', 3000)
 	return kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
 
-def _mdbl_personal_tmdb_ids(media_kind, fetch_func):
-	try:
-		data, _ = fetch_func(media_kind, 1)
-	except: return set()
-	ids = set()
-	for item in data or []:
-		if not isinstance(item, dict): continue
-		tmdb_id = item.get('id') or item.get('tmdb') or (item.get('ids') or {}).get('tmdb')
-		if tmdb_id:
-			try: ids.add(int(tmdb_id))
-			except: pass
-	return ids
-
 def _mdbl_item_in_watchlist(list_media, tmdb_id):
+	# Full cached watchlist (not page 1) so manager Add/Remove stays correct with pagination on.
 	try: tmdb_id = int(tmdb_id)
 	except: return False
 	media_kind = 'movies' if list_media == 'movie' else 'shows'
-	return tmdb_id in _mdbl_personal_tmdb_ids(media_kind, mdblist_watchlist)
+	for entry in _mdblist_watchlist_normalized(media_kind):
+		try:
+			if int(entry.get('id') or 0) == tmdb_id: return True
+		except: pass
+	return False
 
 def _mdbl_item_in_library(list_media, tmdb_id):
 	try: tmdb_id = int(tmdb_id)
 	except: return False
 	media_kind = 'movies' if list_media == 'movie' else 'shows'
-	return tmdb_id in _mdbl_personal_tmdb_ids(media_kind, mdblist_collection)
+	string, url = 'mdblist_collection', 'sync/collection'
+	for entry in _mdbl_personal_list(_mdbl_collection_watchlist_items(string, url), media_kind):
+		try:
+			if int(entry.get('id') or 0) == tmdb_id: return True
+		except: pass
+	return False
 
 def _mdbl_item_in_dropped(tmdb_id):
 	try: tmdb_id = int(tmdb_id)
@@ -1201,7 +1198,8 @@ def mdblist_manager_choice(params):
 	if episode_mode:
 		episode_tmdb = _mdbl_resolve_episode_tmdb(tmdb_id, season, episode, params.get('episode_id'))
 	# Show-scoped static lists always (restore add-show from episode rows).
-	show_in_lists, show_out_lists = mdblist_static_lists_split_by_membership(list_media, tmdb_id, refresh=True)
+	# Use cached my_lists unless activities already invalidated them (refresh=True was a cold API hit).
+	show_in_lists, show_out_lists = mdblist_static_lists_split_by_membership(list_media, tmdb_id, refresh=False)
 	ep_in_lists, ep_out_lists = [], []
 	if episode_mode and episode_tmdb:
 		ep_in_lists, ep_out_lists = mdblist_static_lists_split_by_membership(
@@ -1236,9 +1234,9 @@ def mdblist_manager_choice(params):
 			choices.append(('Undrop [B]TV Show[/B]', 'undrop'))
 		else:
 			choices.append(('Drop [B]TV Show[/B]', 'drop'))
+	from indexers.dialogs import _manager_mark_watched_choices
+	choices.extend(_manager_mark_watched_choices(params))
 	choices.extend([
-		('Mark as [B]Watched[/B]', 'mark_watched'),
-		('Mark as [B]Unwatched[/B]', 'mark_unwatched'),
 		('Reset [B]Scrobble[/B]', 'reset_scrobble'),
 		('Open [B]MDBList Watchlist[/B]', 'open_watchlist'),
 		('Open [B]MDBList Library[/B]', 'open_library'),

@@ -3,7 +3,7 @@
 
 Mirrors Umbrella's progress-list memoization: reopen without watched activity is a
 cache hit (listitem paint only). After a watch, the activity token changes and the
-list rebuilds once.
+list rebuilds — prefer incremental rebuild via show_activity when a stale payload exists.
 """
 from caches.main_cache import main_cache
 # from modules.kodi_utils import logger
@@ -79,6 +79,20 @@ def activity_token(watched_indicators):
 		return '0'
 
 
+def show_activity(watched_indicators):
+	"""Per-show activity for incremental rebuild: tmdb_id -> max last_played."""
+	try:
+		from modules.watched_status import get_database
+		dbcon = get_database(watched_indicators)
+		rows = dbcon.execute(
+			'SELECT media_id, COALESCE(MAX(last_played), "") FROM watched WHERE db_type = ? GROUP BY media_id',
+			('episode',)
+		).fetchall() or []
+		return {str(r[0]): (r[1] or '') for r in rows if r[0] not in (None, '')}
+	except:
+		return {}
+
+
 def get_packets(cache_key, token):
 	try:
 		payload = main_cache.get(cache_key)
@@ -91,14 +105,31 @@ def get_packets(cache_key, token):
 		return None
 
 
-def set_packets(cache_key, token, packets):
+def get_stale_payload(cache_key):
+	"""Return cached payload even when the activity token no longer matches."""
+	try:
+		payload = main_cache.get(cache_key)
+		if not payload or not isinstance(payload, dict): return None
+		packets = payload.get('packets')
+		if not isinstance(packets, list) or not packets: return None
+		return payload
+	except:
+		return None
+
+
+def set_packets(cache_key, token, packets, show_activity_map=None):
 	try:
 		if not packets: return
-		main_cache.set(cache_key, {'token': token, 'packets': packets}, expiration=_CACHE_HOURS)
+		payload = {'token': token, 'packets': packets}
+		if show_activity_map is not None:
+			payload['show_activity'] = show_activity_map
+		main_cache.set(cache_key, payload, expiration=_CACHE_HOURS)
 	except:
 		pass
 
 
 def invalidate():
+	"""Hard wipe — settings / fingerprint changes. Prefer soft invalidate on mark watched
+	(activity token already changes; keep stale packets for incremental rebuild)."""
 	try: main_cache.delete_like('%s%%' % _CACHE_PREFIX)
 	except: pass

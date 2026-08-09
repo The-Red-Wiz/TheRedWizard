@@ -360,7 +360,10 @@ def routing(sys):
 		return kodi_refresh()
 	elif mode == 'refresh_widgets':
 		from modules.kodi_utils import refresh_widgets
-		return refresh_widgets(params.get('silent', 'false') == 'true', params.get('reload_skin', 'false') == 'true')
+		return refresh_widgets(
+			params.get('silent', 'false') == 'true',
+			params.get('reload_skin', 'false') == 'true',
+			params.get('defer_browsing', 'false') == 'true')
 	elif mode == 'person_data_dialog':
 		from indexers.people import person_data_dialog
 		return person_data_dialog(params)

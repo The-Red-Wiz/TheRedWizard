@@ -191,6 +191,34 @@ def _paginate_interaction_library(path, max_pages=50):
 		page += 1
 	return items
 
+_PP_WATCH_STATUS_CACHE_KEY = 'punchplay_watch_status_raw'
+_PP_FAVOURITES_CACHE_KEY = 'punchplay_favourites_raw'
+
+def clear_punchplay_list_caches():
+	try:
+		pp_cache.punchplay_cache.delete(_PP_WATCH_STATUS_CACHE_KEY)
+		pp_cache.punchplay_cache.delete(_PP_FAVOURITES_CACHE_KEY)
+		pp_cache.punchplay_cache.delete('dropped_items')
+	except: pass
+
+def _punchplay_watch_status_items(force=False):
+	if not force:
+		cached = pp_cache.punchplay_cache.get(_PP_WATCH_STATUS_CACHE_KEY)
+		if cached is not None: return cached
+	items = _paginate_interaction_library('/me/watch-status')
+	try: pp_cache.punchplay_cache.set(_PP_WATCH_STATUS_CACHE_KEY, items)
+	except: pass
+	return items
+
+def _punchplay_favourites_items(force=False):
+	if not force:
+		cached = pp_cache.punchplay_cache.get(_PP_FAVOURITES_CACHE_KEY)
+		if cached is not None: return cached
+	items = _paginate_interaction_library('/me/favourites')
+	try: pp_cache.punchplay_cache.set(_PP_FAVOURITES_CACHE_KEY, items)
+	except: pass
+	return items
+
 # ---------- Auth ----------
 
 def punchplay_test_client_id():
@@ -374,7 +402,7 @@ def _entry_to_list_item(entry, order):
 
 def _filter_status_items(status):
 	items = []
-	for count, entry in enumerate(_paginate_interaction_library('/me/watch-status'), 1):
+	for count, entry in enumerate(_punchplay_watch_status_items(), 1):
 		if (entry.get('showStatus') or '') != status: continue
 		row = _entry_to_list_item(entry, count)
 		if row: items.append(row)
@@ -406,7 +434,7 @@ def punchplay_dropped(media_kind, page_no=None):
 
 def punchplay_favorites(media_kind, page_no=None):
 	items = []
-	for count, entry in enumerate(_paginate_interaction_library('/me/favourites'), 1):
+	for count, entry in enumerate(_punchplay_favourites_items(), 1):
 		row = _entry_to_list_item(entry, count)
 		if row: items.append(row)
 	return _filter_kind(items, media_kind)
@@ -529,7 +557,9 @@ def punchplay_interact(media_type, tmdb_id, payload):
 	try: tid = int(tmdb_id)
 	except: return False
 	result = call_punchplay('/title/%s/%s/interact' % (kind, tid), method='patch', data=payload)
-	return bool(result) and not (isinstance(result, dict) and result.get('error'))
+	ok = bool(result) and not (isinstance(result, dict) and result.get('error'))
+	if ok: clear_punchplay_list_caches()
+	return ok
 
 def _punchplay_episode_history_ids(tmdb_id, season, episode):
 	"""Watch-history row ids for one episode (Mark Unwatched deletes these).
@@ -812,9 +842,9 @@ def punchplay_reset_scrobble(params):
 
 # ---------- Manager ----------
 
-def _item_has_status(media_type, status, tmdb_id):
+def _item_has_status(media_type, status, tmdb_id, entries=None):
 	kind = 'movie' if media_type == 'movie' else 'show'
-	for entry in _paginate_interaction_library('/me/watch-status'):
+	for entry in (entries if entries is not None else _punchplay_watch_status_items()):
 		if str(entry.get('tmdbId') or '') != str(tmdb_id): continue
 		entry_kind = (entry.get('kind') or entry.get('type') or '').lower()
 		if kind == 'movie' and entry_kind not in ('movie', 'movies', ''): continue
@@ -822,9 +852,9 @@ def _item_has_status(media_type, status, tmdb_id):
 		if (entry.get('showStatus') or '') == status: return True
 	return False
 
-def _item_is_favourite(media_type, tmdb_id):
+def _item_is_favourite(media_type, tmdb_id, entries=None):
 	kind = 'movie' if media_type == 'movie' else 'show'
-	for entry in _paginate_interaction_library('/me/favourites'):
+	for entry in (entries if entries is not None else _punchplay_favourites_items()):
 		if str(entry.get('tmdbId') or '') != str(tmdb_id): continue
 		entry_kind = (entry.get('kind') or entry.get('type') or '').lower()
 		if kind == 'movie' and entry_kind not in ('movie', 'movies', ''): continue
@@ -847,20 +877,22 @@ def punchplay_manager_choice(params):
 	if media_type != 'movie':
 		status_map.insert(1, (STATUS_WATCHING, 'Add to [B]Watching[/B]', 'Remove from [B]Watching[/B]'))
 		status_map.insert(3, (STATUS_ON_HOLD, 'Add to [B]On Hold[/B]', 'Remove from [B]On Hold[/B]'))
+	status_entries = _punchplay_watch_status_items()
+	favourite_entries = _punchplay_favourites_items()
 	choices = []
 	for status, add_label, remove_label in status_map:
-		if _item_has_status(list_media, status, tmdb_id):
+		if _item_has_status(list_media, status, tmdb_id, status_entries):
 			choices.append((remove_label, 'remove_%s' % status))
 		else:
 			choices.append((add_label, status))
-	if _item_is_favourite(list_media, tmdb_id):
+	if _item_is_favourite(list_media, tmdb_id, favourite_entries):
 		choices.append(('Remove from [B]Favourites[/B]', 'remove_favourite'))
 	else:
 		choices.append(('Add to [B]Favourites[/B]', 'add_favourite'))
+	from indexers.dialogs import _manager_mark_watched_choices
+	choices.append(('Add to [B]Collection[/B]', 'add_library'))
+	choices.extend(_manager_mark_watched_choices(params))
 	choices.extend([
-		('Add to [B]Collection[/B]', 'add_library'),
-		('Mark as [B]Watched[/B]', 'mark_watched'),
-		('Mark as [B]Unwatched[/B]', 'mark_unwatched'),
 		('Reset [B]Scrobble[/B]', 'reset_scrobble'),
 		('Open [B]PunchPlay Lists[/B]', 'open_lists'),
 		('Refresh Widgets', 'refresh'),
@@ -990,7 +1022,11 @@ def _punchplay_sync_stale():
 	return (time.time() - ts) >= max(300, int(wait_sec))
 
 def _punchplay_probe_sync_changes():
-	"""Return (needs_refresh, tip_response). tip_response used to advance cursor after a full pull."""
+	"""Return (needs_refresh, tip_response, sync_mode).
+
+	sync_mode is 'playback' when only progress changed (skip full history rebuild),
+	'full' for history/interaction/reset/stale, or None when no refresh.
+	"""
 	cursor = pp_cache.punchplay_cache.get('sync_changes_cursor')
 	query = {'limit': 100}
 	if cursor: query['cursor'] = cursor
@@ -1000,21 +1036,25 @@ def _punchplay_probe_sync_changes():
 		if isinstance(data, dict):
 			err = ('%s %s' % (data.get('error') or '', data.get('message') or '')).lower()
 			if '429' in err or 'rate' in err or 'too many' in err:
-				return False, None
-		return _punchplay_sync_stale(), None
+				return False, None, None
+		stale = _punchplay_sync_stale()
+		return stale, None, ('full' if stale else None)
 	if data.get('resetRequired'):
 		pp_cache.punchplay_cache.delete('sync_changes_cursor')
-		return True, data
+		return True, data, 'full'
 	changes = data.get('changes') or []
 	if not changes:
 		next_cursor = data.get('nextCursor')
 		if next_cursor: pp_cache.punchplay_cache.set('sync_changes_cursor', next_cursor)
-		return False, data
-	if any((c.get('resource') or '') in _PUNCHPLAY_WATCHED_SYNC_RESOURCES for c in changes):
-		return True, data
+		return False, data, None
+	resources = {(c.get('resource') or '') for c in changes} & _PUNCHPLAY_WATCHED_SYNC_RESOURCES
+	if resources:
+		# Mid-play stop only tips playback — avoid paging /me/history under DialogBusy.
+		mode = 'playback' if resources == {'playback'} else 'full'
+		return True, data, mode
 	# Lists/collection-only — keep cursor moving, skip history rebuild.
 	_punchplay_advance_sync_cursor(data)
-	return False, data
+	return False, data, None
 
 def _punchplay_advance_sync_cursor(start_data=None):
 	"""After a full watched rebuild (or skipping non-watched changes), fast-forward the feed cursor."""
@@ -1039,7 +1079,7 @@ def _punchplay_advance_sync_cursor(start_data=None):
 def _punchplay_ack_local_watched_change():
 	"""After Red Light mark/unmark (API + local DB), tip the change feed without a history rebuild."""
 	try:
-		needs_refresh, probe = _punchplay_probe_sync_changes()
+		needs_refresh, probe, _mode = _punchplay_probe_sync_changes()
 		if not needs_refresh:
 			return
 		if isinstance(probe, dict):
@@ -1057,17 +1097,23 @@ def punchplay_sync_activities(params=None, force_update=False):
 		pp_cache.clear_all_punchplay_cache_data(silent=True, refresh=False)
 		pp_cache.punchplay_cache.delete('sync_changes_cursor')
 	probe = None
+	sync_mode = 'full'
 	if not force_update:
-		needs_refresh, probe = _punchplay_probe_sync_changes()
+		needs_refresh, probe, sync_mode = _punchplay_probe_sync_changes()
 		if not needs_refresh: return 'not needed'
+		sync_mode = sync_mode or 'full'
 	try:
-		punchplay_indicators_movies()
-		punchplay_indicators_tv()
-		punchplay_sync_playback()
-		pp_cache.punchplay_cache.delete('dropped_items')
-		pp_cache.punchplay_cache.delete('watchlist_list_id')
+		if sync_mode == 'playback':
+			# Progress-only tip after stop/seek — do not rebuild watched history.
+			punchplay_sync_playback()
+		else:
+			punchplay_indicators_movies()
+			punchplay_indicators_tv()
+			punchplay_sync_playback()
+			clear_punchplay_list_caches()
+			pp_cache.punchplay_cache.delete('watchlist_list_id')
 		pp_cache.punchplay_cache.set('last_sync', time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
-		# Full history rebuild is current as of now — advance change-feed cursor to the tip.
+		# Sync is current as of now — advance change-feed cursor to the tip.
 		if probe is None:
 			probe = call_punchplay('/me/sync/changes', method='get', query={'limit': 100})
 		_punchplay_advance_sync_cursor(probe if isinstance(probe, dict) else None)
