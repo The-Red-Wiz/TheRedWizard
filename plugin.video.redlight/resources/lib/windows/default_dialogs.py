@@ -176,6 +176,9 @@ class Confirm(BaseDialog):
 		self.setProperty('heading', self.heading)
 		self.setProperty('scroll', self.scroll)
 		self.setProperty('scroll_focus', self.scroll_focus)
+		# Legacy ids: 10=OK, 11=Cancel — scrollbar ondown follows this.
+		try: self.setProperty('default_control', str(int(self.default_control)))
+		except: self.setProperty('default_control', '11')
 
 class OK(BaseDialog):
 	def __init__(self, *args, **kwargs):

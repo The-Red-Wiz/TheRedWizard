@@ -62,6 +62,7 @@
                 <texturesliderbarfocus colordiffuse="FFCCCCCC">redlight_common/white.png</texturesliderbarfocus>
                 <onleft>2070</onleft>
                 <onright>2070</onright>
+                <ondown condition="String.IsEqual(Window.Property(default_control),11)">3011</ondown>
                 <ondown>3010</ondown>
                 <showonepage>false</showonepage>
                 <orientation>vertical</orientation>

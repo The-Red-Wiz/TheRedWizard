@@ -398,8 +398,31 @@ class SourcesResults(BaseDialog):
 		self.setProperty('fanart', self.meta_get('fanart') or self.addon_fanart)
 		self.setProperty('clearlogo', self.meta_get('clearlogo') or '')
 		self.setProperty('title', self.meta_get('title'))
+		self.setProperty('episode_label', self._episode_results_label())
 		self.setProperty('total_results', self.total_results)
 		self.setProperty('filters_ignored', '| Filters Ignored' if self.filters_ignored else '')
+
+	def _episode_results_label(self):
+		"""SxxExx - episode title beside results count (List format + setting only)."""
+		if self.window_format != 'list':
+			return ''
+		if get_setting('redlight.results.show_episode_title', 'true') != 'true':
+			return ''
+		season, episode = self.meta_get('season'), self.meta_get('episode')
+		try:
+			season, episode = int(season), int(episode)
+		except Exception:
+			return ''
+		if season < 0 or episode < 0:
+			return ''
+		label = 'S%02dE%02d' % (season, episode)
+		ep_name = (self.meta_get('ep_name') or '').strip()
+		if ep_name:
+			label = '%s - %s' % (label, ep_name)
+		group = (self.episode_group_label or '').replace('[B]', '').replace('[/B]', '').strip()
+		if group:
+			label = '%s | %s' % (label, group)
+		return label
 
 	def set_poster(self):
 		if self.window_id == 2000: self.set_image(200, self.poster)

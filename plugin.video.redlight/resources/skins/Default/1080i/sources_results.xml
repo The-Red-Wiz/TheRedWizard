@@ -43,6 +43,19 @@
                 <aligny>center</aligny>
                 <label>[B]$INFO[Window.Property(total_results)][/B] [UPPERCASE]Results $INFO[Window.Property(filters_ignored)] $INFO[Window.Property(filter_info)][/UPPERCASE]</label>
             </control>
+            <control type="label">
+                <left>730</left>
+                <top>22</top>
+                <width>1170</width>
+                <height>20</height>
+                <font>font10</font> <!-- REDLIGHT_21 -->
+                <textcolor>FFFFFFFF</textcolor>
+                <align>right</align>
+                <aligny>center</aligny>
+                <scroll>true</scroll>
+                <label>[B]$INFO[Window.Property(episode_label)][/B]</label>
+                <visible>!String.IsEmpty(Window.Property(episode_label))</visible>
+            </control>
         </control>
         <!-- Results -->
         <control type="group">
@@ -535,7 +548,7 @@
                                 </control>
                             </control>
                             <control type="group">
-                                <visible>String.IsEmpty(ListItem.Property(perform_full_search))</visible>
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + !String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
                                 <control type="group">
                                     <height max="100">auto</height>
                                     <width max="150">auto</width>
@@ -591,6 +604,66 @@
                                     <align>left</align>
                                     <aligny>center</aligny>
                                     <label>[UPPERCASE][COLOR $INFO[ListItem.Property(highlight)]][B]Title: [/B][/COLOR]$INFO[ListItem.Property(count)] $INFO[ListItem.Property(name)][/UPPERCASE]</label>
+                                    <scroll>Control.HasFocus(2001)</scroll>
+                                </control>
+                            </control>
+                            <control type="group">
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
+                                <control type="group">
+                                    <height max="100">auto</height>
+                                    <width max="150">auto</width>
+                                    <top>35</top>
+                                    <left>20</left>
+                                    <control type="label">
+                                        <font>font14</font> <!-- REDLIGHT_33 -->
+                                        <textcolor>FFFFFFFF</textcolor>
+                                        <align>left</align>
+                                        <aligny>bottom</aligny>
+                                        <label>[B]$INFO[ListItem.Property(quality)][/B]</label>
+                                    </control>
+                                    <control type="label">
+                                        <top>35</top>
+                                        <font>font10</font> <!-- REDLIGHT_21 -->
+                                        <textcolor>FFFFFFFF</textcolor>
+                                        <align>left</align>
+                                        <aligny>top</aligny>
+                                        <label>[B]$INFO[ListItem.Property(provider)][/B]</label>
+                                    </control>
+                                </control>
+                                <control type="label">
+                                    <top>30</top>
+                                    <left>185</left>
+                                    <width max="725">auto</width>
+                                    <height>12</height>
+                                    <font>font10</font> <!-- REDLIGHT_21 -->
+                                    <textcolor>FFFFFFFF</textcolor>
+                                    <align>left</align>
+                                    <aligny>center</aligny>
+                                    <label>[UPPERCASE][COLOR FFA8A8A8][B]Size:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(size_label)][/COLOR]     [COLOR FFA8A8A8][B]Hoster:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(source_type)][/COLOR]     [COLOR FFA8A8A8][B]Site:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(source_site)][/COLOR]$INFO[ListItem.Property(scraper_suffix_tint)][/UPPERCASE]</label>
+                                    <scroll>Control.HasFocus(2001)</scroll>
+                                </control>
+                                <control type="label">
+                                    <top>62</top>
+                                    <left>185</left>
+                                    <width max="725">auto</width>
+                                    <height>12</height>
+                                    <font>font10</font> <!-- REDLIGHT_21 -->
+                                    <textcolor>FFFFFFFF</textcolor>
+                                    <align>left</align>
+                                    <aligny>center</aligny>
+                                    <label>[UPPERCASE][COLOR FFA8A8A8][B]Info:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(extraInfo)][/COLOR][/UPPERCASE]</label>
+                                    <scroll>Control.HasFocus(2001)</scroll>
+                                </control>
+                                <control type="label">
+                                    <top>94</top>
+                                    <left>185</left>
+                                    <width max="725">auto</width>
+                                    <height>12</height>
+                                    <font>font10</font> <!-- REDLIGHT_21 -->
+                                    <textcolor>FFFFFFFF</textcolor>
+                                    <align>left</align>
+                                    <aligny>center</aligny>
+                                    <label>[UPPERCASE][COLOR FFA8A8A8][B]Title:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(count)] $INFO[ListItem.Property(name)][/COLOR][/UPPERCASE]</label>
                                     <scroll>Control.HasFocus(2001)</scroll>
                                 </control>
                             </control>
@@ -795,7 +868,7 @@
                                 </control>
                             </control>
                             <control type="group">
-                                <visible>String.IsEmpty(ListItem.Property(perform_full_search))</visible>
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + !String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
                                 <control type="group">
                                     <height max="100">auto</height>
                                     <width max="160">auto</width>
@@ -839,6 +912,54 @@
                                     <align>left</align>
                                     <aligny>center</aligny>
                                     <label>[UPPERCASE]$INFO[ListItem.Property(count)] $INFO[ListItem.Property(name)][/UPPERCASE]</label>
+                                    <scroll>Control.HasFocus(2002)</scroll>
+                                </control>
+                            </control>
+                            <control type="group">
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
+                                <control type="group">
+                                    <height max="100">auto</height>
+                                    <width max="160">auto</width>
+                                    <top>35</top>
+                                    <left>20</left>
+                                    <control type="label">
+                                        <font>font14</font> <!-- REDLIGHT_33 -->
+                                        <textcolor>FFFFFFFF</textcolor>
+                                        <align>left</align>
+                                        <aligny>bottom</aligny>
+                                        <label>[B]$INFO[ListItem.Property(quality)][/B]</label>
+                                    </control>
+                                    <control type="label">
+                                        <top>35</top>
+                                        <font>font10</font> <!-- REDLIGHT_21 -->
+                                        <textcolor>FFFFFFFF</textcolor>
+                                        <align>left</align>
+                                        <aligny>top</aligny>
+                                        <label>[B]$INFO[ListItem.Property(provider)][/B]</label>
+                                    </control>
+                                </control>
+                                <control type="label">
+                                    <top>30</top>
+                                    <left>210</left>
+                                    <width max="1460">auto</width>
+                                    <height>12</height>
+                                    <font>font10</font> <!-- REDLIGHT_21 -->
+                                    <textcolor>FFFFFFFF</textcolor>
+                                    <align>left</align>
+                                    <aligny>center</aligny>
+                                    <label>[UPPERCASE][COLOR FFA8A8A8][B]Size:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(size_label)][/COLOR]     [COLOR FFA8A8A8][B]Hoster:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(source_type)][/COLOR]     [COLOR FFA8A8A8][B]Site:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(source_site)][/COLOR]$INFO[ListItem.Property(scraper_suffix_tint)]     [COLOR FFA8A8A8][B]Info:[/B][/COLOR] [COLOR FFFFFFFF]$INFO[ListItem.Property(extraInfo)][/COLOR][/UPPERCASE]</label>
+                                    <scroll>Control.HasFocus(2002)</scroll>
+                                </control>
+                                <control type="label">
+                                    <top>80</top>
+                                    <left>210</left>
+                                    <width max="1460">auto</width>
+                                    <height>12</height>
+                                    <font>font12</font> <!-- REDLIGHT_26 -->
+                                    <textcolor>FFFFFFFF</textcolor>
+                                    <align>left</align>
+                                    <aligny>center</aligny>
+                                    <label>[UPPERCASE][COLOR FFFFFFFF]$INFO[ListItem.Property(count)] $INFO[ListItem.Property(name)][/COLOR][/UPPERCASE]</label>
                                     <scroll>Control.HasFocus(2002)</scroll>
                                 </control>
                             </control>

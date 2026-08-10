@@ -1058,6 +1058,353 @@ def restore_setting_default(params):
 	except:
 		if not silent: kodi_utils.ok_dialog(text='Error restoring default setting')
 
+# Accounts / API keys / external scraper slots kept by Default Red Light Settings.
+_PRESERVE_SETTING_IDS = frozenset((
+	# Meta accounts + OAuth
+	'trakt.user', 'trakt.token', 'trakt.refresh', 'trakt.expires', 'trakt.client', 'trakt.secret',
+	'simkl.user', 'simkl.token', 'simkl.client',
+	'mdblist.user', 'mdblist.token', 'mdblist.client', 'mdblist.refresh',
+	'punchplay.user', 'punchplay.token', 'punchplay.client', 'punchplay.refresh', 'punchplay.expires', 'punchplay.device_id',
+	'wetrakr.user', 'wetrakr.token',
+	'tmdb.token', 'tmdb.username', 'tmdb.account_id', 'tmdb.session_id', 'tmdb.account_session_id', 'tmdb.lists_read_token',
+	# API keys
+	'tmdb_api', 'omdb_api', 'rpdb_api', 'google_api', 'groq_api',
+	# Debrid auth (not enable/priority/cache toggles)
+	'rd.token', 'rd.refresh', 'rd.client_id', 'rd.secret', 'rd.account_id',
+	'pm.token', 'pm.account_id',
+	'ad.token', 'ad.account_id',
+	'oc.token', 'oc.account_id',
+	'tb.token',
+	# Direct source accounts
+	'easynews_user', 'easynews_password',
+	'aiostreams.username', 'aiostreams.password', 'aiostreams.custom_url', 'aiostreams.profiles', 'aiostreams.instance',
+	# NZB indexer accounts (slots)
+	'nzb1.enabled', 'nzb1.label', 'nzb1.url', 'nzb1.key',
+	'nzb2.enabled', 'nzb2.label', 'nzb2.url', 'nzb2.key',
+	'nzb3.enabled', 'nzb3.label', 'nzb3.url', 'nzb3.key',
+	# Subtitles accounts / APIs
+	'playback.opensubs_api_key', 'playback.opensubs_username', 'playback.opensubs_password', 'playback.opensubs_token',
+	'playback.submaker_manifest',
+	# Legacy single external scraper module pointers (slots covered below)
+	'external_scraper.module', 'external_scraper.name',
+))
+
+def _is_preserved_setting(setting_id):
+	if setting_id in _PRESERVE_SETTING_IDS:
+		return True
+	# External scraper slots: keep module / name / enabled only (not run_mode or other scraper prefs).
+	if setting_id.startswith('external_scraper.slot') and (
+			setting_id.endswith('.module') or setting_id.endswith('.name') or setting_id.endswith('.enabled')):
+		return True
+	return False
+
+def _remove_addon_data_path(target):
+	"""Delete a file/folder under addon_data. If locked, rename aside so a fresh path can be created.
+	Returns True when the original path has no live (non-.wiped) content left."""
+	from os import path as ospath
+	import gc
+	import os
+	import shutil
+	import time
+	if not target:
+		return True
+
+	def _gone(path):
+		try:
+			if ospath.exists(path): return False
+		except: pass
+		try:
+			if kodi_utils.path_exists(path): return False
+		except: pass
+		return True
+
+	def _has_live_content(path):
+		"""True if path exists as a live file, or a dir with any non-.wiped entry."""
+		if _gone(path):
+			return False
+		base = ospath.basename(path.rstrip('/\\'))
+		if base and '.wiped' in base:
+			return False
+		try:
+			if ospath.isfile(path):
+				return True
+		except: pass
+		try:
+			if ospath.isdir(path):
+				for dirpath, dirnames, filenames in os.walk(path):
+					for name in list(filenames) + list(dirnames):
+						if name and name not in ('.', '..') and '.wiped' not in name:
+							return True
+				return False
+		except: pass
+		# xbmcvfs-only path we could not classify — treat as live.
+		return True
+
+	def _delete_tree(path):
+		# Bottom-up file delete first — more reliable than a single rmtree on Windows locks.
+		try:
+			if ospath.isfile(path):
+				os.remove(path)
+				return
+			if ospath.isdir(path):
+				for dirpath, dirnames, filenames in os.walk(path, topdown=False):
+					for name in filenames:
+						fp = ospath.join(dirpath, name)
+						try: os.remove(fp)
+						except Exception:
+							try: kodi_utils.delete_file(fp)
+							except: pass
+					for name in dirnames:
+						dp = ospath.join(dirpath, name)
+						try: os.rmdir(dp)
+						except Exception:
+							try: kodi_utils.delete_folder(dp, force=True)
+							except: pass
+				try: os.rmdir(path)
+				except Exception:
+					shutil.rmtree(path, ignore_errors=True)
+				return
+		except Exception:
+			pass
+		try:
+			kodi_utils.delete_folder(path, force=True)
+		except:
+			try: kodi_utils.delete_file(path)
+			except: pass
+
+	def _quarantine(path):
+		base = path.rstrip('/\\')
+		for n in range(0, 8):
+			dest = '%s.wiped' % base if n == 0 else '%s.wiped%d' % (base, n)
+			if ospath.exists(dest) or kodi_utils.path_exists(dest):
+				continue
+			try:
+				os.rename(base, dest)
+				return not _has_live_content(path)
+			except Exception:
+				try:
+					kodi_utils.rename_file(base, dest)
+					return not _has_live_content(path)
+				except Exception:
+					pass
+		# Folder rename blocked by an open file — quarantine children, then retry the folder.
+		if ospath.isdir(base):
+			try:
+				for name in os.listdir(base):
+					if not name or '.wiped' in name:
+						continue
+					child = ospath.join(base, name)
+					if not _has_live_content(child):
+						continue
+					_delete_tree(child)
+					if not _has_live_content(child):
+						continue
+					cbase = child.rstrip('/\\')
+					for n in range(0, 8):
+						cdest = '%s.wiped' % cbase if n == 0 else '%s.wiped%d' % (cbase, n)
+						if ospath.exists(cdest):
+							continue
+						try:
+							os.rename(cbase, cdest)
+							break
+						except Exception:
+							pass
+			except Exception:
+				pass
+			_delete_tree(base)
+			if not _has_live_content(path):
+				return True
+			for n in range(0, 8):
+				dest = '%s.wiped' % base if n == 0 else '%s.wiped%d' % (base, n)
+				if ospath.exists(dest):
+					continue
+				try:
+					os.rename(base, dest)
+					return not _has_live_content(path)
+				except Exception:
+					pass
+		return not _has_live_content(path)
+
+	if not _has_live_content(target):
+		return True
+	gc.collect()
+	for _ in range(3):
+		_delete_tree(target)
+		if not _has_live_content(target):
+			return True
+		time.sleep(0.2)
+		gc.collect()
+	# Locked by Kodi/services — move aside so make_databases can recreate the live name.
+	return _quarantine(target)
+
+def reset_settings_keep_accounts(params={}):
+	"""Factory-reset settings values while keeping accounts, API keys, and external scraper slots."""
+	heading = 'Default Red Light Settings'
+	if not kodi_utils.confirm_dialog(
+			heading=heading,
+			text='Reset all Red Light settings to defaults?[CR][CR]'
+				 'Keeps meta/debrid/direct accounts, API keys, subtitle logins, NZB indexer accounts, '
+				 'and External Scraper slots.[CR][CR]Personal lists, caches, and watched data are not wiped.',
+			ok_label='Continue', cancel_label='Cancel', default_control=11, scroll=True):
+		return
+	if not kodi_utils.confirm_dialog(
+			heading=heading,
+			text='Are you sure?[CR][CR]This cannot be undone (except by restoring a settings backup).',
+			ok_label='Reset Settings', cancel_label='Cancel', default_control=11, scroll=True):
+		return
+	try:
+		progress = kodi_utils.progress_dialog()
+		progress.update('Saving accounts…', 5)
+		all_settings = settings_cache.get_all()
+		preserved = {sid: val for sid, val in all_settings.items() if _is_preserved_setting(sid)}
+		progress.update('Clearing settings…', 20)
+		dbcon = connect_database('settings_db')
+		dbcon.execute('DELETE FROM settings')
+		try: dbcon.commit()
+		except: pass
+		try: dbcon.close()
+		except: pass
+		settings_cache._db_cache.clear()
+		clear_settings_boot_state(clear_deferred=False)
+		progress.update('Rebuilding defaults…', 45)
+		sync_settings({'silent': 'true', 'load_properties': 'false', 'force': 'true'})
+		progress.update('Restoring accounts…', 70)
+		for sid, val in preserved.items():
+			try:
+				info = default_setting_values(sid)
+				settings_cache.write_db(sid, val, info)
+			except: pass
+		progress.update('Refreshing…', 90)
+		clear_settings_boot_state(clear_deferred=False)
+		sync_settings({'silent': 'true', 'load_properties': 'true', 'force': 'true'})
+		try:
+			from modules.settings import refresh_external_scraper_properties
+			refresh_external_scraper_properties()
+		except: pass
+		try:
+			from modules.service_expiry import publish_settings_expiry_properties
+			publish_settings_expiry_properties()
+		except: pass
+		progress.close()
+		kodi_utils.ok_dialog(heading=heading, text='Settings restored to defaults.[CR]Accounts and API keys were kept.', scroll=True)
+	except Exception as e:
+		try: progress.close()
+		except: pass
+		kodi_utils.logger('reset_settings_keep_accounts', str(e))
+		kodi_utils.ok_dialog(heading=heading, text='Error resetting settings.[CR]%s' % e, scroll=True)
+
+def reset_addon_data(params={}):
+	"""Wipe Red Light addon_data and rebuild empty databases / default settings."""
+	from os import path as ospath
+	import gc
+	heading = 'Reset Red Light'
+	if not kodi_utils.confirm_dialog(
+			heading=heading,
+			text='Wipe all Red Light addon data and rebuild from scratch?[CR][CR]'
+				 'Deletes settings, caches, watched/progress DBs, personal lists, favorites, '
+				 'episode groups, navigator customisation, and any downloads stored inside Red Light addon data.[CR][CR]'
+				 'You will need to re-authorise accounts and re-enter API keys.',
+			ok_label='Continue', cancel_label='Cancel', default_control=11, scroll=True):
+		return
+	if not kodi_utils.confirm_dialog(
+			heading=heading,
+			text='Final confirmation.[CR][CR]This permanently deletes Red Light addon data.',
+			ok_label='Wipe & Rebuild', cancel_label='Cancel', default_control=11, scroll=True):
+		return
+	progress = None
+	paused = False
+	try:
+		progress = kodi_utils.progress_dialog()
+		progress.update('Pausing services…', 5)
+		kodi_utils.set_property('redlight.pause_services', 'true')
+		paused = True
+		# Give monitors a moment to leave DB operations.
+		kodi_utils.sleep(1000)
+		profile = kodi_utils.addon_profile()
+		if not profile:
+			raise Exception('Addon profile path unavailable')
+		# Drop in-process DB handles before deleting files under us.
+		settings_cache.clear_db_cache()
+		clear_settings_boot_state(clear_deferred=False)
+		gc.collect()
+		progress.update('Wiping addon data…', 20)
+		folders, files = kodi_utils.list_dirs(profile)
+		# Remove prior quarantine leftovers first so they do not accumulate.
+		stale = [name for name in list(files) + list(folders) if name and '.wiped' in name]
+		for name in stale:
+			_remove_addon_data_path(ospath.join(profile, name))
+		folders, files = kodi_utils.list_dirs(profile)
+		targets = [ospath.join(profile, name) for name in list(files) + list(folders)
+					if name not in (None, '', '.', '..') and '.wiped' not in (name or '')]
+		total = max(1, len(targets))
+		for idx, target in enumerate(targets):
+			_remove_addon_data_path(target)
+			progress.update('Wiping addon data…', 20 + int(50 * (idx + 1) / total))
+		# Confirm live names are gone (empty dirs / .wiped leftovers are fine).
+		remain_folders, remain_files = kodi_utils.list_dirs(profile)
+		candidates = [name for name in list(remain_files) + list(remain_folders)
+						if name not in (None, '', '.', '..') and '.wiped' not in (name or '')]
+		live = []
+		for name in candidates:
+			if not _remove_addon_data_path(ospath.join(profile, name)):
+				live.append(name)
+		if live:
+			raise Exception(
+				'Some files are still locked.[CR]Close Settings / Red Light windows, restart Kodi, then retry.[CR][CR]%s'
+				% ', '.join(sorted(live)[:8]))
+		# Remove empty leftover folders (e.g. download dirs whose contents wiped).
+		try:
+			import os
+			remain_folders, _remain_files = kodi_utils.list_dirs(profile)
+			for name in remain_folders:
+				if not name or name in ('.', '..'):
+					continue
+				path = ospath.join(profile, name)
+				try:
+					if ospath.isdir(path) and not os.listdir(path):
+						os.rmdir(path)
+				except Exception:
+					try: kodi_utils.delete_folder(path, force=False)
+					except: pass
+		except: pass
+		progress.update('Rebuilding databases…', 75)
+		if not kodi_utils.path_exists(profile):
+			kodi_utils.make_directories(profile)
+		from caches.base_cache import make_databases, remove_old_databases
+		make_databases()
+		try: remove_old_databases()
+		except: pass
+		progress.update('Creating default settings…', 88)
+		clear_settings_boot_state(clear_deferred=True)
+		sync_settings({'silent': 'true', 'load_properties': 'true', 'force': 'true'})
+		# Best-effort cleanup of quarantined leftovers after fresh DBs exist.
+		try:
+			q_folders, q_files = kodi_utils.list_dirs(profile)
+			for name in list(q_files) + list(q_folders):
+				if name and '.wiped' in name:
+					_remove_addon_data_path(ospath.join(profile, name))
+		except: pass
+		progress.close()
+		kodi_utils.ok_dialog(
+			heading=heading,
+			text='Red Light addon data was wiped and rebuilt.[CR][CR]'
+				 'Re-authorise accounts under Meta Accounts / Torrent Sources / Direct Sources.[CR][CR]'
+				 'A full Kodi restart is recommended.',
+			scroll=True)
+	except Exception as e:
+		try:
+			if progress: progress.close()
+		except: pass
+		kodi_utils.logger('reset_addon_data', str(e))
+		kodi_utils.ok_dialog(
+			heading=heading,
+			text='Error wiping addon data.[CR][CR]%s' % e,
+			scroll=True)
+	finally:
+		if paused:
+			try: kodi_utils.clear_property('redlight.pause_services')
+			except: pass
+
 def default_setting_values(setting_id):
 	if 'redlight.' in setting_id: setting_id = setting_id.replace('redlight.', '')
 	return _get_defaults_map().get(setting_id)
@@ -1479,6 +1826,7 @@ def default_settings():
 #==================== Display
 {'setting_id': 'results.timeout', 'setting_type': 'action', 'setting_default': '20', 'min_value': '1'},
 {'setting_id': 'results.list_format', 'setting_type': 'string', 'setting_default': 'List'},
+{'setting_id': 'results.show_episode_title', 'setting_type': 'boolean', 'setting_default': 'true'},
 #==================== Rescrape
 {'setting_id': 'rescrape.cache_ignored', 'setting_type': 'action', 'setting_default': '1', 'settings_options': {'0': 'Off', '1': 'Auto', '2': 'Prompt'}},
 {'setting_id': 'rescrape.cache_ignored.order', 'setting_type': 'action', 'setting_default': '0', 'min_value': '1', 'max_value': '5'},

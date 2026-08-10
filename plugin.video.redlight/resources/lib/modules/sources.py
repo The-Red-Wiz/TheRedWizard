@@ -19,9 +19,13 @@ from modules.utils import clean_file_name, string_to_float, safe_string, remove_
 PROP_SOURCES_BUSY = 'redlight.sources_busy'
 PROP_SOURCES_OWNER = 'redlight.sources_busy_owner'
 PROP_SOURCES_BUSY_AT = 'redlight.sources_busy_at'
+PROP_SOURCES_CANCELING = 'redlight.sources_canceling'
 # Live scrapes refresh the heartbeat every loop pass; anything older than this with no
 # playback means the owning scrape died (e.g. Browse flow killed mid-wait) — clear it.
 SOURCES_BUSY_STALE_SECONDS = 120
+# Widget cancel → immediate second PlayMedia: wait this long for the prior scrape to drop
+# the busy lock before toasting "Source search already running".
+SOURCES_BUSY_WAIT_SECONDS = 4.0
 PROP_RESOLVE_BUSY = 'redlight.resolve_busy'
 PROP_RESOLVE_OWNER = 'redlight.resolve_busy_owner'
 PROP_RESOLVE_CANCEL = 'redlight.resolve_cancelled'
@@ -550,12 +554,17 @@ class Sources():
 					self._abort_plugin_resolve()
 				return
 			if kodi_utils.get_property(PROP_SOURCES_BUSY) == 'true' and not allow_concurrent:
-				if not self.background:
-					kodi_utils.notification('Source search already running.', 2500)
-					self._abort_plugin_resolve()
-				return
+				# Cancel cleanup used to hold the lock for 1–4s (progress-thread join). A quick
+				# second widget click then toasted "already running". Wait briefly for release.
+				self._wait_sources_busy_clear(SOURCES_BUSY_WAIT_SECONDS)
+				if kodi_utils.get_property(PROP_SOURCES_BUSY) == 'true':
+					if not self.background:
+						kodi_utils.notification('Source search already running.', 2500)
+						self._abort_plugin_resolve()
+					return
 			self._scrape_user_cancelled = False
 			self._sources_busy_owner = str(id(self))
+			kodi_utils.clear_property(PROP_SOURCES_CANCELING)
 			kodi_utils.set_property(PROP_SOURCES_BUSY, 'true')
 			kodi_utils.set_property(PROP_SOURCES_OWNER, self._sources_busy_owner)
 			self._touch_sources_busy()
@@ -1247,9 +1256,11 @@ class Sources():
 					scraper_settings=self.scraper_settings, prescrape=self.prescrape, filters_ignored=self.filters_ignored,
 					uncached_results=self.uncached_results, cache_check_override=self.cache_check_override)
 			if not window_result:
-				# Close leftover scrape UI first so abort's okdialog poll cannot flash it.
+				# Drop busy before cleanup so a quick second widget is not toast-blocked.
+				self._begin_sources_cancel()
 				self._kill_progress_dialog()
 				self._abort_plugin_resolve()
+				self._end_sources_cancel()
 				return
 			action, chosen_item = window_result
 			if not action:
@@ -1272,10 +1283,12 @@ class Sources():
 					self.resolve_dialog_made = False
 					self._abort_plugin_resolve(clear_playlist=False)
 					return
-				# Close any leftover scrape/resolve under results, then answer PlayMedia.
+				# Drop busy before cleanup so a quick second widget is not toast-blocked.
+				self._begin_sources_cancel()
 				self._kill_progress_dialog(join_timeout=1.0)
 				self.resolve_dialog_made = False
 				self._abort_plugin_resolve()
+				self._end_sources_cancel()
 				return
 			elif action == 'play':
 				kodi_utils.clear_property(PROP_RESOLVE_CANCEL)
@@ -1794,6 +1807,32 @@ class Sources():
 			kodi_utils.clear_property(PROP_SOURCES_OWNER)
 			kodi_utils.clear_property(PROP_SOURCES_BUSY_AT)
 
+	def _begin_sources_cancel(self):
+		"""Mark cancel + drop the scrape lock so a second widget PlayMedia can start."""
+		kodi_utils.set_property(PROP_SOURCES_CANCELING, 'true')
+		self._release_sources_busy()
+
+	def _end_sources_cancel(self):
+		kodi_utils.clear_property(PROP_SOURCES_CANCELING)
+
+	def _sources_still_owns_ui(self):
+		"""True if no newer scrape has claimed the busy lock (safe to force-close overlays)."""
+		owner = kodi_utils.get_property(PROP_SOURCES_OWNER)
+		if not owner:
+			return True
+		return owner == getattr(self, '_sources_busy_owner', '')
+
+	def _wait_sources_busy_clear(self, timeout=SOURCES_BUSY_WAIT_SECONDS):
+		deadline = time.time() + max(0.0, float(timeout))
+		while time.time() < deadline:
+			if kodi_utils.get_property(PROP_SOURCES_BUSY) != 'true':
+				return True
+			self._clear_stale_sources_busy()
+			if kodi_utils.get_property(PROP_SOURCES_BUSY) != 'true':
+				return True
+			kodi_utils.sleep(50)
+		return kodi_utils.get_property(PROP_SOURCES_BUSY) != 'true'
+
 	def _touch_sources_busy(self):
 		if kodi_utils.get_property(PROP_SOURCES_BUSY) == 'true':
 			kodi_utils.set_property(PROP_SOURCES_BUSY_AT, str(time.time()))
@@ -1853,10 +1892,10 @@ class Sources():
 		kodi_utils.set_property(PROP_RESOLVE_OWNER, self._resolve_busy_owner)
 
 	def _on_scrape_dialog_cancel(self):
-		# Keep sources_busy until get_sources finishes cancel cleanup — releasing early
-		# lets a new scrape start while this one still runs debrid-cache / force-closes
-		# overlay windows (cancel looks ignored; "already running" / zombie results).
+		# Release busy immediately so a quick second widget is not toast-blocked. Overlay
+		# force-close is owner-guarded so a newer scrape's windows are not torn down.
 		self._scrape_user_cancelled = True
+		self._begin_sources_cancel()
 
 	def _on_resolve_dialog_cancel(self):
 		self._resolve_user_cancelled = True
@@ -1874,11 +1913,12 @@ class Sources():
 		return False
 
 	def _finish_scrape_cancel(self):
-		# Kill scrape UI first (avoids progress flash during okdialog dismiss), release the
-		# busy lock so a quick re-scrape is not blocked, then answer PlayMedia.
+		# Drop busy first (may already be clear from _on_scrape_dialog_cancel), then close
+		# UI + answer PlayMedia. Owner-guarded force-close avoids killing a newer scrape.
+		self._begin_sources_cancel()
 		self._kill_progress_dialog(join_timeout=2.0)
-		self._release_sources_busy()
 		self._abort_plugin_resolve()
+		self._end_sources_cancel()
 		kodi_utils.hide_busy_dialog()
 
 	def _ensure_progress_dialog_dead(self, join_timeout=2.0):
@@ -2053,11 +2093,16 @@ class Sources():
 
 	def _force_close_sources_overlay_windows(self, retries=None):
 		"""Explicitly dismiss scrape/resolve/results modals (Android can ignore Dialog.Close(all) over fullscreen)."""
+		# A newer widget scrape may already own the busy lock — do not tear down its UI.
+		if not self._sources_still_owns_ui():
+			return
 		if retries is None:
 			retries = 6 if kodi_utils.is_android() else 3
 		# extras.xml: Play from Extras used to leave it stacked over fullscreen video.
 		dialogs = ('sources_playback.xml', 'sources_results.xml', 'extras.xml')
 		for _ in range(retries):
+			if not self._sources_still_owns_ui():
+				return
 			for name in dialogs:
 				try:
 					kodi_utils.close_dialog(name)
@@ -2071,10 +2116,11 @@ class Sources():
 				break
 			kodi_utils.sleep(120)
 		else:
-			try:
-				kodi_utils.close_all_dialog()
-			except:
-				pass
+			if self._sources_still_owns_ui():
+				try:
+					kodi_utils.close_all_dialog()
+				except:
+					pass
 		if kodi_utils.is_android():
 			try:
 				if kodi_utils.kodi_player().isPlayingVideo():
@@ -2098,7 +2144,9 @@ class Sources():
 				thread.join(timeout=join_timeout)
 			except:
 				pass
-			if thread.is_alive() and close_overlays and not resolve_cancel and kodi_utils.get_property(PROP_RESOLVE_BUSY) != 'true':
+			if (thread.is_alive() and close_overlays and not resolve_cancel
+					and kodi_utils.get_property(PROP_RESOLVE_BUSY) != 'true'
+					and self._sources_still_owns_ui()):
 				try:
 					kodi_utils.close_all_dialog()
 				except:

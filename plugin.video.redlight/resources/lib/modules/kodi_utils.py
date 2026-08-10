@@ -1182,8 +1182,9 @@ def confirm_dialog(heading='', text='Are you sure?', ok_label='OK', cancel_label
 def ok_dialog(heading='', text='No Results', ok_label='OK', scroll=False):
 	from windows.base_window import open_window
 	needs_scroll = scroll and _dialog_needs_scroll(text)
+	# Keep OK focused so Enter dismisses; Up reaches the scrollbar when text is long.
 	kwargs = {'heading': heading, 'text': text, 'ok_label': ok_label,
-				'scroll': 'true' if needs_scroll else 'false', 'scroll_focus': 'true' if needs_scroll else 'false'}
+				'scroll': 'true' if needs_scroll else 'false', 'scroll_focus': 'false'}
 	return open_window(('windows.default_dialogs', 'OK'), 'ok.xml', **kwargs)
 
 def show_text(heading, text=None, file=None, font_size='small', kodi_log=False):
