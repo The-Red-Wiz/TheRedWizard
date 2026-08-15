@@ -7,7 +7,7 @@ from apis.mdblist_api import mdblist_watched_status_mark, mdblist_progress, mdbl
 from apis.punchplay_api import punchplay_watched_status_mark, punchplay_progress, punchplay_official_status
 from caches.base_cache import connect_database, database
 from caches.trakt_cache import clear_trakt_collection_watchlist_data
-from modules.kodi_utils import kodi_progress_background, sleep, get_video_database_path, notification, kodi_refresh, logger, translate_path
+from modules.kodi_utils import kodi_progress_background, sleep, get_video_database_path, notification, kodi_refresh, logger, translate_path, get_property, set_property, clear_property
 from modules.utils import get_datetime, adjust_premiered_date, sort_for_article, TaskPool
 from modules import metadata, settings
 # from modules.kodi_utils import logger
@@ -502,6 +502,7 @@ def mark_movie(params):
 		if from_playback and punchplay_official_status(media_type) == False: sleep(1000)
 		elif not punchplay_watched_status_mark(action, 'movie', tmdb_id, title=title, year=params.get('year')) and not from_playback:
 			return notification('Error')
+	_arm_provider_list_sync_skip(watched_indicators)
 	watched_status_mark(watched_indicators, media_type, tmdb_id, action, title=title)
 	_schedule_playback_widget_refresh(from_playback)
 	refresh_container(refresh)
@@ -543,6 +544,7 @@ def mark_tvshow(params):
 			episode_date, premiered = adjust_premiered_date(ep['premiered'], settings.date_offset())
 			if episode_date and current_date < episode_date: continue
 			insert_append(make_batch_insert(action, 'episode', tmdb_id, season_number, ep_number, last_played, title))
+	_arm_provider_list_sync_skip(watched_indicators)
 	batch_watched_status_mark(watched_indicators, insert_list, action)
 	progress_backround.close()
 	refresh_container()
@@ -582,6 +584,7 @@ def mark_season(params):
 		if episode_date and current_date < episode_date: continue
 		progress_backround.update(int(float(count) / float(len(ep_data)) * 100), '[B]Please Wait..[/B]', display)
 		insert_append(make_batch_insert(action, 'episode', tmdb_id, season_number, ep_number, last_played, title))
+	_arm_provider_list_sync_skip(watched_indicators)
 	batch_watched_status_mark(watched_indicators, insert_list, action)
 	progress_backround.close()
 	refresh_container()
@@ -614,6 +617,7 @@ def mark_episode(params):
 				action, media_type, tmdb_id, tvdb_id, season, episode, title=title, year=params.get('year')
 				) and not from_playback:
 			return notification('Error')
+	_arm_provider_list_sync_skip(watched_indicators)
 	watched_status_mark(watched_indicators, media_type, tmdb_id, action, season, episode, title)
 	update_hidden_progress(tmdb_id)
 	_schedule_playback_widget_refresh(from_playback)
@@ -753,6 +757,33 @@ def _movie_progress_list(dbcon):
 	data = dbcon.execute('SELECT media_id, title, last_played, resume_point FROM progress WHERE db_type = ?', ('movie',)).fetchall()
 	return [{'media_id': i[0], 'title': i[1], 'last_played': i[2]} for i in data if i[0] and float(i[3] or 0) > 1]
 
+_LIST_SYNC_SKIP_PROPS = {
+	1: 'redlight.trakt_skip_list_sync',
+	2: 'redlight.simkl_skip_list_sync',
+	3: 'redlight.mdblist_skip_list_sync',
+	4: 'redlight.punchplay_skip_list_sync',
+}
+
+def _arm_provider_list_sync_skip(watched_indicators):
+	# Local watched/progress is already written. Next list open would see a
+	# last_activities change and block on a cloud pull (MDBList: full sync/watched).
+	prop = _LIST_SYNC_SKIP_PROPS.get(watched_indicators)
+	if not prop: return
+	try: set_property(prop, 'true')
+	except: pass
+
+def _consume_provider_list_sync_skip(watched_indicators):
+	prop = _LIST_SYNC_SKIP_PROPS.get(watched_indicators)
+	if not prop: return False
+	try:
+		if get_property(prop) == 'true':
+			clear_property(prop)
+			try: logger('Red Light', 'skip provider list sync after mark (indicators=%s)' % watched_indicators)
+			except: pass
+			return True
+	except: pass
+	return False
+
 def _refresh_trakt_movie_progress():
 	try:
 		if settings.watched_indicators() != 1 or not settings.trakt_user_active(): return
@@ -766,6 +797,7 @@ def _refresh_simkl_tvshow_watched():
 	# Activity-gated (same as SimklMonitor / TV show lists) — skip full watched pull when unchanged.
 	try:
 		if settings.watched_indicators() != 2 or not settings.simkl_user_active(): return
+		if _consume_provider_list_sync_skip(2): return
 		from apis.simkl_api import simkl_sync_activities
 		simkl_sync_activities()
 	except: pass
@@ -774,6 +806,7 @@ def _refresh_simkl_progress():
 	# Activity-gated playback refresh — parity with Trakt/MDBList/PunchPlay on In Progress open.
 	try:
 		if settings.watched_indicators() != 2 or not settings.simkl_user_active(): return
+		if _consume_provider_list_sync_skip(2): return
 		from apis.simkl_api import simkl_sync_activities
 		simkl_sync_activities()
 	except: pass
@@ -787,6 +820,10 @@ def _refresh_mdblist_watched():
 	# Activity-gated (same as MDBListMonitor / TV show lists) — skip full watched pull when unchanged.
 	try:
 		if settings.watched_indicators() != 3 or not settings.mdblist_user_active(): return
+		# Set by mdblist_watched_status_mark / _arm_provider_list_sync_skip so
+		# Container.Refresh after mark/unmark does not block on a full paginated
+		# sync/watched while DialogBusy is up.
+		if _consume_provider_list_sync_skip(3): return
 		from apis.mdblist_api import mdblist_sync_activities
 		mdblist_sync_activities()
 	except: pass
@@ -797,6 +834,7 @@ def _refresh_mdblist_tvshow_watched():
 def _refresh_mdblist_movie_progress():
 	try:
 		if settings.watched_indicators() != 3 or not settings.mdblist_user_active(): return
+		if _consume_provider_list_sync_skip(3): return
 		from apis.mdblist_api import mdblist_sync_activities
 		mdblist_sync_activities()
 	except: pass
@@ -804,6 +842,7 @@ def _refresh_mdblist_movie_progress():
 def _refresh_mdblist_episode_progress():
 	try:
 		if settings.watched_indicators() != 3 or not settings.mdblist_user_active(): return
+		if _consume_provider_list_sync_skip(3): return
 		from apis.mdblist_api import mdblist_sync_activities
 		mdblist_sync_activities()
 	except: pass
@@ -814,10 +853,7 @@ def _refresh_punchplay_watched():
 		if settings.watched_indicators() != 4 or not settings.punchplay_user_active(): return
 		# Set by punchplay_watched_status_mark so Container.Refresh after mark/unmark does not
 		# block on a full history rebuild while DialogBusy is up.
-		from modules.kodi_utils import get_property, clear_property
-		if get_property('redlight.punchplay_skip_list_sync') == 'true':
-			clear_property('redlight.punchplay_skip_list_sync')
-			return
+		if _consume_provider_list_sync_skip(4): return
 		from apis.punchplay_api import punchplay_sync_activities
 		punchplay_sync_activities()
 	except: pass
@@ -847,6 +883,7 @@ def _refresh_trakt_tvshow_watched():
 	# sync/watched/shows pull when Trakt activities say nothing changed.
 	try:
 		if settings.watched_indicators() != 1 or not settings.trakt_user_active(): return
+		if _consume_provider_list_sync_skip(1): return
 		from modules.kodi_utils import boot_trakt_list_refresh_allowed
 		if not boot_trakt_list_refresh_allowed(): return
 		from apis.trakt_api import trakt_sync_activities

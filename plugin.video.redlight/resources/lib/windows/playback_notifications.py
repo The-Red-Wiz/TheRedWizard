@@ -268,7 +268,11 @@ class IntroSkipPrompt(BaseDialog):
 		self.clearProperties()
 		player = getattr(self, 'player', None)
 		self.clear_modals()
-		_restore_fullscreen_playback(player)
+		# Yes: player seeks then restores fullscreen. Restore here only when
+		# there is no seek coming (No / timeout) so ActivateWindow is not in
+		# the same tick as seekTime (Amlogic / CoreELEC, #220).
+		if self.timed_out or not self.selected:
+			_restore_fullscreen_playback(player)
 		if self.timed_out:
 			return None
 		return self.selected

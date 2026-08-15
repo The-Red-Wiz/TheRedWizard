@@ -537,7 +537,12 @@ def mdblist_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season=N
 	elif media_type == 'season': media = 'season'
 	else: media = 'shows'
 	success = _mdbl_watched_unwatched(action, media, tmdb_id, tvdb_id, season, episode)
-	if success and action == 'mark_as_unwatched': mdblist_sync_activities()
+	if success:
+		# Local mdblist_db is updated by watched_status_mark. Skip the next list
+		# activity refresh — last_activities would otherwise trigger a full
+		# paginated sync/watched under DialogBusy (Next Episodes after Mark Watched).
+		try: kodi_utils.set_property('redlight.mdblist_skip_list_sync', 'true')
+		except Exception: pass
 	return success
 
 def mdblist_official_status(media_type):

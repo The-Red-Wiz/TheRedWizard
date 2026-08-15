@@ -630,7 +630,7 @@ def _assign_external_scraper_module(slot, module_id, module_name, retry_params):
 			kodi_utils.ok_dialog(text='[B]%s[/B] is already assigned to slot %d.[CR]Choose a different module or clear that slot first.' % (module_name, other_slot))
 			return
 		set_setting('provider.external', 'true')
-		kodi_utils.ok_dialog(text='Success:[CR][B]%s[/B] set as the External Scraper in Slot %d' % (module_name, slot))
+		kodi_utils.ok_dialog(text='Success: [B]%s[/B] set as the External Scraper in Slot %d.' % (module_name, slot))
 		try:
 			from caches.settings_cache import refresh_settings_manager_properties
 			refresh_settings_manager_properties()

@@ -37,6 +37,7 @@ _INTRO_CHAPTER_MIN_START_SEC = 5
 _INTRO_CHAPTER_MIN_SEGMENT_SEC = 10
 _INTRO_CHAPTER_MIN_END_SEC = 15
 _INTRO_SKIP_POST_END_GRACE_SEC = 20
+_INTRO_SKIP_SEEK_SETTLE_MS = 250
 
 class RedLightPlayer(xbmc.Player):
 	def __init__ (self):
@@ -1644,27 +1645,24 @@ class RedLightPlayer(xbmc.Player):
 		except: pass
 		return False
 
+	def _restore_fullscreen_after_intro_skip(self):
+		try:
+			from windows.playback_notifications import _restore_fullscreen_playback
+			_restore_fullscreen_playback(self)
+		except Exception:
+			pass
+
 	def _execute_intro_skip_seek(self, start_sec, end_sec, source):
+		# One seek only — a 400ms getTime() check often still shows the old
+		# playhead, so the old retry fired a second seekTime while the first
+		# was in flight (Amlogic / CoreELEC decoder panic, #220).
 		if not self._player_is_active():
 			self._log_intro_skip('Intro skip failed: player inactive')
 			return False
-		if not self.seek(end_sec, False):
+		ok = self.seek(end_sec, False)
+		self._restore_fullscreen_after_intro_skip()
+		if not ok:
 			self._log_intro_skip('Intro skip failed: seek rejected')
-			return False
-		try:
-			ku.sleep(400)
-			actual = float(self.getTime())
-			if abs(actual - end_sec) > 8:
-				if not self.seek(end_sec, False):
-					self._log_intro_skip('Intro skip failed: seek did not stick (at %.1fs, wanted %.1fs)' % (actual, end_sec))
-					return False
-				ku.sleep(400)
-				actual = float(self.getTime())
-				if abs(actual - end_sec) > 8:
-					self._log_intro_skip('Intro skip failed: seek did not stick (at %.1fs, wanted %.1fs)' % (actual, end_sec))
-					return False
-		except Exception as exc:
-			self._log_intro_skip('Intro skip failed: seek verify (%s)' % exc)
 			return False
 		self._log_intro_skip('Intro skip (%s): %.1fs -> %.1fs' % (source, start_sec, end_sec))
 		return True
@@ -1723,6 +1721,7 @@ class RedLightPlayer(xbmc.Player):
 					self._log_intro_skip('Intro skip: declined')
 					return
 				self._intro_skip_approved = True
+				ku.sleep(_INTRO_SKIP_SEEK_SETTLE_MS)
 				try:
 					curr = float(self.curr_time)
 				except:
