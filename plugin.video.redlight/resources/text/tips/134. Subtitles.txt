@@ -8,8 +8,8 @@ The master switch is "Auto Enable Subtitles". When this is off, Red Light does n
 When it is on, you choose a source with "Auto Enable Subtitle Source"....
 
 LOCAL: Uses only the subtitles already inside the file (embedded/sidecar). Nothing is downloaded. With "Forced Only" selected as the language, only forced tracks are used.
-SUBMAKER: Downloads subtitles from SubMaker. Only appears once you enter a SubMaker manifest URL. Can fall back to OpenSubtitles if configured.
-OPENSUBTITLES: Downloads subtitles from opensubtitles.com. Only appears once you enter your username and password. Free accounts are limited to around 20 downloads per 24 hours.
+SUBMAKER: Downloads subtitles from SubMaker. Only appears once you enter a SubMaker manifest URL. A cached OpenSubtitles file is not used instead of a SubMaker download. If SubMaker has nothing, OpenSubtitles is tried (when configured), then any leftover cached file.
+OPENSUBTITLES: Downloads subtitles from opensubtitles.com. Only appears once you enter your username and password. Free accounts are limited to around 20 downloads per 24 hours. A cached SubMaker file is not used instead of an OpenSubtitles download. If OpenSubtitles has nothing, SubMaker is tried (when configured), then any leftover cached file.
 
 "Prefer Local Subtitles" only applies when your source is SubMaker or OpenSubtitles. It tries embedded/sidecar subtitles first, and keeps a subtitle that is already showing rather than downloading another.
 
@@ -19,7 +19,7 @@ ALERT TIMING (SEPARATE)
 
 Some alerts can use subtitle cue timing instead of a percentage. This is used when the alert timing for Autoplay Next Episode, Autoscrape Next Episode, or Credit Stingers is set to "Subtitles Info".
 
-This needs a SubMaker manifest and/or an OpenSubtitles account, otherwise the option is hidden. Red Light fetches a subtitle file early in playback purely for timing, and reads the cue times to decide when to pop the alert. If nothing usable is found, it falls back to Playback Percentage (or chapters where available).
+This needs a SubMaker manifest and/or an OpenSubtitles account, otherwise the option is hidden. Fetch order matches Auto Enable Subtitle Source: selected provider (own cache, then download), then the other provider, then any leftover cached file. Red Light reads the cue times to decide when to pop the alert. If nothing usable is found, it falls back to Playback Percentage (or chapters where available).
 
 Note: this follows the subtitle file's cues, not the on-screen credits, so timing can vary between releases.
 

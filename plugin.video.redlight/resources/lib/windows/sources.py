@@ -7,8 +7,8 @@ from modules.debrid import debrid_cache_check_available
 from modules.settings import debrid_cache_check, external_module_display_name
 from modules.utils import TaskPool
 from modules.source_utils import source_filters
-from modules.settings import provider_sort_ranks, avoid_episode_spoilers, max_threads
-from modules.kodi_utils import get_icon, kodi_dialog, hide_busy_dialog, show_busy_dialog, addon_fanart, select_dialog, ok_dialog, notification, clear_property
+from modules.settings import provider_sort_ranks, avoid_episode_spoilers, show_loading_plot, max_threads
+from modules.kodi_utils import get_icon, kodi_dialog, hide_busy_dialog, show_busy_dialog, close_dialog, addon_fanart, select_dialog, ok_dialog, notification, clear_property
 
 def _highlight_with_alpha(color, alpha):
 	if not color: return color or 'FFCCCCCC'
@@ -65,10 +65,33 @@ class SourcesResults(BaseDialog):
 	def onInit(self):
 		self.filter_applied = False
 		hide_busy_dialog()
+		# Ready / Next Up toasts (6.5s) sit on top of the first result row after Autoscrape Stop.
+		close_dialog('notification')
+		self.set_properties()
 		if self.make_poster: self.set_poster()
 		self.add_items(self.window_id, self.item_list)
 		self.add_items(self.filter_window_id, self.filter_list)
-		self.setFocusId(self.window_id)
+		self._focus_results_list()
+
+	def _focus_results_list(self):
+		try: self.select_item(self.window_id, 0)
+		except: pass
+		try: self.setFocusId(self.window_id)
+		except: pass
+		try:
+			if self.get_visibility('Control.HasFocus(%s)' % self.window_id): return
+		except: pass
+		Thread(target=self._retry_results_focus, daemon=True).start()
+
+	def _retry_results_focus(self):
+		# List is often not focusable on the first onInit tick (empty → "Control 2000 ... can't").
+		# Without focus, the selected row uses the dimmed focused layout (dark-on-tint).
+		for _ in range(20):
+			self.sleep(50)
+			try:
+				self.setFocusId(self.window_id)
+				if self.get_visibility('Control.HasFocus(%s)' % self.window_id): return
+			except: return
 
 	def run(self):
 		self.doModal()
@@ -315,7 +338,8 @@ class SourcesResults(BaseDialog):
 						scraper_suffix_tint = '     [COLOR FFA8A8A8][B]Site: [/B][/COLOR][COLOR FFFFFFFF]%s[/COLOR]' % scraper_module.upper()
 				set_properties({'name': name.upper(), 'source_site': source_site, 'provider_icon': provider_icon, 'quality_icon': quality_icon, 'count': '%02d.' % count,
 						'size_label': get('size_label', 'N/A'), 'extraInfo': extraInfo, 'quality': quality.upper(), 'hash': get('hash', 'N/A'), 'source': json.dumps(item),
-						'highlight': item_highlight, 'highlight_bg': highlight_bg, 'scraper_module': scraper_module.upper() if scraper_module else '', 'scraper_module_label': scraper_module_label,
+						'highlight': item_highlight, 'highlight_bg': highlight_bg, 'highlight_tint_focused_background': 'true' if self.tint_focused_background else 'false',
+						'scraper_module': scraper_module.upper() if scraper_module else '', 'scraper_module_label': scraper_module_label,
 						'scraper_suffix': scraper_suffix, 'scraper_suffix_tint': scraper_suffix_tint})
 				item_list.append((listitem, count))
 			except: pass
@@ -588,9 +612,16 @@ class SourcesPlayback(BaseDialog):
 		self.setProperty('genre', ', '.join(genre))
 
 	def set_resolver_properties(self):
-		if self.meta_get('media_type') == 'movie': self.text = self.meta_get('plot')
+		if not show_loading_plot():
+			if self.meta_get('media_type') == 'movie':
+				self.text = ''
+			else:
+				self.text = '[B]%02dx%02d - %s[/B]' % (
+					self.meta_get('season'), self.meta_get('episode'), self.meta_get('ep_name', 'N/A').upper())
+		elif self.meta_get('media_type') == 'movie':
+			self.text = self.meta_get('plot')
 		else:
-			if avoid_episode_spoilers() and int(self.meta_get('playcount', '0')) == 0: plot = self.meta_get('tvshow_plot') or '* Hidden to Prevent Spoilers *'
+			if avoid_episode_spoilers() and int(self.meta_get('playcount') or 0) == 0: plot = self.meta_get('tvshow_plot') or '* Hidden to Prevent Spoilers *'
 			else: plot = self.meta_get('plot', '') or self.meta_get('tvshow_plot', '')
 			self.text = '[B]%02dx%02d - %s[/B][CR][CR]%s' % (self.meta_get('season'), self.meta_get('episode'), self.meta_get('ep_name', 'N/A').upper(), plot)
 		self.setProperty('window_mode', self.window_mode)

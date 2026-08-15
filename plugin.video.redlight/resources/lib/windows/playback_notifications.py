@@ -98,7 +98,7 @@ class NextEpisode(BaseDialog):
 		return '%d:%02d' % (mins, secs)
 
 	def get_thumb(self):
-		if avoid_episode_spoilers() and int(self.meta.get('playcount', '0')) == 0: thumb = self.meta.get('fanart', '') or addon_fanart()
+		if avoid_episode_spoilers() and int(self.meta.get('playcount') or 0) == 0: thumb = self.meta.get('fanart', '') or addon_fanart()
 		else: thumb = self.meta.get('ep_thumb', None) or self.meta.get('fanart', '') or addon_fanart()
 		return thumb
 
@@ -185,7 +185,7 @@ class StillWatching(BaseDialog):
 		landscape, fanart, clearlogo = self.meta.get('landscape', ''), self.meta.get('fanart', ''), self.meta.get('clearlogo', '')
 		self.setProperty('mode', 'autoscrape_confirm' if self.compact_confirm else 'still_watching')
 		if self.compact_confirm:
-			if avoid_episode_spoilers() and int(self.meta.get('playcount', '0')) == 0:
+			if avoid_episode_spoilers() and int(self.meta.get('playcount') or 0) == 0:
 				thumb = fanart or addon_fanart()
 			else:
 				thumb = self.meta.get('ep_thumb') or fanart or addon_fanart()
@@ -287,7 +287,7 @@ class IntroSkipPrompt(BaseDialog):
 	def set_properties(self):
 		fanart, clearlogo = self.meta.get('fanart', ''), self.meta.get('clearlogo', '')
 		self.setProperty('mode', 'skip_intro')
-		if avoid_episode_spoilers() and int(self.meta.get('playcount', '0')) == 0:
+		if avoid_episode_spoilers() and int(self.meta.get('playcount') or 0) == 0:
 			thumb = fanart or addon_fanart()
 		else:
 			thumb = self.meta.get('ep_thumb') or fanart or addon_fanart()

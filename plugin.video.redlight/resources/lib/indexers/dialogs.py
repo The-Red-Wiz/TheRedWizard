@@ -523,64 +523,187 @@ def limit_number_total_choice(params):
 	set_setting('results.limit_number_total', choice['value'])
 	set_setting('results.limit_number_total_name', choice['name'])
 
-def external_scraper_choice(params):
-	from modules.utils import append_module_to_syspath, manual_function_import
-	try: slot = int(params.get('slot', '1'))
-	except: slot = 1
-	slot = max(1, min(slot, settings.EXTERNAL_SCRAPER_SLOT_COUNT))
+def _enabled_python_modules():
 	try:
-		results = kodi_utils.jsonrpc_get_addons('xbmc.python.module')
-		results = [i for i in results if kodi_utils.addon_enabled(i['addonid'])]
-	except: return
+		results = kodi_utils.jsonrpc_get_addons('xbmc.python.module') or []
+		return [i for i in results if kodi_utils.addon_enabled(i['addonid'])]
+	except:
+		return []
+
+def _external_scraper_used_modules(slot):
 	used = {}
 	for other_slot in range(1, settings.EXTERNAL_SCRAPER_SLOT_COUNT + 1):
 		if other_slot == slot: continue
 		data = settings.external_scraper_slot_data(other_slot)
 		if data['module']: used[data['module']] = other_slot
-	results = [i for i in results if i['addonid'] not in used]
-	if not results:
-		kodi_utils.ok_dialog(text='Every installed scraper module is already assigned to another slot.[CR]Clear a slot or install another module.')
+	return used
+
+def _assigned_scraper_summary(used):
+	parts = []
+	for addon_id, other_slot in sorted(used.items(), key=lambda i: i[1]):
+		name = ''
+		for known_id, known_name in settings.KNOWN_EXTERNAL_SCRAPERS:
+			if known_id == addon_id:
+				name = known_name
+				break
+		if not name:
+			data = settings.external_scraper_slot_data(other_slot)
+			name = data['name'] if data['name'] not in ('empty_setting', '', None) else addon_id
+		parts.append('[B]%s[/B] is already assigned to slot %d' % (name, other_slot))
+	if not parts: return ''
+	if len(parts) == 1: return parts[0] + '.'
+	if len(parts) == 2: return '%s and %s.' % (parts[0], parts[1])
+	return '%s, and %s.' % (', '.join(parts[:-1]), parts[-1])
+
+def _prompt_install_or_other(params, slot, current_module, used, all_modules):
+	assigned = _assigned_scraper_summary(used)
+	if assigned:
+		text = 'No additional compatible external scraper is installed.[CR][CR]%s[CR][CR]Install another scraper or use Other. This slot is unchanged.' % assigned
+	else:
+		text = 'No known compatible external scraper is installed.[CR][CR]Install one from a repository (Magneto, Viper, CocoScrapers, etc.), then choose it here. Other slots are not changed.'
+	prompt = kodi_utils.confirm_dialog(
+		heading='External Scraper Slot %d' % slot,
+		text=text,
+		ok_label='Install...',
+		cancel_label='Other',
+		third_label='Cancel',
+		default_control=10,
+		scroll=bool(assigned))
+	if prompt in (None, 12): return
+	if prompt == 10:
+		_offer_known_external_scraper_install()
 		return
-	current_module = settings.external_scraper_slot_data(slot)['module']
+	return _external_scraper_choice_all_modules(params, slot, current_module, used, all_modules)
+
+def _external_scraper_choice_items(results, slot, current_module):
 	list_items = []
 	preselect_index = None
+	has_line2 = False
 	for idx, item in enumerate(results):
-		entry = {'line1': item['name'], 'icon': item['thumbnail']}
-		if current_module and item['addonid'] == current_module:
-			entry['line2'] = 'Current selection for slot %d' % slot
+		entry = {'line1': item['name'], 'icon': item.get('thumbnail') or ''}
+		line2 = item.get('line2') or ''
+		if current_module and item.get('addonid') == current_module:
+			line2 = 'Current selection for slot %d' % slot
 			preselect_index = idx
+		if line2:
+			entry['line2'] = line2
+			has_line2 = True
 		list_items.append(entry)
-	kwargs = {'items': json.dumps(list_items), 'heading': 'External Scraper Slot %d' % slot}
+	return list_items, preselect_index, has_line2
+
+def _select_external_scraper_module(results, slot, current_module, heading=None, other_results=None, other_heading=None):
+	if not results:
+		kodi_utils.ok_dialog(text='Every installed scraper module is already assigned to another slot.[CR]Clear a slot or install another module.')
+		return None
+	list_items, preselect_index, has_line2 = _external_scraper_choice_items(results, slot, current_module)
+	for idx, item in enumerate(results):
+		if item.get('_action') == 'other': list_items[idx]['open_alt'] = True
+	kwargs = {'items': json.dumps(list_items), 'heading': heading or 'External Scraper Slot %d' % slot}
+	if has_line2: kwargs['multi_line'] = 'true'
 	if preselect_index is not None:
-		kwargs['multi_line'] = 'true'
 		kwargs['preselect'] = [preselect_index]
 		kwargs['set_focus'] = preselect_index
-	choice = kodi_utils.select_dialog(results, **kwargs)
-	if choice == None: return
-	module_id, module_name = choice['addonid'], choice['name']
+	if other_results:
+		other_items, other_preselect, other_line2 = _external_scraper_choice_items(other_results, slot, current_module)
+		kwargs['alt_items'] = json.dumps(other_items)
+		kwargs['alt_heading'] = other_heading or 'Other Python Modules - Slot %d' % slot
+		kwargs['alt_function_list'] = other_results
+		if other_line2: kwargs['alt_multi_line'] = 'true'
+		if other_preselect is not None: kwargs['alt_set_focus'] = other_preselect
+	return kodi_utils.select_dialog(results, **kwargs)
+
+def _assign_external_scraper_module(slot, module_id, module_name, retry_params):
+	from modules.utils import append_module_to_syspath, manual_function_import
 	success = False
 	try:
 		append_module_to_syspath('special://home/addons/%s/lib' % module_id)
 		main_folder_name = module_id.split('.')[-1]
-		sourceDict = manual_function_import(main_folder_name, 'sources')(specified_folders=['torrents'])
+		manual_function_import(main_folder_name, 'sources')(specified_folders=['torrents'])
 		success = True
 	except: pass
-	if success:
-		try:
-			if not settings.set_external_scraper_slot(slot, module_id, module_name, enable=True):
-				other_slot = settings.external_scraper_module_in_use(module_id, exclude_slot=slot)
-				kodi_utils.ok_dialog(text='[B]%s[/B] is already assigned to slot %d.[CR]Choose a different module or clear that slot first.' % (module_name, other_slot))
-				return
-			set_setting('provider.external', 'true')
-			kodi_utils.ok_dialog(text='Success.[CR][B]%s[/B] set as External Scraper slot %d' % (module_name, slot))
-			try:
-				from caches.settings_cache import refresh_settings_manager_properties
-				refresh_settings_manager_properties()
-			except: pass
-		except: kodi_utils.ok_dialog(text='Error')
-	else:
+	if not success:
 		kodi_utils.ok_dialog(text='The [B]%s[/B] Module is not compatible.[CR]Please choose a different Module...' % module_name.upper())
-		return external_scraper_choice(params)
+		return external_scraper_choice(retry_params)
+	try:
+		if not settings.set_external_scraper_slot(slot, module_id, module_name, enable=True):
+			other_slot = settings.external_scraper_module_in_use(module_id, exclude_slot=slot)
+			kodi_utils.ok_dialog(text='[B]%s[/B] is already assigned to slot %d.[CR]Choose a different module or clear that slot first.' % (module_name, other_slot))
+			return
+		set_setting('provider.external', 'true')
+		kodi_utils.ok_dialog(text='Success:[CR][B]%s[/B] set as the External Scraper in Slot %d' % (module_name, slot))
+		try:
+			from caches.settings_cache import refresh_settings_manager_properties
+			refresh_settings_manager_properties()
+		except: pass
+	except: kodi_utils.ok_dialog(text='Error')
+
+def _offer_known_external_scraper_install():
+	choices = []
+	for addon_id, name in settings.KNOWN_EXTERNAL_SCRAPERS:
+		if kodi_utils.addon_installed(addon_id): continue
+		choices.append({'addonid': addon_id, 'name': name})
+	if not choices:
+		kodi_utils.ok_dialog(text='The known compatible scrapers are already installed.[CR]Use Other to pick any Python module, or enable the module in Kodi Add-ons.')
+		return
+	list_items = [{'line1': i['name'], 'line2': i['addonid']} for i in choices]
+	kwargs = {'items': json.dumps(list_items), 'heading': 'Install External Scraper', 'multi_line': 'true'}
+	choice = kodi_utils.select_dialog(choices, **kwargs)
+	if choice == None: return
+	if not kodi_utils.addon_available_from_repos(choice['addonid']):
+		kodi_utils.ok_dialog(text='[B]%s[/B] is not available from any installed repository.[CR][CR]Install a repository that provides it, then try again.[CR][CR]This slot is unchanged.' % choice['name'])
+		return
+	kodi_utils.execute_builtin('InstallAddon(%s)' % choice['addonid'])
+	kodi_utils.ok_dialog(text='When [B]%s[/B] has finished installing, open Choose Module again to assign it.[CR][CR]This slot is unchanged.' % choice['name'])
+
+def _external_scraper_choice_all_modules(params, slot, current_module, used, all_modules):
+	results = [i for i in all_modules if i['addonid'] not in used]
+	choice = _select_external_scraper_module(results, slot, current_module, heading='Other Python Modules - Slot %d' % slot)
+	if choice == None: return
+	retry = dict(params)
+	retry['from_other'] = 'true'
+	_assign_external_scraper_module(slot, choice['addonid'], choice['name'], retry)
+
+def _known_external_scraper_choices(all_modules, used, current_module):
+	by_id = {i['addonid']: i for i in all_modules}
+	for addon_id, name in settings.KNOWN_EXTERNAL_SCRAPERS:
+		if addon_id in by_id: continue
+		if not kodi_utils.addon_installed(addon_id) or not kodi_utils.addon_enabled(addon_id): continue
+		by_id[addon_id] = {'addonid': addon_id, 'name': name, 'thumbnail': ''}
+	primary, seen = [], set()
+	if current_module and current_module not in used and current_module in by_id:
+		if current_module not in settings.KNOWN_EXTERNAL_SCRAPER_IDS:
+			primary.append(by_id[current_module])
+			seen.add(current_module)
+	for addon_id, _name in settings.KNOWN_EXTERNAL_SCRAPERS:
+		if addon_id in used or addon_id in seen: continue
+		item = by_id.get(addon_id)
+		if not item: continue
+		primary.append(item)
+		seen.add(addon_id)
+	return primary
+
+def external_scraper_choice(params):
+	try: slot = int(params.get('slot', '1'))
+	except: slot = 1
+	slot = max(1, min(slot, settings.EXTERNAL_SCRAPER_SLOT_COUNT))
+	all_modules = _enabled_python_modules()
+	used = _external_scraper_used_modules(slot)
+	current_module = settings.external_scraper_slot_data(slot)['module']
+	from_other = str(params.get('from_other', '')).lower() in ('true', '1')
+	if from_other:
+		return _external_scraper_choice_all_modules(params, slot, current_module, used, all_modules)
+	results = _known_external_scraper_choices(all_modules, used, current_module)
+	if not current_module and not results:
+		return _prompt_install_or_other(params, slot, current_module, used, all_modules)
+	other_item = {'addonid': '', 'name': 'Other...', 'thumbnail': '', 'line2': 'All installed Python modules', '_action': 'other'}
+	results.append(other_item)
+	other_results = [i for i in all_modules if i['addonid'] not in used]
+	choice = _select_external_scraper_module(results, slot, current_module, other_results=other_results,
+		other_heading='Other Python Modules - Slot %d' % slot)
+	if choice == None: return
+	if choice.get('_action') == 'other':
+		return _external_scraper_choice_all_modules(params, slot, current_module, used, all_modules)
+	_assign_external_scraper_module(slot, choice['addonid'], choice['name'], params)
 
 def external_scraper_clear_slot(params):
 	try: slot = int(params.get('slot', '1'))

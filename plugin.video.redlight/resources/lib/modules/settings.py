@@ -188,6 +188,9 @@ def source_folders_directory(media_type, source):
 def avoid_episode_spoilers():
 	return get_setting('redlight.avoid_episode_spoilers', 'false') == 'true'
 
+def show_loading_plot():
+	return get_setting('redlight.show_loading_plot', 'true') == 'true'
+
 def paginate(is_home):
 	paginate_lists = int(get_setting('redlight.paginate.lists', '0'))
 	if is_home: return paginate_lists in (2, 3)
@@ -209,6 +212,11 @@ def quality_sort_order():
 
 def sort_to_top_filter(autoplay):
 	return {0: False, 1: False if autoplay else True, 2: True if autoplay else False, 3: True}[int(get_setting('redlight.filter.sort_to_top', '0'))]
+
+def prefer_release_groups(autoplay):
+	try: value = int(get_setting('redlight.filter.prefer_release_groups', '0'))
+	except: value = 0
+	return {0: False, 1: False if autoplay else True, 2: True if autoplay else False, 3: True}.get(value, False)
 
 def audio_filters():
 	setting = get_setting('redlight.filter_audio')
@@ -675,6 +683,20 @@ def cloud_scrape_before_external(scraper):
 	return False
 
 EXTERNAL_SCRAPER_SLOT_COUNT = 3
+
+# Fen-style torrent packs shown first in Choose Module when already installed.
+# Other still lists every xbmc.python.module. Empty slots are never auto-assigned.
+# Chain Scrapers is omitted on purpose — Gears from the same repository is preferred.
+KNOWN_EXTERNAL_SCRAPERS = (
+	('script.module.classyscrapers', 'Classy Scrapers'),
+	('script.module.cocoscrapers', 'CocoScrapers Module'),
+	('script.module.diamondscrapers', 'Diamond Scrapers'),
+	('script.module.gearsscrapers', 'Gears Scrapers'),
+	('script.module.magneto', 'Magneto Module'),
+	('plugin.program.taz19scrapers', 'Taz19 Scrapers'),
+	('script.module.viperscrapers', 'Viper Scrapers'),
+)
+KNOWN_EXTERNAL_SCRAPER_IDS = frozenset(i[0] for i in KNOWN_EXTERNAL_SCRAPERS)
 
 def _external_slot_setting(slot, field):
 	return 'external_scraper.slot%d.%s' % (int(slot), field)

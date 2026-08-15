@@ -2,6 +2,7 @@
 <window>
     <onload condition="!String.IsEmpty(Window(10000).Property(redlight.settings_manager.focus_index))">SetFocus(2000,$INFO[Window(10000).Property(redlight.settings_manager.focus_index)],absolute)</onload>
     <onload condition="String.IsEmpty(Window(10000).Property(redlight.settings_manager.focus_index))">SetFocus(2000,0,absolute)</onload>
+    <onload condition="!String.IsEmpty(Window(10000).Property(redlight.settings_manager.focus_panel))">SetFocus($INFO[Window(10000).Property(redlight.settings_manager.focus_panel)],1,absolute)</onload>
     <controls>
         <!-- Background -->
         <control type="image">
@@ -1040,6 +1041,14 @@
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.avoid_episode_spoilers)]</property>
                           <property name="setting_description">Enable this and Red Light will hide episode thumb and episode synopsis within Red Light.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=avoid_episode_spoilers)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(30)</visible>
+                          <property name="setting_label">Show Plot on Loading Screen</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.show_loading_plot)]</property>
+                          <property name="setting_description">When enabled, show the movie or episode synopsis on the source loading screen. Disable to hide the description.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=show_loading_plot)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(30)</visible>
@@ -2220,7 +2229,7 @@
                           <property name="setting_label">Choose Module (Slot 1)</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.external_scraper.slot1.name)]</property>
-                          <property name="setting_description">Choose the external scraper module for slot 1 (e.g. Gears, Magneto, Coco).</property>
+                          <property name="setting_description">Choose from compatible scraper modules already installed (Classy, CocoScrapers, Diamond, Gears, Magneto, Taz19, Viper). Use Other for any Python module. Does not change other slots or auto-assign empty ones.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=external_scraper_choice&amp;slot=1)</onclick>
                       </item>
                       <item>
@@ -2233,7 +2242,7 @@
                           <property name="setting_value">...</property>
                           <property name="setting_description">Open the settings for the scraper module assigned to slot 1.</property>
                           <onclick>back</onclick>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=open_external_scraper_settings&amp;slot=1)</onclick>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=open_external_scraper_settings&amp;slot=1&amp;return_to=settings)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
@@ -2269,7 +2278,7 @@
                           <property name="setting_label">Choose Module (Slot 2)</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.external_scraper.slot2.name)]</property>
-                          <property name="setting_description">Choose the external scraper module for slot 2.</property>
+                          <property name="setting_description">Choose from compatible scraper modules already installed. Use Other for any Python module. Does not change other slots or auto-assign empty ones.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=external_scraper_choice&amp;slot=2)</onclick>
                       </item>
                       <item>
@@ -2282,7 +2291,7 @@
                           <property name="setting_value">...</property>
                           <property name="setting_description">Open the settings for the scraper module assigned to slot 2.</property>
                           <onclick>back</onclick>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=open_external_scraper_settings&amp;slot=2)</onclick>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=open_external_scraper_settings&amp;slot=2&amp;return_to=settings)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
@@ -2329,7 +2338,7 @@
                           <property name="setting_label">Choose Module (Slot 3)</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.external_scraper.slot3.name)]</property>
-                          <property name="setting_description">Choose the external scraper module for slot 3.</property>
+                          <property name="setting_description">Choose from compatible scraper modules already installed. Use Other for any Python module. Does not change other slots or auto-assign empty ones.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=external_scraper_choice&amp;slot=3)</onclick>
                       </item>
                       <item>
@@ -2342,7 +2351,7 @@
                           <property name="setting_value">...</property>
                           <property name="setting_description">Open the settings for the scraper module assigned to slot 3.</property>
                           <onclick>back</onclick>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=open_external_scraper_settings&amp;slot=3)</onclick>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=open_external_scraper_settings&amp;slot=3&amp;return_to=settings)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
@@ -3873,6 +3882,14 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(70)</visible>
+                          <property name="setting_label">Prefer Known Release Groups</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.filter.prefer_release_groups_name)]</property>
+                          <property name="setting_description">Optional. Boost known Scene / P2P groups (e.g. NTb, FLUX, FraMeSToR) above unknown groups. Uses current Results Sorting — does not override quality, size, or provider order, or size/quality filters. None / Source Select / Autoplay / Both. Default None.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=filter.prefer_release_groups)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(70)</visible>
                           <property name="setting_label">Choose Audio Properties to Exclude</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.filter_audio)]</property>
@@ -4128,7 +4145,7 @@
                           <property name="setting_label">    - Show Alert After (%) Playback</property>
                           <property name="setting_type">numeric</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.stinger_alert.window_percentage)]</property>
-                          <property name="setting_description">Playback percentage used when Alert Timing Source is Playback Percentage, or when Chapter / Subtitles Info has no timing for this play. Example: 90 means alert in the last 10% of runtime.</property>
+                          <property name="setting_description">Used when Alert Timing Source is Playback Percentage, or when Chapter / Subtitles Info has no timing. Example: 90 means alert in the last 10% of runtime.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_numeric&amp;setting_id=stinger_alert.window_percentage)</onclick>
                       </item>
                       <item>
@@ -4137,7 +4154,7 @@
                           <property name="setting_label">    - Alert Timing Source</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.stinger_alert.alert_timing_name)]</property>
-                          <property name="setting_description">Choose when to show the Credit Stingers alert. Playback Percentage always uses the % above. Chapter Info or Subtitles Info (when a SubMaker manifest URL and/or OpenSubtitles account is configured under Subtitles) use that timing when available; otherwise they fall back to the % above. Subtitles Info follows cues in the subtitle file (not the on-screen credits roll), so timing can vary by title.</property>
+                          <property name="setting_description">Choose when the Credit Stingers alert shows. Playback Percentage always uses the % above. Chapter Info or Subtitles Info use that timing when available; falls back to %. Subtitles Info follows Auto Enable Subtitle Source: selected provider first (own cache, then download), then the other provider, then any leftover cache. Subtitles follow file cues, not the on-screen credits, so timing can vary by title.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=stinger_alert.alert_timing)</onclick>
                       </item>
         <!-- Playback Episodes -->
@@ -4214,7 +4231,7 @@
                           <property name="setting_label">    - Show Notification After (%) Playback</property>
                           <property name="setting_type">numeric</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.autoscrape_next_window_percentage)]</property>
-                          <property name="setting_description">Playback percentage used when Alert Timing Source is Playback Percentage, or when Chapter / Subtitles / IntroDB Info has no timing for this play. Example: 95 means Next Episode Ready in the last 5% of runtime. Does not apply when those services supply timing.</property>
+                          <property name="setting_description">Used when Alert Timing Source is Playback Percentage, or when Chapter / Subtitles / IntroDB Info has no timing. Example: 95 means Next Episode Ready in the last 5% of runtime.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_numeric&amp;setting_id=autoscrape_next_window_percentage)</onclick>
                       </item>
                       <item>
@@ -4223,7 +4240,7 @@
                           <property name="setting_label">    - Alert Timing Source</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.autoscrape_alert_timing_name)]</property>
-                          <property name="setting_description">Choose when to show the Next Episode alert. Playback Percentage always uses the % above. Chapter Info, IntroDB Info (TheIntroDB credits then IntroDB outro), or Subtitles Info (when a SubMaker manifest URL and/or OpenSubtitles account is configured under Subtitles) use that timing when available; otherwise they fall back to the % above. Subtitles Info follows cues in the subtitle file (not the on-screen credits roll), so timing can vary by episode.</property>
+                          <property name="setting_description">Choose when the Next Episode alert shows. Playback Percentage always uses the % above. Chapter Info, IntroDB Info (credits then outro), or Subtitles Info use that timing when available; falls back to %. Subtitles Info follows Auto Enable Subtitle Source: selected provider first (own cache, then download), then the other provider, then any leftover cache. Subtitles follow file cues, not the on-screen credits, so timing can vary by episode.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=autoscrape_alert_timing)</onclick>
                       </item>
                       <item>
@@ -4269,7 +4286,7 @@
                           <property name="setting_label">    - Show Alert After (%) Playback</property>
                           <property name="setting_type">numeric</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.autoplay_next_window_percentage)]</property>
-                          <property name="setting_description">Playback percentage used when Alert Timing Source is Playback Percentage, or when Chapter / Subtitles / IntroDB Info has no timing for this play. Example: 95 means Next Episode Ready in the last 5% of runtime. Does not apply when those services supply timing.</property>
+                          <property name="setting_description">Used when Alert Timing Source is Playback Percentage, or when Chapter / Subtitles / IntroDB Info has no timing. Example: 95 means Next Episode Ready in the last 5% of runtime.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_numeric&amp;setting_id=autoplay_next_window_percentage)</onclick>
                       </item>
                       <item>
@@ -4278,7 +4295,7 @@
                           <property name="setting_label">    - Alert Timing Source</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.autoplay_alert_timing_name)]</property>
-                          <property name="setting_description">Choose when to show the Next Episode alert. Playback Percentage always uses the % above. Chapter Info, IntroDB Info (TheIntroDB credits then IntroDB outro), or Subtitles Info (when a SubMaker manifest URL and/or OpenSubtitles account is configured under Subtitles) use that timing when available; otherwise they fall back to the % above. Subtitles Info follows cues in the subtitle file (not the on-screen credits roll), so timing can vary by episode.</property>
+                          <property name="setting_description">Choose when the Next Episode alert shows. Playback Percentage always uses the % above. Chapter Info, IntroDB Info (credits then outro), or Subtitles Info use that timing when available; falls back to %. Subtitles Info follows Auto Enable Subtitle Source: selected provider first (own cache, then download), then the other provider, then any leftover cache. Subtitles follow file cues, not the on-screen credits, so timing can vary by episode.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=autoplay_alert_timing)</onclick>
                       </item>
                       <item>
@@ -4370,7 +4387,7 @@
                           <property name="setting_label">Auto Enable Subtitles</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.playback.auto_enable_subs)]</property>
-                          <property name="setting_description">Turn on subtitles automatically during playback. When enabled, choose the subtitle source below.</property>
+                          <property name="setting_description">Turn on subtitles automatically during playback. When enabled, choose the subtitle source below. SubMaker and OpenSubtitles fall back to each other if the selected source has nothing.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=playback.auto_enable_subs)</onclick>
                       </item>
                       <item>
@@ -4379,7 +4396,7 @@
                           <property name="setting_label">    - Subtitle Source</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.playback.subs_source_name)]</property>
-                          <property name="setting_description">Local enables subtitles already embedded in or bundled with the stream. SubMaker and OpenSubtitles appear here when you have configured them below.</property>
+                          <property name="setting_description">Local uses embedded or sidecar subs. SubMaker and OpenSubtitles appear when configured. The selected source is tried first (its own cache, then a download) even if the other provider already has a cached file. If it has nothing, Red Light tries the other provider, then any leftover cached file.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=playback.subs_source)</onclick>
                       </item>
                       <item>
@@ -4421,7 +4438,7 @@
                           <property name="setting_label">[I]submaker.elfhosted.com[/I]</property>
                           <property name="setting_type">info</property>
                           <property name="setting_value">...</property>
-                          <property name="setting_description">ElfHosted SubMaker service. Enter your manifest URL below. Used when SubMaker is the Auto Enable Subtitle Source and as the first source for Subtitles Info alert timing background fetch. OpenSubtitles is used as a fallback when SubMaker is unavailable.</property>
+                          <property name="setting_description">ElfHosted SubMaker service. Enter your manifest URL below. When SubMaker is selected: SubMaker cache, then a SubMaker download — a cached OpenSubtitles file is not used instead. If SubMaker has nothing: OpenSubtitles download (when configured), then any leftover cached file. Subtitles Info uses the same order.</property>
                           <onclick>noop</onclick>
                       </item>
                       <item>
@@ -4443,7 +4460,7 @@
                           <property name="setting_label">[I]OpenSubtitles.com Account[/I]</property>
                           <property name="setting_type">info</property>
                           <property name="setting_value">...</property>
-                          <property name="setting_description">Free account at opensubtitles.com. Used when OpenSubtitles is the Auto Enable Subtitle Source and for Subtitles Info alert timing — after SubMaker when SubMaker is configured. Free accounts are limited to about 20 downloads per 24 hours; use Check OpenSubtitles Account to see your remaining quota.</property>
+                          <property name="setting_description">Free account at opensubtitles.com. When OpenSubtitles is selected: OpenSubtitles cache, then an OpenSubtitles download — a cached SubMaker file is not used instead. If OpenSubtitles has nothing: SubMaker download (when configured), then any leftover cached file. Free accounts are limited to about 20 downloads per 24 hours; use Check OpenSubtitles Account to see your remaining quota.</property>
                           <onclick>noop</onclick>
                       </item>
                       <item>
@@ -4536,7 +4553,7 @@
                         <textcolor>FFCCCCCC</textcolor>
                         <scrolltime>300</scrolltime>
                         <label>$INFO[Container(2100).ListItem.Property(setting_description)]</label>
-                        <autoscroll delay="2000" time="2500" repeat="7000">true</autoscroll>
+                        <autoscroll delay="5000" time="2500" repeat="7000">true</autoscroll>
                         <visible>Control.HasFocus(2100)</visible>
                     </control>
                     <control type="textbox">
@@ -4550,7 +4567,7 @@
                         <textcolor>FFCCCCCC</textcolor>
                         <scrolltime>300</scrolltime>
                         <label>$INFO[Container(2000).ListItem.Property(setting_label),All settings related to [UPPERCASE][B],[/B][/UPPERCASE] settings]</label>
-                        <autoscroll delay="2000" time="2500" repeat="7000">true</autoscroll>
+                        <autoscroll delay="5000" time="2500" repeat="7000">true</autoscroll>
                         <visible>Control.HasFocus(2000)</visible>
                     </control>
                 </control>

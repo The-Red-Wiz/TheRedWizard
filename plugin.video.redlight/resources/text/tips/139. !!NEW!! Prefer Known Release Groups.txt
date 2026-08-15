@@ -1,0 +1,8 @@
+
+Prefer Known Release Groups is an optional sort boost under Settings > Results > Sorting and Filtering.
+
+It is off by default (None). You can enable it for Source Select, Autoplay, or Both — the same pattern as Custom Sort To Top.
+
+When it is on, Red Light looks for a known Scene or P2P group in the release name (for example NTb, FLUX, FraMeSToR) and sorts those rows above unknown groups. It uses your current Results Sorting: a 720p known group does not jump a 4K unknown encode unless Quality Sort Order already puts 720p first. Size and quality filters are unchanged.
+
+This is a bundled list, not a live TRaSH Guides download. Unknown or unlisted groups are left in normal order.

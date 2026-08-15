@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """PunchPlay Platform API v1 — watched provider, lists, and native scrobble."""
 import json
+import os
 import time
 import uuid
 import requests
+from threading import Lock
 from caches.settings_cache import get_setting, set_setting
 from caches import punchplay_cache as pp_cache
 from modules import kodi_utils, settings
@@ -18,6 +20,12 @@ DEFAULT_SCOPES = (
 	'lists:read lists:write ratings:read ratings:write collection:read collection:write'
 )
 WATCHED_THRESHOLD = 0.9
+# PunchPlay rotates refresh tokens on every use. Parallel refreshes sign the user out.
+# In-process lock + exclusive lockfile (plugin invoker vs PunchPlayMonitor).
+_REFRESH_LOCK = Lock()
+_REFRESH_LOCK_STALE_SEC = 25
+_REFRESH_WAIT_SEC = 20
+_refresh_lock_path = None
 STATUS_PLANNING = 'PLANNING'
 STATUS_WATCHING = 'WATCHING'
 STATUS_ON_HOLD = 'ON_HOLD'
@@ -81,36 +89,143 @@ def _headers(with_auth=True):
 			headers['Authorization'] = 'Bearer %s' % token
 	return headers
 
-def _save_tokens(payload):
+def _token_usable(token):
+	return token not in (None, '0', '', 'empty_setting')
+
+def _reload_token_cache():
+	from caches.settings_cache import settings_cache
+	settings_cache.clear_db_cache()
+
+def _expires_at():
+	from caches.settings_cache import settings_cache
+	raw = settings_cache.read_db_value('punchplay.expires')
+	if raw in (None, '', 'empty_setting', '0'):
+		raw = get_setting('redlight.punchplay.expires', '0')
+	try: return float(raw or 0)
+	except (TypeError, ValueError): return 0.0
+
+def _token_fresh():
+	if not _token_usable(_token()): return False
+	expires = _expires_at()
+	# Legacy rows with no expiry: keep the access token until a 401 forces refresh.
+	if expires <= 0: return True
+	return time.time() < expires
+
+def _refresh_lockfile():
+	global _refresh_lock_path
+	if not _refresh_lock_path:
+		_refresh_lock_path = os.path.join(kodi_utils.addon_profile(), 'punchplay_refresh.lock')
+	return _refresh_lock_path
+
+def _try_acquire_refresh_lockfile():
+	path = _refresh_lockfile()
+	try:
+		fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+		try: os.write(fd, str(time.time()).encode('utf-8'))
+		finally: os.close(fd)
+		return True
+	except OSError:
+		try:
+			if (time.time() - os.path.getmtime(path)) >= _REFRESH_LOCK_STALE_SEC:
+				os.remove(path)
+				return _try_acquire_refresh_lockfile()
+		except Exception:
+			pass
+		return False
+
+def _release_refresh_lockfile():
+	try: os.remove(_refresh_lockfile())
+	except Exception: pass
+
+def _save_tokens(payload, require_refresh=False):
 	access = payload.get('access_token')
 	refresh = payload.get('refresh_token')
 	if not access: return False
+	if require_refresh and not refresh: return False
 	set_setting('punchplay.token', access)
 	if refresh: set_setting('punchplay.refresh', refresh)
 	expires_in = int(payload.get('expires_in') or 3600)
 	set_setting('punchplay.expires', str(int(time.time()) + max(60, expires_in) - 60))
-	from caches.settings_cache import settings_cache
-	settings_cache.clear_db_cache()
+	_reload_token_cache()
 	return True
 
 def _refresh_access_token():
 	client_id = punchplay_client_id()
 	refresh = _refresh_token()
-	if not client_id or refresh in (None, '0', '', 'empty_setting'): return False
+	if not client_id or not _token_usable(refresh): return False
 	try:
 		resp = requests.post(
 			_url('/auth/refresh'),
 			data=json.dumps({'client_id': client_id, 'refresh_token': refresh}),
 			headers=_headers(with_auth=False), timeout=META_API_TIMEOUT)
-		if resp.status_code != 200: return False
-		return _save_tokens(resp.json() or {})
+		if resp.status_code != 200:
+			detail, request_id = '', ''
+			try:
+				body = resp.json() or {}
+				if isinstance(body, dict):
+					detail = body.get('message') or body.get('error') or ''
+					request_id = body.get('request_id') or ''
+			except Exception:
+				pass
+			kodi_utils.logger('PunchPlay', 'refresh failed: HTTP %s%s%s' % (
+				resp.status_code,
+				(': %s' % detail) if detail else '',
+				(' request_id=%s' % request_id) if request_id else ''))
+			return False
+		payload = resp.json() or {}
+		if not payload.get('refresh_token'):
+			kodi_utils.logger('PunchPlay', 'refresh failed: missing rotated refresh_token')
+			return False
+		ok = _save_tokens(payload, require_refresh=True)
+		if ok: kodi_utils.logger('PunchPlay', 'access token refreshed')
+		return ok
 	except Exception as e:
 		kodi_utils.logger('PunchPlay', 'refresh failed: %s' % e)
 		return False
 
+def _ensure_access_token(failed_token=None):
+	"""Refresh shortly before expiry, or once after 401. Never run two refreshes at once."""
+	if failed_token is None and _token_fresh(): return True
+	with _REFRESH_LOCK:
+		_reload_token_cache()
+		current = _token()
+		if failed_token and _token_usable(current) and current != failed_token:
+			return True
+		if failed_token is None and _token_fresh():
+			return True
+		deadline = time.time() + _REFRESH_WAIT_SEC
+		owned = _try_acquire_refresh_lockfile()
+		while not owned and time.time() < deadline:
+			kodi_utils.sleep(200)
+			_reload_token_cache()
+			current = _token()
+			if failed_token and _token_usable(current) and current != failed_token:
+				return True
+			if failed_token is None and _token_fresh():
+				return True
+			owned = _try_acquire_refresh_lockfile()
+		if not owned:
+			_reload_token_cache()
+			current = _token()
+			if failed_token and _token_usable(current) and current != failed_token:
+				return True
+			if failed_token is None and _token_fresh():
+				return True
+			return False
+		try:
+			_reload_token_cache()
+			current = _token()
+			if failed_token and _token_usable(current) and current != failed_token:
+				return True
+			if failed_token is None and _token_fresh():
+				return True
+			return _refresh_access_token()
+		finally:
+			_release_refresh_lockfile()
+
 def call_punchplay(path, method='get', data=None, query=None, retry=True):
-	if not punchplay_user_active() and method != 'get':
-		pass
+	if punchplay_user_active():
+		_ensure_access_token()
 	url = _url(path, query)
 	try:
 		if method == 'get':
@@ -121,8 +236,10 @@ def call_punchplay(path, method='get', data=None, query=None, retry=True):
 			resp = requests.patch(url, data=json.dumps(data or {}), headers=_headers(), timeout=META_API_TIMEOUT)
 		else:
 			resp = requests.post(url, data=json.dumps(data or {}), headers=_headers(), timeout=META_API_TIMEOUT)
-		if resp.status_code == 401 and retry and _refresh_access_token():
-			return call_punchplay(path, method=method, data=data, query=query, retry=False)
+		if resp.status_code == 401 and retry:
+			failed_token = _token()
+			if _ensure_access_token(failed_token=failed_token):
+				return call_punchplay(path, method=method, data=data, query=query, retry=False)
 		if resp.status_code == 204: return True
 		if 200 <= resp.status_code < 300:
 			if not resp.content: return True
@@ -135,6 +252,8 @@ def call_punchplay(path, method='get', data=None, query=None, retry=True):
 			detail = body.get('message') or body.get('error') or ''
 			if body.get('required_scope'):
 				detail = '%s (requires %s)' % (detail, body.get('required_scope'))
+			request_id = body.get('request_id') or ''
+			if request_id: detail = ('%s request_id=%s' % (detail, request_id)).strip()
 		kodi_utils.logger('PunchPlay', '%s %s HTTP %s%s' % (
 			method.upper(), path, resp.status_code, (': %s' % detail) if detail else ''))
 		return body if isinstance(body, dict) else None

@@ -522,7 +522,7 @@ class RedLightPlayer(xbmc.Player):
 				info_tag.setWriters(writer), info_tag.setDirectors(director), info_tag.setUniqueIDs({'imdb': self.imdb_id, 'tmdb': str(self.tmdb_id)})
 				info_tag.setCast([ku.kodi_actor()(name=item['name'], role=item['role'], thumbnail=item['thumbnail']) for item in cast])
 			else:
-				if st.avoid_episode_spoilers() and int(self.meta_get('playcount', '0')) == 0: plot = self.meta_get('tvshow_plot') or '* Hidden to Prevent Spoilers *'
+				if st.avoid_episode_spoilers() and int(self.meta_get('playcount') or 0) == 0: plot = self.meta_get('tvshow_plot') or '* Hidden to Prevent Spoilers *'
 				else: plot = self.meta_get('plot') or self.meta_get('tvshow_plot')
 				listitem.setArt({'poster': poster, 'fanart': fanart, 'icon': poster, 'clearlogo': clearlogo, 'tvshow.poster': poster, 'tvshow.clearlogo': clearlogo})
 				info_tag = listitem.getVideoInfoTag(True)
@@ -1761,7 +1761,7 @@ class RedLightPlayer(xbmc.Player):
 			playing_item = getattr(self, 'playing_item', None)
 			if st.submaker_enabled():
 				from indexers.subtitles import Subtitles
-				Thread(target=Subtitles().run, args=(self.imdb_id, season, episode, poster, playing_filename, playing_item, self)).start()
+				Thread(target=Subtitles().run, args=(self.imdb_id, season, episode, poster, playing_filename, playing_item, self, year)).start()
 			elif st.opensubs_enabled():
 				from indexers.subtitles import OpenSubtitlesSubs
 				Thread(target=OpenSubtitlesSubs().run, args=(self.imdb_id, season, episode, poster, year, playing_filename, playing_item, self)).start()

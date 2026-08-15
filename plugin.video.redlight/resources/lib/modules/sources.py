@@ -13,6 +13,7 @@ from scrapers import external, folders
 from modules import debrid, kodi_utils, settings, metadata, watched_status
 from modules.player import RedLightPlayer
 from modules.source_utils import get_cache_expiry, make_alias_dict, include_exclude_filters, get_file_info, release_info_format, audio_lang_choices, matches_english_or_untagged
+from modules.release_groups import release_group_boost
 from modules.utils import clean_file_name, string_to_float, safe_string, remove_accents, get_datetime, append_module_to_syspath, manual_function_import
 # logger = kodi_utils.logger
 
@@ -438,7 +439,9 @@ class Sources():
 		self.media_type, self.tmdb_id = params_get('media_type'), params_get('tmdb_id')		
 		self.custom_title, self.custom_year = params_get('custom_title', None), params_get('custom_year', None)
 		self.episode_group_label, self.episode_id = params_get('episode_group_label', ''), params_get('episode_id', None)
-		self.playcount, self.watch_count = params_get('playcount', None), params_get('watch_count', 1)
+		try: self.playcount = int(params_get('playcount', 0) or 0)
+		except (TypeError, ValueError): self.playcount = 0
+		self.watch_count = params_get('watch_count', 1)
 		if self.media_type == 'episode':
 			self.season, self.episode = int(params_get('season')), int(params_get('episode'))
 			self.custom_season, self.custom_episode = params_get('custom_season', None), params_get('custom_episode', None)
@@ -462,6 +465,7 @@ class Sources():
 		self.sort_function, self.quality_filter = settings.results_sort_order(), self._quality_filter()
 		# Distinct name — avoid colliding with settings.quality_sort_order (the callable).
 		self._quality_rank_order = settings.quality_sort_order()
+		self._refresh_group_boost_sort()
 		self.include_unknown_size = get_setting('redlight.results.size_unknown', 'false') == 'true'
 		self.make_search_info()
 		if self.background and self.play_type in ('autoplay_nextep', 'autoscrape_nextep', 'random_continual'):
@@ -715,7 +719,7 @@ class Sources():
 			results = scrape_results + cloud_results
 			if aio_preserve_results:
 				non_aio = [self._enrich_sort_fields(i) for i in results if i.get('scrape_provider') != 'aiostreams']
-				non_aio.sort(key=self.sort_function)
+				non_aio.sort(key=self._results_sort_key)
 				non_aio = self._sort_uncached_results(non_aio)
 				aio_block = [self._enrich_sort_fields(i) for i in aio_preserve_results]
 				results = self._merge_aiostreams_at_provider_rank(non_aio, aio_block)
@@ -771,7 +775,7 @@ class Sources():
 		aio_block, other = self._split_aiostreams_preserve(results)
 		if other:
 			other = [self._enrich_sort_fields(i) for i in other]
-			other.sort(key=self.sort_function)
+			other.sort(key=self._results_sort_key)
 			other = self._sort_uncached_results(other)
 		if aio_block:
 			aio_block = [self._enrich_sort_fields(i) for i in aio_block]
@@ -924,8 +928,8 @@ class Sources():
 			without_pref = [i for i in groups[quality_rank] if i.get('pref_includes', 0) == 0]
 			non_sdr = [i for i in without_pref if not self._explicit_sdr_release(i)]
 			sdr = [i for i in without_pref if self._explicit_sdr_release(i)]
-			non_sdr.sort(key=self.sort_function)
-			sdr.sort(key=self.sort_function)
+			non_sdr.sort(key=self._results_sort_key)
+			sdr.sort(key=self._results_sort_key)
 			without_sorted.extend(non_sdr + sdr)
 		sorted_other = self._sort_uncached_results(with_pref_all + without_sorted)
 		if aio_nonpref:
@@ -935,7 +939,7 @@ class Sources():
 	def _pref_boost_sort_key(self, item):
 		if item.get('scrape_provider') == 'aiostreams' and self._aiostreams_preserve_order():
 			return (-item.get('pref_includes', 0), item['quality_rank'], item.get('aio_order', 999999))
-		return (-item.get('pref_includes', 0),) + self.sort_function(item)
+		return (-item.get('pref_includes', 0),) + self._results_sort_key(item)
 
 	def _custom_pref_sort_active(self):
 		return self._pref_sort_should_run()
@@ -1331,6 +1335,7 @@ class Sources():
 		self.sort_function = settings.results_sort_order()
 		self.weight_size = settings.size_sort_weighted()
 		self.quality_filter = self._quality_filter()
+		self._refresh_group_boost_sort()
 
 	def _exclude_internal_scrapers_for_external_only_followup(self):
 		"""Run External Scraper Search: skip all non-external scrapers; keep prescrape results in memory."""
@@ -1703,11 +1708,28 @@ class Sources():
 	def _aiostreams_preserve_order(self):
 		return settings.aiostreams_preserve_order()
 
+	def _refresh_group_boost_sort(self):
+		self._group_boost_active = settings.prefer_release_groups(self.autoplay)
+		try: self._sort_order_index = int(get_setting('redlight.results.sort_order', '1'))
+		except: self._sort_order_index = 1
+
+	def _results_sort_key(self, item):
+		base = self.sort_function(item)
+		if not getattr(self, '_group_boost_active', False): return base
+		boost = -int(item.get('group_boost') or 0)
+		a, b, c = base
+		idx = getattr(self, '_sort_order_index', 1)
+		if idx in (0, 1): return (a, boost, b, c)
+		if idx in (2, 4): return (a, b, boost, c)
+		return (a, b, c, boost)
+
 	def _enrich_sort_fields(self, item):
+		boost = release_group_boost(item) if getattr(self, '_group_boost_active', False) else 0
 		return dict(item, **{
 			'provider_rank': self._get_provider_rank(item['debrid'].lower()),
 			'quality_rank': self._get_quality_rank(item.get('quality', 'SD')),
-			'size_rank': self._get_size_rank(item)})
+			'size_rank': self._get_size_rank(item),
+			'group_boost': boost})
 
 	def _split_aiostreams_preserve(self, results):
 		if not self._aiostreams_preserve_order(): return [], results
@@ -2936,6 +2958,7 @@ class Sources():
 		# answered via setResolvedUrl. First pick must use Player.play() or resolve is a
 		# noop and the queue only succeeds on the second source.
 		self._use_player_play = True
+		kodi_utils.close_dialog('notification')
 		return self.display_results(results)
 
 	def debrid_importer(self, debrid_provider):

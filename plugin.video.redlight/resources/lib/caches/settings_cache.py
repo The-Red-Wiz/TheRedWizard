@@ -1555,6 +1555,7 @@ def default_settings():
 {'setting_id': 'use_season_name', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'default_all_episodes', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'Never', '1': 'If Only One Season', '2': 'Always'}},
 {'setting_id': 'avoid_episode_spoilers', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'show_loading_plot', 'setting_type': 'boolean', 'setting_default': 'true'},
 {'setting_id': 'include_anime_tvshow', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'show_public_calendars', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'public_calendar_include_anime', 'setting_type': 'boolean', 'setting_default': 'true'},
@@ -1866,6 +1867,7 @@ def default_settings():
 {'setting_id': 'filter.av1', 'setting_type': 'action', 'setting_default': '0', 'settings_options':{'0': 'Include', '1': 'Exclude'}},
 {'setting_id': 'filter.enhanced_upscaled', 'setting_type': 'action', 'setting_default': '0', 'settings_options':{'0': 'Include', '1': 'Exclude'}},
 {'setting_id': 'filter.sort_to_top', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'None', '1': 'Source Select', '2': 'Autoplay', '3': 'Both'}},
+{'setting_id': 'filter.prefer_release_groups', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {'0': 'None', '1': 'Source Select', '2': 'Autoplay', '3': 'Both'}},
 {'setting_id': 'filter.preferred_filters', 'setting_type': 'string', 'setting_default': 'empty_setting'},
 {'setting_id': 'filter_audio', 'setting_type': 'string', 'setting_default': 'empty_setting'},
 #==================== Results Color Highlights

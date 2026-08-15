@@ -22,6 +22,11 @@ class Select(BaseDialog):
 		self.chosen_indexes = []
 		self.selected = None
 		self.control_id = None
+		self.showing_alt = False
+		self.primary_items = None
+		self.primary_heading = self.heading
+		self.primary_multi_line = self.multi_line
+		self.primary_focus = 0
 		self.set_properties()
 		self.make_menu()
 
@@ -71,9 +76,17 @@ class Select(BaseDialog):
 					chosen_listitem.setProperty('check_status', 'checked')
 					self.chosen_indexes.append(position)
 			else:
+				if chosen_listitem.getProperty('open_alt') == 'true':
+					if self._open_alt(): return
+				if self.showing_alt:
+					self.selected = {'alt': True, 'index': position}
+					return self.close()
 				self.selected = position
 				return self.close()
-		elif action in self.context_actions or action in self.closing_actions: return self.close()
+		elif action in self.closing_actions:
+			if self._open_primary(): return
+			return self.close()
+		elif action in self.context_actions: return self.close()
 
 	def make_menu(self):
 		def builder():
@@ -85,11 +98,45 @@ class Select(BaseDialog):
 				else: line2 = ''
 				if 'icon' in item: listitem.setProperty('icon', item['icon'])
 				else: listitem.setProperty('icon', '')
+				if item.get('open_alt'): listitem.setProperty('open_alt', 'true')
 				listitem.setProperty('line1', line1)
 				listitem.setProperty('line2', line2)
 				yield listitem
 		enum = self.enumerate == 'true'
 		self.item_list = list(builder())
+
+	def _replace_menu(self, items, heading, multi_line=None, focus=None):
+		self.items = items
+		self.heading = heading
+		self.setProperty('heading', heading)
+		if multi_line is not None:
+			self.multi_line = multi_line
+			self.setProperty('multi_line', multi_line)
+		self.make_menu()
+		self.reset_window(self.window_id)
+		self.add_items(self.window_id, self.item_list)
+		self.setFocusId(self.window_id)
+		self.select_item(self.window_id, 0 if focus is None else focus)
+
+	def _open_alt(self):
+		alt_raw = self.kwargs.get('alt_items')
+		if not alt_raw: return False
+		if not self.showing_alt:
+			self.primary_items = self.items
+			self.primary_heading = self.heading
+			self.primary_multi_line = self.multi_line
+			try: self.primary_focus = self.get_position(self.window_id)
+			except: self.primary_focus = 0
+		self.showing_alt = True
+		self._replace_menu(json.loads(alt_raw), self.kwargs.get('alt_heading') or self.heading,
+			multi_line=self.kwargs.get('alt_multi_line') or self.multi_line, focus=self.kwargs.get('alt_set_focus'))
+		return True
+
+	def _open_primary(self):
+		if not self.showing_alt or self.primary_items is None: return False
+		self.showing_alt = False
+		self._replace_menu(self.primary_items, self.primary_heading, self.primary_multi_line, self.primary_focus)
+		return True
 
 	def set_properties(self):
 		self.setProperty('multi_choice', self.multi_choice)

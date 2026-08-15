@@ -219,7 +219,7 @@
                                 </control>
                             </control>
                             <control type="group">
-                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + !String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + !String.IsEqual(ListItem.Property(highlight_tint_focused_background),true)</visible>
                                 <control type="group">
                                     <height max="100">auto</height>
                                     <width max="160">auto</width>
@@ -279,7 +279,7 @@
                                 </control>
                             </control>
                             <control type="group">
-                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + String.IsEqual(ListItem.Property(highlight_tint_focused_background),true)</visible>
                                 <control type="group">
                                     <height max="100">auto</height>
                                     <width max="160">auto</width>
@@ -548,7 +548,7 @@
                                 </control>
                             </control>
                             <control type="group">
-                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + !String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + !String.IsEqual(ListItem.Property(highlight_tint_focused_background),true)</visible>
                                 <control type="group">
                                     <height max="100">auto</height>
                                     <width max="150">auto</width>
@@ -608,7 +608,7 @@
                                 </control>
                             </control>
                             <control type="group">
-                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + String.IsEqual(ListItem.Property(highlight_tint_focused_background),true)</visible>
                                 <control type="group">
                                     <height max="100">auto</height>
                                     <width max="150">auto</width>
@@ -868,7 +868,7 @@
                                 </control>
                             </control>
                             <control type="group">
-                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + !String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + !String.IsEqual(ListItem.Property(highlight_tint_focused_background),true)</visible>
                                 <control type="group">
                                     <height max="100">auto</height>
                                     <width max="160">auto</width>
@@ -916,7 +916,7 @@
                                 </control>
                             </control>
                             <control type="group">
-                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + String.IsEqual(Window.Property(highlight_tint_focused_background),true)</visible>
+                                <visible>String.IsEmpty(ListItem.Property(perform_full_search)) + String.IsEqual(ListItem.Property(highlight_tint_focused_background),true)</visible>
                                 <control type="group">
                                     <height max="100">auto</height>
                                     <width max="160">auto</width>

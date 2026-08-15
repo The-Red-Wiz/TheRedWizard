@@ -1059,6 +1059,55 @@ def jsonrpc_get_addons(_type, properties=['thumbnail', 'name']):
 	results = get_jsonrpc(command).get('addons')
 	return results
 
+def addons_database_path():
+	database_dir = translate_path('special://database')
+	if database_dir and database_dir[-1] not in ('\\', '/'):
+		database_dir = database_dir + '/'
+	try:
+		_dirs, files = list_dirs(database_dir)
+	except:
+		files = []
+	candidates = [f for f in files if f.lower().startswith('addons') and f.lower().endswith('.db')]
+	if not candidates:
+		return translate_path('special://database/Addons33.db')
+	candidates.sort()
+	return database_dir + candidates[-1]
+
+def addon_available_from_repos(addon_id):
+	if not addon_id: return False
+	if addon_installed(addon_id): return True
+	try:
+		import sqlite3 as database
+		dbcon = database.connect(addons_database_path(), timeout=40.0)
+		row = dbcon.execute(
+			'SELECT 1 FROM addons AS a JOIN addonlinkrepo AS l ON l.idAddon = a.id WHERE a.addonID = ? LIMIT 1',
+			(addon_id,)).fetchone()
+		dbcon.close()
+		return bool(row)
+	except:
+		return _addon_listed_in_repo_directories(addon_id)
+
+def _addon_listed_in_repo_directories(addon_id):
+	try: repos = jsonrpc_get_addons('xbmc.addon.repository') or []
+	except: repos = []
+	addon_id_l = addon_id.lower()
+	for repo in repos:
+		repo_id = repo.get('addonid') or ''
+		if not repo_id: continue
+		for directory in (
+			'addons://%s/' % repo_id,
+			'addons://%s/xbmc.python.module/' % repo_id,
+			'addons://%s/xbmc.python.pluginsource/' % repo_id):
+			command = {'jsonrpc': '2.0', 'id': 1, 'method': 'Files.GetDirectory',
+				'params': {'directory': directory, 'media': 'files', 'properties': ['file']}}
+			try: files = get_jsonrpc(command).get('files') or []
+			except: files = []
+			for item in files:
+				path = (item.get('file') or '').rstrip('/').lower()
+				if path.endswith('/' + addon_id_l) or path.split('/')[-1] == addon_id_l:
+					return True
+	return False
+
 def jsonrpc_get_system_setting(setting_id, setting_value=''):
 	command = {'jsonrpc': '2.0', 'id': 1, 'method': 'Settings.GetSettingValue', 'params': {'setting': setting_id}}
 	try: result = get_jsonrpc(command)['value']
@@ -1070,7 +1119,7 @@ def jsonrpc_set_system_setting(setting_id, value):
 	try: return get_jsonrpc(command)
 	except: return None
 
-def open_settings(section=None):
+def open_settings(section=None, panel=None):
 	try:
 		from caches.settings_cache import refresh_settings_manager_properties
 		refresh_settings_manager_properties()
@@ -1086,45 +1135,65 @@ def open_settings(section=None):
 		set_property('redlight.settings_manager.focus_index', str(section_indexes[focus_key]))
 	else:
 		clear_property('redlight.settings_manager.focus_index')
+	if panel:
+		set_property('redlight.settings_manager.focus_panel', str(panel))
+	else:
+		clear_property('redlight.settings_manager.focus_panel')
 	from windows.base_window import open_window
 	try:
 		open_window(('windows.settings_manager', 'SettingsManager'), 'settings_manager.xml')
 	finally:
 		clear_property('redlight.settings_manager.focus_index')
+		clear_property('redlight.settings_manager.focus_panel')
+
+def _open_addon_settings(addon_id):
+	if not addon_id or addon_id in ('empty_setting', ''): return False
+	try:
+		addon(addon_id).openSettings()
+		return True
+	except:
+		try:
+			execute_builtin('Addon.OpenSettings(%s)' % addon_id, True)
+			return True
+		except:
+			return False
 
 def external_scraper_settings(params=None):
 	try:
 		import json
 		from modules import settings
 		params = params or {}
+		return_to_settings = str(params.get('return_to', '')).lower() in ('settings', 'torrent', '1', 'true')
 		slot = None
 		if params.get('slot') not in (None, ''):
 			try: slot = int(params.get('slot'))
 			except: slot = None
+		if return_to_settings:
+			close_all_dialog()
+			sleep(150)
 		slots = settings.configured_external_scraper_slots()
+		opened = False
 		if not slots:
 			external = get_property('redlight.external_scraper.module')
-			if external in ('empty_setting', ''): return
-			execute_builtin('Addon.OpenSettings(%s)' % external)
-			return
-		if slot is None:
-			if len(slots) == 1:
-				slot = slots[0]['slot']
-			else:
-				list_items = []
-				for entry in slots:
-					line2 = 'Slot %d' % entry['slot']
-					if not entry['enabled']: line2 = '%s (disabled)' % line2
-					list_items.append({'line1': entry['display_name'], 'line2': line2})
-				kwargs = {'items': json.dumps(list_items), 'heading': 'External Scraper Settings', 'multi_line': 'true'}
-				choice = select_dialog(slots, **kwargs)
-				if choice is None: return
-				execute_builtin('Addon.OpenSettings(%s)' % choice['module_id'])
+			opened = _open_addon_settings(external)
+		elif slot is None and len(slots) != 1:
+			list_items = []
+			for entry in slots:
+				line2 = 'Slot %d' % entry['slot']
+				if not entry['enabled']: line2 = '%s (disabled)' % line2
+				list_items.append({'line1': entry['display_name'], 'line2': line2})
+			kwargs = {'items': json.dumps(list_items), 'heading': 'External Scraper Settings', 'multi_line': 'true'}
+			choice = select_dialog(slots, **kwargs)
+			if choice is None:
+				if return_to_settings: open_settings('torrent', panel=2100)
 				return
-		data = settings.external_scraper_slot_data(slot)
-		external = data['module']
-		if external in ('empty_setting', ''): return
-		execute_builtin('Addon.OpenSettings(%s)' % external)
+			opened = _open_addon_settings(choice['module_id'])
+		else:
+			if slot is None: slot = slots[0]['slot']
+			data = settings.external_scraper_slot_data(slot)
+			opened = _open_addon_settings(data['module'])
+		if return_to_settings and opened:
+			open_settings('torrent', panel=2100)
 	except: pass
 
 def progress_dialog(heading='', icon=None):
@@ -1149,8 +1218,13 @@ def close_progress_dialog(progress):
 
 def select_dialog(function_list, **kwargs):
 	from windows.base_window import open_window
+	alt_function_list = kwargs.pop('alt_function_list', None)
 	selection = open_window(('windows.default_dialogs', 'Select'), 'select.xml', **kwargs)
 	if selection in (None, []): return selection
+	if isinstance(selection, dict) and selection.get('alt'):
+		if not alt_function_list: return None
+		try: return alt_function_list[selection['index']]
+		except: return None
 	if kwargs.get('multi_choice', 'false') == 'true': return [function_list[i] for i in selection]
 	return function_list[selection]
 
