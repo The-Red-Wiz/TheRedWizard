@@ -468,8 +468,11 @@ def punchplay_authenticate(dummy=''):
 	try: settings.offer_watched_provider(4, 'PunchPlay')
 	except: pass
 	try:
-		from threading import Thread
-		Thread(target=punchplay_sync_activities, kwargs={'force_update': True}).start()
+		kodi_utils.run_plugin({
+			'mode': 'punchplay.punchplay_sync_activities',
+			'force_update': 'true',
+			'notify': 'true',
+		}, block=False)
 	except: pass
 	try: kodi_utils.container_refresh()
 	except: pass
@@ -1209,9 +1212,16 @@ def _punchplay_ack_local_watched_change():
 
 def punchplay_sync_activities(params=None, force_update=False):
 	"""Activity-gated sync. Uses PunchPlay /me/sync/changes (not Simkl-style last_activities)."""
+	notify = False
 	if isinstance(params, dict):
 		force_update = params.get('force_update', 'false') in ('true', 'True', True) or force_update
-	if not punchplay_user_active(): return 'no account'
+		notify = params.get('notify', 'false') in ('true', 'True', True)
+	def _done(status):
+		if notify:
+			if status == 'failed': kodi_utils.notification('PunchPlay Sync Failed', 3000)
+			elif status == 'success': kodi_utils.notification('PunchPlay Sync Complete', 3000)
+		return status
+	if not punchplay_user_active(): return _done('no account')
 	if force_update:
 		pp_cache.clear_all_punchplay_cache_data(silent=True, refresh=False)
 		pp_cache.punchplay_cache.delete('sync_changes_cursor')
@@ -1219,7 +1229,7 @@ def punchplay_sync_activities(params=None, force_update=False):
 	sync_mode = 'full'
 	if not force_update:
 		needs_refresh, probe, sync_mode = _punchplay_probe_sync_changes()
-		if not needs_refresh: return 'not needed'
+		if not needs_refresh: return _done('not needed')
 		sync_mode = sync_mode or 'full'
 	try:
 		if sync_mode == 'playback':
@@ -1236,10 +1246,10 @@ def punchplay_sync_activities(params=None, force_update=False):
 		if probe is None:
 			probe = call_punchplay('/me/sync/changes', method='get', query={'limit': 100})
 		_punchplay_advance_sync_cursor(probe if isinstance(probe, dict) else None)
-		return 'success'
+		return _done('success')
 	except Exception as e:
 		kodi_utils.logger('PunchPlay', 'sync failed: %s' % e)
-		return 'failed'
+		return _done('failed')
 
 PUNCHPLAY_TRAKT_IMPORT_URL = 'https://punchplay.tv/import/trakt'
 

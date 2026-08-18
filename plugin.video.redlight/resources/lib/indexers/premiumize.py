@@ -40,8 +40,8 @@ def pm_cloud(folder_id=None, folder_name=None):
 				url = kodi_utils.build_url(url_params)
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
-				info_tag = listitem.getVideoInfoTag(True)
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
+				info_tag = listitem.getVideoInfoTag()
 				info_tag.setPlot(' ')
 				yield (url, listitem, is_folder)
 			except: pass
@@ -54,9 +54,9 @@ def pm_cloud(folder_id=None, folder_name=None):
 	except: cloud_files = []
 	handle = int(sys.argv[1])
 	kodi_utils.add_items(handle, list(_builder()))
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 def pm_transfers():
 	def _transfer_progress(status, progress):
@@ -120,10 +120,10 @@ def pm_transfers():
 				listitem.setLabel(display)
 				if cm:
 					listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
 				plot = item.get('message') or status
 				if isinstance(plot, str) and plot.strip():
-					listitem.getVideoInfoTag(True).setPlot(plot)
+					listitem.getVideoInfoTag().setPlot(plot)
 				yield (url, listitem, is_folder)
 			except:
 				pass
@@ -152,9 +152,9 @@ def pm_transfers():
 		kodi_utils.notification('Premiumize: Transfers found but could not be listed', 3500)
 	handle = int(sys.argv[1])
 	kodi_utils.add_items(handle, items)
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 def pm_rename(file_type, file_id, current_name):
 	new_name = kodi_utils.kodi_dialog().input('RedLight', defaultt=current_name)

@@ -41,19 +41,47 @@ class EasyNewsAPI:
 	def _maybe_reload_credentials(self):
 		if easynews_refresh_credentials(): self._reload_credentials()
 
+	def thumb_url(self, post_hash, kind='pr'):
+		# Fen classic: drop last 4 hash chars. Full id 403s on th.easynews.com (pr and sm).
+		# Do not use nested API thumbURL or |Authorization= — both blank Kodi textures.
+		if not post_hash: return ''
+		name = post_hash[:-4] if len(post_hash) > 4 else post_hash
+		return 'https://th.easynews.com/thumbnails-%s/%s-%s.jpg' % (post_hash[0:3], kind, name)
+
+	def auth_thumb(self, url):
+		"""Rewrite leftover full-hash / nested EasyNews thumb URLs to the Fen filename that 200s."""
+		if not url: return url
+		url = str(url)
+		if '|' in url: url = url.split('|', 1)[0]
+		if '@th.easynews.com/' in url:
+			url = 'https://th.easynews.com/' + url.split('@th.easynews.com/', 1)[-1]
+		if 'th.easynews.com/thumbnails-' not in url: return url
+		try:
+			prefix, rest = url.split('th.easynews.com/thumbnails-', 1)
+			folder, fname = rest.split('/', 1)
+			if '/th-' in fname:
+				fname = fname.split('/th-', 1)[0]
+			kind, name = fname.rsplit('.', 1)[0].split('-', 1)
+			if kind in ('pr', 'sm') and name and len(name) > 41:
+				name = name[:-4]
+			return '%sth.easynews.com/thumbnails-%s/%s-%s.jpg' % (prefix, folder, kind, name)
+		except: return url
+
 	def search(self, query, expiration=48):
 		self._maybe_reload_credentials()
 		self.query = query
+		self.base_process = self._process_files
 		url, self.params = self._translate_search()
 		string = 'EASYNEWS_SEARCH_' + urlencode(self.params)
-		return cache_object(self._process_search, string, url, json=False, expiration=expiration)
+		results = cache_object(self._process_search, string, url, json=False, expiration=expiration)
+		return results if isinstance(results, list) else []
 
 	def search_images(self, query, page_no=1, expiration=48):
 		self._maybe_reload_credentials()
 		self.query = remove_accents(query)
 		self.base_process = self.process_image_files
 		url, self.params = self._translate_search(search_type='IMAGE')
-		string = 'EASYNEWS_IMAGE_SEARCH_%s' % urlencode(self.params)
+		string = 'EASYNEWS_IMAGE_SEARCH_v4_%s' % urlencode(self.params)
 		results = cache_object(self._process_search, string, url, json=False, expiration=expiration)
 		try: results['results'] = results['results'][page_no -1]
 		except: pass
@@ -95,7 +123,7 @@ class EasyNewsAPI:
 					url_add = quote('/%s/%s/%s%s/%s%s' % (dl_farm, dl_port, post_hash, ext, post_title, ext))
 					url_dl = download_url + url_add
 					file_dl = down_url + url_add + '|Authorization=%s' % self.auth_quoted
-					thumbnail = 'https://th.easynews.com/thumbnails-%s/sm-%s.jpg' % (post_hash[0:3], post_hash)
+					thumbnail = self.thumb_url(post_hash, 'sm')
 					result = {'name': '%s_%s_%02d' % (self.query, post_title, count),
 							  'fullsize': size,
 							  'fullres': item['fullres'],
@@ -134,7 +162,7 @@ class EasyNewsAPI:
 					url_add = quote('/%s/%s/%s%s/%s%s' % (dl_farm, dl_port, post_hash, ext, post_title, ext))
 					stream_url = streaming_url + url_add
 					file_dl = down_url + url_add + '|Authorization=%s' % self.auth_quoted
-					thumbnail = 'https://th.easynews.com/thumbnails-%s/pr-%s.jpg' % (post_hash[0:3], post_hash)
+					thumbnail = self.thumb_url(post_hash, 'pr')
 					result = {'name': post_title,
 							  'size': size,
 							  'rawSize': item['rawSize'],

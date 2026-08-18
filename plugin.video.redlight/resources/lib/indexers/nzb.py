@@ -32,9 +32,9 @@ def search_nzb(params):
 		files = search_all(search_name)
 		nzb_file_browser(files, handle)
 	except: pass
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 def nzb_file_browser(files, handle):
 	def _builder():
@@ -59,8 +59,8 @@ def nzb_file_browser(files, handle):
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
-				info_tag = listitem.getVideoInfoTag(True)
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
+				info_tag = listitem.getVideoInfoTag()
 				info_tag.setPlot('\n'.join(plot_lines) or ' ')
 				yield (url, listitem, False)
 			except: pass

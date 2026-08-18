@@ -37,8 +37,8 @@ def tb_cloud():
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
-				listitem.getVideoInfoTag(True).setPlot(' ')
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
+				listitem.getVideoInfoTag().setPlot(' ')
 				yield (url, listitem, True)
 			except Exception:
 				pass
@@ -56,9 +56,9 @@ def tb_cloud():
 			kodi_utils.notification(msg, 4000)
 		folders.sort(key=lambda k: str(k.get('updated_at') or ''), reverse=True)
 		kodi_utils.add_items(handle, list(_builder()))
-		kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+		kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 		kodi_utils.end_directory(handle, cacheToDisc=False)
-		kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+		kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 	except Exception as e:
 		kodi_utils.notification('TorBox: %s' % str(e), 4000)
 		kodi_utils.end_directory(handle)
@@ -105,10 +105,10 @@ def tb_history():
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
 				plot = item.get('status') or ('Ready' if finished else 'In progress')
 				if isinstance(plot, str) and plot.strip():
-					listitem.getVideoInfoTag(True).setPlot(plot)
+					listitem.getVideoInfoTag().setPlot(plot)
 				yield (url, listitem, is_folder)
 			except Exception:
 				pass
@@ -131,9 +131,9 @@ def tb_history():
 			kodi_utils.notification('TorBox: No transfers in history', 2500)
 	handle = int(sys.argv[1])
 	kodi_utils.add_items(handle, list(_builder()))
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 
 def browse_tb_cloud(folder_id, media_type):
@@ -181,8 +181,8 @@ def browse_tb_cloud(folder_id, media_type):
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
-				info_tag = listitem.getVideoInfoTag(True)
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
+				info_tag = listitem.getVideoInfoTag()
 				info_tag.setMediaType('video')
 				info_tag.setTitle(short_name)
 				info_tag.setFilenameAndPath(short_name)
@@ -192,9 +192,9 @@ def browse_tb_cloud(folder_id, media_type):
 				pass
 
 	kodi_utils.add_items(handle, list(_builder()))
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 
 def tb_delete(folder_id, media_type):

@@ -285,7 +285,7 @@ class SettingsCache:
 			raise
 		return row is None
 
-	def set(self, setting_id, setting_value=None):
+	def set(self, setting_id, setting_value=None, provider_sync=True):
 		setting_id = setting_id.replace('redlight.', '')
 		prev_watched_indicators = None
 		if setting_id == 'watched_indicators':
@@ -315,8 +315,6 @@ class SettingsCache:
 				from apis.aiostreams_api import apply_profile
 				apply_profile(instance_switch)
 			except: pass
-		if setting_id == 'watched_indicators' and str(setting_value) != str(prev_watched_indicators):
-			_sync_watched_provider_on_switch(setting_value)
 		if _properties_loaded():
 			self.set_memory_cache(setting_id, setting_value)
 			if setting_id in _SERVICE_AUTH_VISIBILITY_SETTINGS:
@@ -385,6 +383,8 @@ class SettingsCache:
 				from apis.aiostreams_api import refresh_settings_properties
 				refresh_settings_properties()
 			except: pass
+		if provider_sync and setting_id == 'watched_indicators' and str(setting_value) != str(prev_watched_indicators):
+			_sync_watched_provider_on_switch(setting_value)
 
 	def set_many(self, settings_list, load_properties=True):
 		dbcon = connect_database('settings_db')
@@ -426,8 +426,8 @@ class SettingsCache:
 
 settings_cache = SettingsCache()
 
-def set_setting(setting_id, value):
-	settings_cache.set(setting_id, value)
+def set_setting(setting_id, value, provider_sync=True):
+	settings_cache.set(setting_id, value, provider_sync=provider_sync)
 
 def get_setting(setting_id, fallback=''):
 	if _properties_loaded():
@@ -1038,7 +1038,7 @@ def set_from_list(params):
 			settings_cache.set_memory_cache('%s_name' % setting_id, mode_opts.get(str(setting_value), ''))
 		except:
 			pass
-	# watched_indicators sync runs inside SettingsCache.set (activity-gated; force if empty).
+	# watched_indicators sync is queued from SettingsCache.set (own plugin invoker; force if empty).
 
 def set_source_folder_path(params):
 	setting_id = params['setting_id']
@@ -1421,27 +1421,27 @@ def _sync_watched_provider_on_switch(provider_value):
 	"""When Watched Status Provider switches to a remote service: activity-gated sync.
 	Force full pull only if that provider's local watched table is empty (first enable).
 	Stale-but-populated DBs catch up via activities / Phase 2. Tools > Force Sync still wipes.
+	Queued as its own plugin invoker so Settings / authorise can return immediately.
 	"""
 	try:
 		provider = int(provider_value)
 	except Exception:
 		return
-	if provider not in (1, 2, 3, 4):
+	modes = {
+		1: 'trakt.trakt_sync_activities',
+		2: 'simkl.simkl_sync_activities',
+		3: 'mdblist.mdblist_sync_activities',
+		4: 'punchplay.punchplay_sync_activities',
+	}
+	mode = modes.get(provider)
+	if not mode:
 		return
 	force = _provider_watched_db_empty(provider)
+	params = {'mode': mode, 'force_update': 'true' if force else 'false'}
+	if provider == 4 and force:
+		params['notify'] = 'true'
 	try:
-		if provider == 1:
-			from apis.trakt_api import trakt_sync_activities
-			trakt_sync_activities(force_update=force)
-		elif provider == 2:
-			from apis.simkl_api import simkl_sync_activities
-			simkl_sync_activities(force_update=force)
-		elif provider == 3:
-			from apis.mdblist_api import mdblist_sync_activities
-			mdblist_sync_activities(force_update=force)
-		elif provider == 4:
-			from apis.punchplay_api import punchplay_sync_activities
-			punchplay_sync_activities(force_update=force)
+		kodi_utils.run_plugin(params, block=False)
 	except Exception:
 		pass
 

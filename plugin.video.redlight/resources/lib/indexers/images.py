@@ -187,7 +187,8 @@ class Images():
 			for item in image_info:
 				try:
 					listitem = make_listitem()
-					listitem.setProperties({'thumb': item['thumbnail'], 'path': item['down_url'], 'name': item['name'], 'action': image_action, 'image_subject': key_id})
+					thumb = EasyNews.auth_thumb(item.get('thumbnail') or '')
+					listitem.setProperties({'thumb': thumb, 'path': item['down_url'], 'name': item['name'], 'action': image_action, 'image_subject': key_id})
 					yield listitem
 				except: pass
 		key_id, page_no = self.params['key_id'], self.params['page_no']

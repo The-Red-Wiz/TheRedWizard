@@ -41,6 +41,26 @@ def _nextep_indicator_watchlist(indicators=None):
 	except: pass
 	return []
 
+_CLEAR_PROGRESS_LABEL = '[B]Clear Progress[/B]'
+
+def _cm_sync_clear_progress(cm, packet, has_progress):
+	"""Keep Clear Progress in line with live resume (cached Next Episodes CM can be stale)."""
+	cm = [i for i in (cm or []) if not (isinstance(i, (list, tuple)) and i and i[0] == _CLEAR_PROGRESS_LABEL)]
+	if not has_progress:
+		return cm
+	url = kodi_utils.build_url({
+		'mode': 'watched_status.erase_bookmark', 'media_type': 'episode',
+		'tmdb_id': packet['tmdb_id'], 'season': packet['season'], 'episode': packet['episode'],
+		'refresh': 'true'
+	})
+	item = (_CLEAR_PROGRESS_LABEL, 'RunPlugin(%s)' % url)
+	insert_at = len(cm)
+	for idx, entry in enumerate(cm):
+		if isinstance(entry, (list, tuple)) and entry and entry[0] in ('[B]Mark Watched[/B]', '[B]Mark Unwatched[/B]'):
+			insert_at = idx + 1
+	cm.insert(insert_at, item)
+	return cm
+
 def _paint_episode_list_packet(packet, item_list_append, make_listitem, kodi_actor, watched_db, is_external,
 								live_progress=True, log_label='episode list cache'):
 	"""Paint a cached row packet into item_list. Re-reads live WatchedProgress when requested."""
@@ -67,11 +87,11 @@ def _paint_episode_list_packet(packet, item_list_append, make_listitem, kodi_act
 		try: listitem.setContentLookup(False)
 		except: pass
 		listitem.setLabel(packet['display'])
-		listitem.addContextMenuItems(packet.get('cm') or [])
 		listitem.setArt(packet.get('art') or {})
 		props = dict(packet.get('properties') or {})
 		props.pop('WatchedProgress', None)
 		if props: set_properties(props)
+		_prog = None
 		if live_progress:
 			try:
 				_bm = ws.get_bookmarks_episode(packet['tmdb_id'], packet['season'], watched_db)
@@ -79,6 +99,9 @@ def _paint_episode_list_packet(packet, item_list_append, make_listitem, kodi_act
 				if _prog and not packet.get('unaired'):
 					ws.apply_listitem_progress(info_tag, set_properties, _prog, packet.get('duration') or 0, is_external)
 			except: pass
+		cm = _cm_sync_clear_progress(packet.get('cm') or [], packet, bool(_prog) and not packet.get('unaired'))
+		packet['cm'] = cm
+		listitem.addContextMenuItems(cm)
 		item_list_append({'list_items': (packet['play_params'], listitem, False), 'first_aired': packet.get('first_aired'),
 						'name': packet.get('name'), 'unaired': packet.get('unaired'), 'last_played': packet.get('last_played'),
 						'sort_order': packet.get('sort_order'), 'unwatched': packet.get('unwatched'),

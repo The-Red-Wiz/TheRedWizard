@@ -280,6 +280,8 @@ MEDIA_GITHUB_RAW = 'https://raw.githubusercontent.com/%s/%s/main/packages/media'
 LEGACY_MEDIA_GITHUB_RAW = 'https://raw.githubusercontent.com/TheRedWizard/TheRedWizard.github.io/main/packages/media'
 # Estuary WideList row icons use ListItem.Icon only for Container.Content() — not files.
 MENU_FOLDER_CONTENT = ''
+# EasyNews search / debrid cloud: skins (FENtastic, Aeon Nox, Nimbus) show thumbs when content is files.
+PREMIUM_FILES_CONTENT = 'files'
 
 def media_github_credentials():
 	return MEDIA_GITHUB_USER, MEDIA_GITHUB_REPO
@@ -313,6 +315,13 @@ def set_list_item_art(listitem, icon, fanart=None, banner=None, landscape=None):
 	listitem.setArt(art)
 	try: listitem.setIconImage(icon) # Estuary WideList reads ListItem.Icon, not Art(thumb).
 	except: pass
+
+def finish_premium_listitem(listitem, icon, fanart=None, plot=' '):
+	"""Art after InfoTag so getVideoInfoTag does not drop EasyNews/cloud thumbs."""
+	try:
+		listitem.getVideoInfoTag().setPlot(plot)
+	except: pass
+	set_list_item_art(listitem, icon, fanart=fanart)
 
 def get_addon_fanart():
 	return get_property('redlight.default_addon_fanart') or addon_fanart()
@@ -452,9 +461,9 @@ def add_dir(handle, url_params, list_name, icon_image='folder', fanart_image=Non
 	url = build_url(url_params)
 	listitem = make_listitem()
 	listitem.setLabel(list_name)
-	set_list_item_art(listitem, icon, fanart=fanart, banner=fanart)
-	info_tag = listitem.getVideoInfoTag(True)
+	info_tag = listitem.getVideoInfoTag()
 	info_tag.setPlot(' ')
+	set_list_item_art(listitem, icon, fanart=fanart, banner=fanart)
 	add_item(handle, url, listitem, isFolder)
 
 def make_listitem(offscreen=True):

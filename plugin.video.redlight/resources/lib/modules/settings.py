@@ -1138,7 +1138,7 @@ def offer_watched_provider(provider_index, name):
 	from modules.kodi_utils import confirm_dialog
 	if confirm_dialog(heading='Watched Status Provider', text='Do you want to set %s as your Watched Status Provider?' % name,
 						ok_label='Yes', cancel_label='No', default_control=10):
-		set_setting('watched_indicators', str(provider_index))
+		set_setting('watched_indicators', str(provider_index), provider_sync=False)
 		return True
 	return False
 

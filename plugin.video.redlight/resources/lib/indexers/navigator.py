@@ -40,9 +40,9 @@ class Navigator:
 					item['iconImage'] = icon
 					listitem = self.make_listitem()
 					listitem.setLabel(item.get('name', ''))
-					k.set_list_item_art(listitem, icon, fanart=self.fanart)
-					info_tag = listitem.getVideoInfoTag(True)
+					info_tag = listitem.getVideoInfoTag()
 					info_tag.setPlot(' ')
+					k.set_list_item_art(listitem, icon, fanart=self.fanart)
 					if not self.is_external: listitem.addContextMenuItems(cm_items)
 					yield ((url, listitem, True), count)
 				except: pass
@@ -81,13 +81,13 @@ class Navigator:
 		if s.authorized_debrid_check('pm'): self.add({'mode': 'navigator.premiumize'}, premium_menu_label('pm', 'Premiumize'), 'premiumize')
 		if s.authorized_debrid_check('rd'): self.add({'mode': 'navigator.real_debrid'}, premium_menu_label('rd', 'Real Debrid'), 'realdebrid')
 		if s.authorized_debrid_check('tb'): self.add({'mode': 'navigator.torbox'}, premium_menu_label('tb', 'TorBox'), 'torbox')
-		self.end_directory()
+		self._end_my_services()
 
 	def easynews(self):
 		self.add({'mode': 'navigator.search_history', 'action': 'easynews_video'}, 'Search Videos', 'search')
 		self.add({'mode': 'navigator.search_history', 'action': 'easynews_image'}, 'Search Images', 'search')
 		self.add({'mode': 'easynews.account_info', 'isFolder': 'false'}, 'Account Info', 'easynews')
-		self.end_directory()
+		self._end_my_services()
 
 	def nzb_indexers(self):
 		from caches.settings_cache import get_setting
@@ -96,39 +96,39 @@ class Navigator:
 			if get_setting('redlight.nzb%d.enabled' % slot, 'false') != 'true': continue
 			label = get_setting('redlight.nzb%d.label' % slot) or 'NZB Indexer %d' % slot
 			self.add({'mode': 'nzb.test_connection', 'slot': str(slot), 'isFolder': 'false'}, 'Test Connection: %s' % label, 'settings')
-		self.end_directory()
+		self._end_my_services()
 
 	def real_debrid(self):
 		self.add({'mode': 'real_debrid.rd_cloud'}, 'Cloud Storage', 'realdebrid')
 		self.add({'mode': 'real_debrid.rd_downloads'}, 'History', 'realdebrid')
 		self.add({'mode': 'real_debrid.rd_account_info', 'isFolder': 'false'}, 'Account Info', 'realdebrid')
-		self.end_directory()
+		self._end_my_services()
 
 	def premiumize(self):
 		self.add({'mode': 'premiumize.pm_cloud'}, 'Cloud Storage', 'premiumize')
 		self.add({'mode': 'premiumize.pm_transfers'}, 'History', 'premiumize')
 		self.add({'mode': 'premiumize.pm_account_info', 'isFolder': 'false'}, 'Account Info', 'premiumize')
-		self.end_directory()
+		self._end_my_services()
 
 	def alldebrid(self):
 		self.add({'mode': 'alldebrid.ad_cloud'}, 'Cloud Storage', 'alldebrid')
 		self.add({'mode': 'alldebrid.ad_downloads'}, 'History', 'alldebrid')
 		self.add({'mode': 'alldebrid.ad_saved_links'}, 'Saved Links', 'alldebrid')
 		self.add({'mode': 'alldebrid.ad_account_info', 'isFolder': 'false'}, 'Account Info', 'alldebrid')
-		self.end_directory()
+		self._end_my_services()
 
 	def offcloud(self):
 		self.add({'mode': 'offcloud.oc_cloud'}, 'Cloud Storage', 'offcloud')
 		self.add({'mode': 'offcloud.oc_history'}, 'History', 'offcloud')
 		self.add({'mode': 'offcloud.oc_account_info', 'isFolder': 'false'}, 'Account Info', 'offcloud')
-		self.end_directory()
+		self._end_my_services()
 
 	def torbox(self):
 		self.add({'mode': 'torbox.tb_cloud'}, 'Cloud Storage', 'torbox')
 		self.add({'mode': 'torbox.tb_history'}, 'History', 'torbox')
 		self.add({'mode': 'torbox.send_webdl', 'isFolder': 'false'}, 'Send URL to WebDL', 'torbox')
 		self.add({'mode': 'torbox.tb_account_info', 'isFolder': 'false'}, 'Account Info', 'torbox')
-		self.end_directory()
+		self._end_my_services()
 
 	def favorites(self):
 		self.add({'mode': 'build_movie_list', 'action': 'favorites_movies', 'name': 'Movies'}, 'Movies', 'movies')
@@ -551,7 +551,7 @@ class Navigator:
 		self.add({'mode': 'navigator.choose_view', 'view_type': 'view.seasons', 'content': 'seasons'}, 'Set Seasons', 'ontheair')
 		self.add({'mode': 'navigator.choose_view', 'view_type': 'view.episodes', 'content': 'episodes'}, 'Set Episodes (show seasons)', 'next_episodes')
 		self.add({'mode': 'navigator.choose_view', 'view_type': 'view.episodes_single', 'content': 'episodes', 'name': 'episode lists'}, 'Set Episode Lists (Next Episodes, etc.)', 'calender')
-		self.add({'mode': 'navigator.choose_view', 'view_type': 'view.premium', 'content': k.MENU_FOLDER_CONTENT, 'name': 'premium files'}, 'Set Premium Files', 'premium')
+		self.add({'mode': 'navigator.choose_view', 'view_type': 'view.premium', 'content': 'files', 'name': 'premium files'}, 'Set Premium Files', 'premium')
 		self.end_directory()
 
 	def changelog_utils(self):
@@ -692,7 +692,7 @@ class Navigator:
 				url_params['setting_id'] = setting_id
 				cm_items = [('[B]Remove from history[/B]', 'RunPlugin(%s)' % self.build_url({'mode': 'search.remove', 'setting_id':setting_id, 'key_id': key_id})),
 							('[B]Clear All History[/B]', 'RunPlugin(%s)' % self.build_url({'mode': 'search.clear_all', 'setting_id':setting_id, 'refresh': 'true'}))]
-				self.add(url_params, key_id, 'calender', cm_items=cm_items)
+				self.add(url_params, key_id, 'search', cm_items=cm_items)
 			except: pass
 		self.category_name = self.params_get('name') or 'History'
 		self.end_directory(cache_to_disc=False)
@@ -739,7 +739,7 @@ class Navigator:
 	def choose_view(self):
 		handle = int(sys.argv[1])
 		view_type = self.params.get('view_type', 'view.main')
-		if view_type in ('view.main', 'view.premium'):
+		if view_type == 'view.main':
 			content = k.MENU_FOLDER_CONTENT
 		else:
 			content = self.params.get('content', 'files')
@@ -961,9 +961,9 @@ class Navigator:
 		url = k.build_folder_url(folder_params) if isFolder else k.build_url(folder_params)
 		listitem = self.make_listitem()
 		listitem.setLabel(list_name)
-		k.set_list_item_art(listitem, icon, fanart=self.fanart)
-		info_tag = listitem.getVideoInfoTag(True)
+		info_tag = listitem.getVideoInfoTag()
 		info_tag.setPlot(' ')
+		k.set_list_item_art(listitem, icon, fanart=self.fanart)
 		if not self.is_external:
 			if isFolder:
 				shortcut_params = dict(url_params)
@@ -974,10 +974,14 @@ class Navigator:
 			listitem.addContextMenuItems(cm_items)
 		self.add_item(int(sys.argv[1]), url, listitem, isFolder)
 
-	def end_directory(self, cache_to_disc=True, update_listing=False, skip_view_mode=False):
+	def end_directory(self, cache_to_disc=True, update_listing=False, skip_view_mode=False, content=None, view_type='view.main'):
 		handle = int(sys.argv[1])
-		k.set_content(handle, k.MENU_FOLDER_CONTENT)
+		if content is None: content = k.MENU_FOLDER_CONTENT
+		k.set_content(handle, content)
 		k.set_category(handle, self.category_name)
 		k.end_directory(handle, updateListing=update_listing, cacheToDisc=cache_to_disc)
 		if not skip_view_mode:
-			k.set_view_mode('view.main', k.MENU_FOLDER_CONTENT)
+			k.set_view_mode(view_type, content)
+
+	def _end_my_services(self):
+		self.end_directory()

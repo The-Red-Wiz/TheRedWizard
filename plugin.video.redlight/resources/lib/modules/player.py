@@ -48,6 +48,36 @@ class RedLightPlayer(xbmc.Player):
 			return True
 		return ku.get_property(PROP_RESOLVE_CANCEL) == 'true'
 
+	def _autoscrape_handoff_ready(self):
+		# Toast is only the last alert window. Confirm + finished scrape already
+		# arms Ready (PROP set) — Stop then is a handoff, not "stopped early".
+		try:
+			if ku.get_property(ku.PROP_AUTOSCRAPE_TOAST_SHOWN) == 'true':
+				return True
+			ready = ku.get_property(PROP_AUTOSCRAPE_NEXTEP_READY)
+			return bool(ready) and ready != 'false'
+		except Exception:
+			return False
+
+	def _maybe_show_nextep_handoff_cover(self):
+		if not getattr(self, 'autoscrape_nextep', False):
+			return
+		if not self._autoscrape_handoff_ready():
+			return
+		try:
+			from modules.sources import nextep_handoff_cancelled, show_nextep_handoff_cover
+			if nextep_handoff_cancelled():
+				return
+			show_nextep_handoff_cover()
+		except Exception:
+			pass
+
+	def onPlayBackStopped(self):
+		self._maybe_show_nextep_handoff_cover()
+
+	def onPlayBackEnded(self):
+		self._maybe_show_nextep_handoff_cover()
+
 	def run(self, url=None, obj=None):
 		ku.hide_busy_dialog()
 		self.clear_playback_properties(clear_navigation=False)
@@ -291,6 +321,11 @@ class RedLightPlayer(xbmc.Player):
 
 	def playback_close_dialogs(self):
 		self.sources_object.playback_successful = True
+		try:
+			from modules.sources import close_nextep_handoff_cover
+			close_nextep_handoff_cover()
+		except Exception:
+			pass
 		self.kill_dialog()
 		ku.sleep(200)
 		try:
@@ -412,12 +447,17 @@ class RedLightPlayer(xbmc.Player):
 				natural_end = (not playback_superseded and _remaining is not None and _remaining <= _NEXTEP_NATURAL_END_SEC)
 				# After Next Episode Ready, Stop in credits is a deliberate handoff (1.8.2
 				# "natural end only" was too strict vs subtitle/IntroDB alert windows).
-				ready_fired = ku.get_property(ku.PROP_AUTOSCRAPE_TOAST_SHOWN) == 'true'
+				ready_fired = self._autoscrape_handoff_ready()
 				if self.autoscrape_nextep and not playback_superseded:
 					if natural_end or ready_fired:
 						ku.set_property(PROP_NEXTEP_NATURAL_END, 'true')
 						if ready_fired and not natural_end:
 							self._log_nextep('Autoscrape next episode: stop after Ready (remaining=%ss)' % (_remaining if _remaining is not None else '?'))
+						try:
+							from modules.sources import show_nextep_handoff_cover
+							show_nextep_handoff_cover()
+						except Exception:
+							pass
 					else:
 						ku.set_property(PROP_NEXTEP_NATURAL_END, 'false')
 						try:
@@ -1076,6 +1116,11 @@ class RedLightPlayer(xbmc.Player):
 		episode = meta.get('episode', self.episode)
 		poster = meta.get('poster') or self.meta_get('poster')
 		ku.notification('[B]Next Episode Ready:[/B] %s S%02dE%02d' % (title, season, episode), 6500, poster)
+		try:
+			from modules.sources import arm_nextep_handoff_cover
+			arm_nextep_handoff_cover()
+		except Exception:
+			pass
 		self._log_nextep('Autoscrape next episode ready notify: remaining=%ss window=%ss' % (remaining, window))
 
 	def _try_autoplay_early_stash_play(self):
@@ -1660,6 +1705,8 @@ class RedLightPlayer(xbmc.Player):
 			self._log_intro_skip('Intro skip failed: player inactive')
 			return False
 		ok = self.seek(end_sec, False)
+		# No-op if the prompt already restored fullscreen. Do not re-assert
+		# during an in-flight seek (that hitch was the post-Yes freeze).
 		self._restore_fullscreen_after_intro_skip()
 		if not ok:
 			self._log_intro_skip('Intro skip failed: seek rejected')

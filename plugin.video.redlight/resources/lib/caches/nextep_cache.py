@@ -37,7 +37,7 @@ def _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, 
 		settings.date_offset(),
 		settings.playback_key(),
 		settings.ignore_articles(),
-		2,  # cache schema: no InfoTag resume; live progress on paint
+		3,  # cache schema: live progress on paint + Clear Progress CM sync
 	)
 	return '_'.join(str(p) for p in parts)
 
@@ -80,7 +80,7 @@ def activity_token(watched_indicators):
 
 
 def show_activity(watched_indicators):
-	"""Per-show activity for incremental rebuild: tmdb_id -> max last_played."""
+	"""Per-show activity for incremental rebuild: watched + in-progress resume."""
 	try:
 		from modules.watched_status import get_database
 		dbcon = get_database(watched_indicators)
@@ -88,7 +88,18 @@ def show_activity(watched_indicators):
 			'SELECT media_id, COALESCE(MAX(last_played), "") FROM watched WHERE db_type = ? GROUP BY media_id',
 			('episode',)
 		).fetchall() or []
-		return {str(r[0]): (r[1] or '') for r in rows if r[0] not in (None, '')}
+		activity = {str(r[0]): (r[1] or '') for r in rows if r[0] not in (None, '')}
+		prog_rows = dbcon.execute(
+			'SELECT media_id, COALESCE(MAX(last_played), ""), '
+			'COALESCE(SUM(CAST(resume_point AS FLOAT)), 0) '
+			'FROM progress WHERE db_type = ? AND CAST(resume_point AS FLOAT) > 1 GROUP BY media_id',
+			('episode',)
+		).fetchall() or []
+		for r in prog_rows:
+			if r[0] in (None, ''): continue
+			key = str(r[0])
+			activity[key] = '%s|p:%s|%s' % (activity.get(key, ''), r[1] or '', r[2] or 0)
+		return activity
 	except:
 		return {}
 

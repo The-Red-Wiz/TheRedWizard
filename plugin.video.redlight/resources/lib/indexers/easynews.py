@@ -10,6 +10,18 @@ from modules import kodi_utils
 from modules.utils import clean_file_name
 # logger = kodi_utils.logger
 
+def _thumb_url(url, fallback):
+	thumb = EasyNews.auth_thumb(url or fallback) or fallback
+	return thumb
+
+def _easynews_row_fanart(thumbnail):
+	"""Nimbus List side art uses Art(fanart) on empty-content plugin rows; other skins keep addon fanart for fanart-view readability."""
+	try:
+		if 'nimbus' in kodi_utils.current_skin().lower():
+			return thumbnail
+	except: pass
+	return kodi_utils.get_addon_fanart()
+
 def search_easynews_image(key_id=None):
 	return Images().run({'mode': 'easynews_image_results', 'key_id': unquote(key_id), 'page_no': 1})
 
@@ -50,14 +62,13 @@ def easynews_file_browser(files, handle):
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				thumbnail = item_get('thumbnail', icon)
-				listitem.setArt({'icon': thumbnail, 'poster': thumbnail, 'thumb': thumbnail, 'fanart': fanart, 'banner': icon})
-				info_tag = listitem.getVideoInfoTag(True)
+				thumbnail = _thumb_url(item_get('thumbnail'), icon)
+				info_tag = listitem.getVideoInfoTag()
 				info_tag.setPlot(' ')
+				kodi_utils.set_list_item_art(listitem, thumbnail, fanart=_easynews_row_fanart(thumbnail))
 				yield (url, listitem, False)
 			except: pass
 	icon = kodi_utils.get_icon('easynews')
-	fanart = kodi_utils.get_addon_fanart()
 	kodi_utils.add_items(handle, list(_builder()))
 
 def resolve_easynews(params):

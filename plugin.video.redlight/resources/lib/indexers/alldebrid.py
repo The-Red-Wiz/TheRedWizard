@@ -49,8 +49,8 @@ def ad_cloud(folder_id=None):
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
-				info_tag = listitem.getVideoInfoTag(True)
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
+				info_tag = listitem.getVideoInfoTag()
 				info_tag.setPlot(' ')
 				yield (url, listitem, True)
 			except:
@@ -66,9 +66,9 @@ def ad_cloud(folder_id=None):
 		kodi_utils.hide_busy_dialog()
 	handle = int(sys.argv[1])
 	kodi_utils.add_items(handle, list(_builder()))
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 
 def ad_downloads():
@@ -106,10 +106,10 @@ def ad_downloads():
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
 				plot = item.get('status') if history_type == 'magnet' else ''
 				if isinstance(plot, str) and plot.strip():
-					listitem.getVideoInfoTag(True).setPlot(plot)
+					listitem.getVideoInfoTag().setPlot(plot)
 				yield (url, listitem, is_folder)
 			except:
 				pass
@@ -156,9 +156,9 @@ def ad_downloads():
 			kodi_utils.notification('All Debrid: No transfers in history', 2500)
 	handle = int(sys.argv[1])
 	kodi_utils.add_items(handle, list(_builder()))
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 
 def ad_saved_links():
@@ -178,8 +178,8 @@ def ad_saved_links():
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
-				info_tag = listitem.getVideoInfoTag(True)
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
+				info_tag = listitem.getVideoInfoTag()
 				info_tag.setPlot(' ')
 				yield (url, listitem, False)
 			except:
@@ -195,9 +195,9 @@ def ad_saved_links():
 		kodi_utils.hide_busy_dialog()
 	handle = int(sys.argv[1])
 	kodi_utils.add_items(handle, list(_builder()))
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 
 def browse_ad_cloud(folder_id):
@@ -219,8 +219,8 @@ def browse_ad_cloud(folder_id):
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
-				info_tag = listitem.getVideoInfoTag(True)
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
+				info_tag = listitem.getVideoInfoTag()
 				info_tag.setPlot(' ')
 				yield (url, listitem, False)
 			except:
@@ -232,9 +232,9 @@ def browse_ad_cloud(folder_id):
 	handle = int(sys.argv[1])
 	icon, fanart = kodi_utils.get_icon('alldebrid'), kodi_utils.get_addon_fanart()
 	kodi_utils.add_items(handle, list(_builder()))
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 
 def resolve_ad(params):

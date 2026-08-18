@@ -38,7 +38,12 @@ PROP_NEXTEP_ALERT_KEY = 'redlight.nextep_alert_key'
 PROP_NEXTEP_AUTOPLAY_CANCELLED = 'redlight.nextep_autoplay_cancelled'
 PROP_NEXTEP_NATURAL_END = 'redlight.nextep_natural_end'
 PROP_AUTOSCRAPE_NEXTEP_READY = 'redlight.autoscrape_nextep_ready'
+PROP_NEXTEP_HANDOFF_META = 'redlight.nextep_handoff_meta'
+PROP_NEXTEP_HANDOFF_VISIBLE = 'redlight.nextep_handoff.visible'
 PROP_RANDOM_CONTINUAL_SKIP_ATTEMPTS = 'redlight.random_continual_skip_attempts'
+_HANDOFF_COVER = None
+_HANDOFF_COVER_THREAD = None
+_HANDOFF_COVER_SHOWN = False
 RANDOM_CONTINUAL_MAX_SKIPS = 25
 _NEXTEP_NATURAL_END_SEC = 15
 _NEXTEP_AUTOPLAY_STASH = {}
@@ -138,6 +143,130 @@ def mark_nextep_autoplay_cancelled():
 	kodi_utils.clear_property(PROP_AUTOSCRAPE_NEXTEP_READY)
 	kodi_utils.clear_property(kodi_utils.PROP_AUTOSCRAPE_TOAST_SHOWN)
 	kodi_utils.clear_property(PROP_NEXTEP_NATURAL_END)
+	close_nextep_handoff_cover()
+
+def _handoff_meta_payload(meta=None):
+	meta = meta or {}
+	return {
+		'tmdb_id': meta.get('tmdb_id', ''),
+		'title': meta.get('title', ''),
+		'season': meta.get('season', 0),
+		'episode': meta.get('episode', 0),
+		'poster': meta.get('poster', '') or '',
+		'fanart': meta.get('fanart', '') or '',
+		'clearlogo': meta.get('clearlogo', '') or '',
+		'ep_name': meta.get('ep_name', '') or '',
+	}
+
+def _store_handoff_meta(meta=None):
+	payload = _handoff_meta_payload(meta)
+	try:
+		kodi_utils.set_property(PROP_NEXTEP_HANDOFF_META, json.dumps(payload))
+	except Exception:
+		pass
+	return payload
+
+def _load_handoff_meta():
+	try:
+		raw = kodi_utils.get_property(PROP_NEXTEP_HANDOFF_META)
+		if raw:
+			return json.loads(raw)
+	except Exception:
+		pass
+	return {}
+
+def _handoff_meta_matches(meta):
+	if not meta:
+		return False
+	stored = _load_handoff_meta()
+	if not stored:
+		return False
+	return _nextep_stash_key(stored) == _nextep_stash_key(meta)
+
+def arm_nextep_handoff_cover(meta=None):
+	global _HANDOFF_COVER
+	if nextep_handoff_cancelled():
+		return False
+	payload = _store_handoff_meta(meta) if meta else _load_handoff_meta()
+	if _HANDOFF_COVER is not None:
+		return True
+	if not payload:
+		return False
+	try:
+		win = create_window(('windows.nextep_handoff', 'NextepHandoffCover'), 'nextep_handoff.xml', meta=payload)
+		if not win or not hasattr(win, 'run'):
+			return False
+		_HANDOFF_COVER = win
+		kodi_utils.logger('Red Light', 'Autoscrape handoff cover armed: %s S%02dE%02d' % (
+			payload.get('title'), int(payload.get('season') or 0), int(payload.get('episode') or 0)))
+		return True
+	except Exception as e:
+		try:
+			kodi_utils.logger('Red Light', 'Autoscrape handoff cover arm failed: %s' % e)
+		except Exception:
+			pass
+		return False
+
+def show_nextep_handoff_cover(meta=None):
+	global _HANDOFF_COVER_THREAD, _HANDOFF_COVER_SHOWN
+	if _HANDOFF_COVER_SHOWN:
+		return True
+	if nextep_handoff_cancelled():
+		close_nextep_handoff_cover()
+		return False
+	if not arm_nextep_handoff_cover(meta):
+		return False
+	try:
+		_HANDOFF_COVER.show()
+		_HANDOFF_COVER_SHOWN = True
+		for _ in range(20):
+			if kodi_utils.get_property(PROP_NEXTEP_HANDOFF_VISIBLE) == 'true':
+				break
+			kodi_utils.sleep(10)
+		kodi_utils.logger('Red Light', 'Autoscrape handoff cover shown')
+		return True
+	except Exception as e:
+		_HANDOFF_COVER_SHOWN = False
+		try:
+			kodi_utils.logger('Red Light', 'Autoscrape handoff cover show failed: %s' % e)
+		except Exception:
+			pass
+		return False
+
+def close_nextep_handoff_cover():
+	global _HANDOFF_COVER, _HANDOFF_COVER_THREAD, _HANDOFF_COVER_SHOWN
+	kodi_utils.clear_property(PROP_NEXTEP_HANDOFF_VISIBLE)
+	kodi_utils.clear_property(PROP_NEXTEP_HANDOFF_META)
+	win, thread = _HANDOFF_COVER, _HANDOFF_COVER_THREAD
+	_HANDOFF_COVER, _HANDOFF_COVER_THREAD, _HANDOFF_COVER_SHOWN = None, None, False
+	if win is None and thread is None:
+		try:
+			kodi_utils.close_dialog('nextep_handoff.xml')
+		except Exception:
+			pass
+		return
+	try:
+		win.close()
+	except Exception:
+		pass
+	try:
+		kodi_utils.close_dialog('nextep_handoff.xml')
+	except Exception:
+		pass
+	if thread and thread.is_alive():
+		try:
+			thread.join(timeout=1.0)
+		except Exception:
+			pass
+
+def dismiss_nextep_handoff_cover_keep_armed():
+	# Cover must not sit over playing video. If it did and the user Backs,
+	# drop the overlay only — Stop should still be a handoff.
+	payload = _load_handoff_meta()
+	close_nextep_handoff_cover()
+	if payload:
+		_store_handoff_meta(payload)
+		arm_nextep_handoff_cover(payload)
 
 def nextep_handoff_cancelled():
 	return nextep_autoplay_cancelled() or kodi_utils.get_property('redlight.nextep_prep_declined') == 'true'
@@ -146,9 +275,13 @@ def cancel_pending_nextep_on_user_play(meta=None):
 	pending = (
 		kodi_utils.get_property('redlight.nextep_pending') == 'true'
 		or bool(kodi_utils.get_property(PROP_AUTOSCRAPE_NEXTEP_READY))
+		or bool(kodi_utils.get_property(PROP_NEXTEP_HANDOFF_META))
+		or kodi_utils.get_property(PROP_NEXTEP_HANDOFF_VISIBLE) == 'true'
 		or peek_nextep_autoplay_stash()
 	)
 	if pending:
+		if _handoff_meta_matches(meta):
+			return False
 		mark_nextep_autoplay_cancelled()
 		try:
 			kodi_utils.logger('Red Light', 'Next episode prep cancelled (user started playback)')
@@ -1261,6 +1394,7 @@ class Sources():
 					uncached_results=self.uncached_results, cache_check_override=self.cache_check_override)
 			if not window_result:
 				# Drop busy before cleanup so a quick second widget is not toast-blocked.
+				close_nextep_handoff_cover()
 				self._begin_sources_cancel()
 				self._kill_progress_dialog()
 				self._abort_plugin_resolve()
@@ -1275,6 +1409,7 @@ class Sources():
 					self._release_sources_busy()
 					self._wait_active_playback_end()
 					if not self._reclaim_sources_busy():
+						close_nextep_handoff_cover()
 						self._kill_progress_dialog(join_timeout=1.0)
 						self.resolve_dialog_made = False
 						self._abort_plugin_resolve()
@@ -1283,11 +1418,13 @@ class Sources():
 				if self._playback_already_active():
 					# Browse / mid-play close: do not clear the active playlist, but still
 					# answer a pending widget resolve handle if one was never consumed.
+					close_nextep_handoff_cover()
 					self._kill_progress_dialog(join_timeout=1.0, close_overlays=False)
 					self.resolve_dialog_made = False
 					self._abort_plugin_resolve(clear_playlist=False)
 					return
 				# Drop busy before cleanup so a quick second widget is not toast-blocked.
+				close_nextep_handoff_cover()
 				self._begin_sources_cancel()
 				self._kill_progress_dialog(join_timeout=1.0)
 				self.resolve_dialog_made = False
@@ -2105,6 +2242,7 @@ class Sources():
 		return url
 
 	def _finish_resolve_cancel(self):
+		close_nextep_handoff_cover()
 		kodi_utils.clear_property(PROP_PLAY_OPENING)
 		self._release_resolve_busy()
 		kodi_utils.clear_property(PROP_RESOLVE_CANCEL)
@@ -2121,7 +2259,7 @@ class Sources():
 		if retries is None:
 			retries = 6 if kodi_utils.is_android() else 3
 		# extras.xml: Play from Extras used to leave it stacked over fullscreen video.
-		dialogs = ('sources_playback.xml', 'sources_results.xml', 'extras.xml')
+		dialogs = ('sources_playback.xml', 'sources_results.xml', 'nextep_handoff.xml', 'extras.xml')
 		for _ in range(retries):
 			if not self._sources_still_owns_ui():
 				return
@@ -2748,15 +2886,17 @@ class Sources():
 	def _mark_autoscrape_nextep_ready(self):
 		if getattr(self, '_autoscrape_ready_marked', False): return
 		self._autoscrape_ready_marked = True
+		payload = _store_handoff_meta(self.meta)
 		try:
 			kodi_utils.set_property(PROP_AUTOSCRAPE_NEXTEP_READY, json.dumps({
-				'title': self.meta.get('title', ''),
-				'season': self.meta.get('season', 0),
-				'episode': self.meta.get('episode', 0),
-				'poster': self.meta.get('poster', '') or '',
+				'title': payload.get('title', ''),
+				'season': payload.get('season', 0),
+				'episode': payload.get('episode', 0),
+				'poster': payload.get('poster', '') or '',
 			}))
 		except:
 			kodi_utils.set_property(PROP_AUTOSCRAPE_NEXTEP_READY, 'true')
+		arm_nextep_handoff_cover(self.meta)
 
 	def _show_autoscrape_ready_notification(self):
 		meta = {}
@@ -2858,6 +2998,7 @@ class Sources():
 		return True
 
 	def _decline_nextep_prep(self, reason):
+		close_nextep_handoff_cover()
 		try:
 			player = kodi_utils.kodi_player()
 			if isinstance(player, RedLightPlayer):
@@ -2917,6 +3058,7 @@ class Sources():
 			else:
 				kodi_utils.logger('Red Light', 'Autoscrape next episode ready (stopped during scrape): %s S%02dE%02d remaining=%ss alert_window=%ss' % (
 					self.meta.get('title'), self.meta.get('season'), self.meta.get('episode'), remaining, window_time))
+			show_nextep_handoff_cover(self.meta)
 			return self._display_results_nextep_handoff(results)
 		# Toast only in the alert window (same with or without Confirm) — Ready must mean
 		# handoff is imminent, not merely that the background scrape finished.
@@ -2937,6 +3079,7 @@ class Sources():
 		if not self._autoscrape_playback_ended_naturally():
 			self._decline_nextep_prep('user stopped')
 			return
+		show_nextep_handoff_cover(self.meta)
 		if kodi_utils.get_property(PROP_AUTOSCRAPE_NEXTEP_READY) and kodi_utils.get_property(kodi_utils.PROP_AUTOSCRAPE_TOAST_SHOWN) != 'true':
 			self._show_autoscrape_ready_notification()
 		self._display_results_nextep_handoff(results)
@@ -2958,6 +3101,7 @@ class Sources():
 		# answered via setResolvedUrl. First pick must use Player.play() or resolve is a
 		# noop and the queue only succeeds on the second source.
 		self._use_player_play = True
+		show_nextep_handoff_cover(self.meta)
 		kodi_utils.close_dialog('notification')
 		return self.display_results(results)
 

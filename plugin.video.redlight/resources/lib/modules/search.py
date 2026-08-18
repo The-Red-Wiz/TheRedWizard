@@ -49,26 +49,31 @@ def get_key_id(params):
 		url_params, string = {'mode': 'simkl.list.search_simkl_lists'}, 'simkl_list_queries'
 	elif search_type == 'punchplay_lists':
 		url_params, string = {'mode': 'punchplay.list.search_punchplay_lists'}, 'punchplay_list_queries'
-	if string: add_to_search(key_id, string)
+	if string: history_changed = add_to_search(key_id, string)
+	else: history_changed = False
 	if search_type == 'people':
 		person_search(key_id)
-		return _refresh_search_history_if_visible()
+		if history_changed: _refresh_search_history_if_visible()
+		return
 	if search_type == 'easynews_image':
 		search_easynews_image(key_id)
-		return _refresh_search_history_if_visible()
+		if history_changed: _refresh_search_history_if_visible()
+		return
 	url_params.update({'query': key_id, 'key_id': key_id, 'name': 'Search Results for %s' % key_id})
 	return execute_builtin('ActivateWindow(Videos,%s,return)' if external() else 'Container.Update(%s)' % build_url(url_params))
 
 def add_to_search(search_name, search_list):
 	try:
-		result = []
-		cache = main_cache.get(search_list)
-		if cache: result = cache
-		if search_name in result: result.remove(search_name)
+		result = list(main_cache.get(search_list) or [])
+		if result and result[0] == search_name:
+			return False
+		if search_name in result:
+			result.remove(search_name)
 		result.insert(0, search_name)
 		result = result[:50]
 		main_cache.set(search_list, result, expiration=8760)
-	except: return
+		return True
+	except: return False
 
 def remove_from_search(params):
 	try:

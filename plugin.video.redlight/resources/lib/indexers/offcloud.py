@@ -55,7 +55,7 @@ def oc_cloud():
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
 				yield (url, listitem, is_folder)
 			except Exception:
 				pass
@@ -72,9 +72,9 @@ def oc_cloud():
 	handle = int(sys.argv[1])
 	built = list(_builder())
 	kodi_utils.add_items(handle, built)
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 	if not built and all_items:
 		kodi_utils.notification('Offcloud: Nothing ready in Cloud Storage yet. Open History for queued or processing items.', 5500)
 	elif not built and not all_items:
@@ -114,10 +114,10 @@ def oc_history():
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
 				plot = item.get('message') or item.get('detail') or status_label
 				if isinstance(plot, str) and plot.strip():
-					listitem.getVideoInfoTag(True).setPlot(plot)
+					listitem.getVideoInfoTag().setPlot(plot)
 				yield (url, listitem, is_folder)
 			except Exception:
 				pass
@@ -133,9 +133,9 @@ def oc_history():
 	handle = int(sys.argv[1])
 	built = list(_builder())
 	kodi_utils.add_items(handle, built)
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle, cacheToDisc=False)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 	if not built and not history_items:
 		kodi_utils.notification('Offcloud: No history items (or authorisation expired — re-link in Torrent Sources)', 5500)
 
@@ -155,8 +155,8 @@ def browse_oc_cloud(folder_id):
 				listitem = kodi_utils.make_listitem()
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': icon})
-				listitem.getVideoInfoTag(True).setPlot(' ')
+				kodi_utils.set_list_item_art(listitem, icon, fanart=fanart)
+				listitem.getVideoInfoTag().setPlot(' ')
 				yield (url, listitem, False)
 			except Exception:
 				pass
@@ -165,9 +165,9 @@ def browse_oc_cloud(folder_id):
 	video_files = [i for i in (torrent_files or []) if i.lower().endswith(tuple(supported_video_extensions()))]
 	handle = int(sys.argv[1])
 	kodi_utils.add_items(handle, list(_builder()))
-	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_content(handle, kodi_utils.PREMIUM_FILES_CONTENT)
 	kodi_utils.end_directory(handle)
-	kodi_utils.set_view_mode('view.premium', kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_view_mode('view.premium', kodi_utils.PREMIUM_FILES_CONTENT)
 
 def oc_delete(folder_id):
 	if not kodi_utils.confirm_dialog(): return
