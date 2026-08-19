@@ -553,7 +553,7 @@ class RedLightPlayer(xbmc.Player):
 			listitem.setLabel(self.title)
 			fresh_start = False
 			if self.media_type == 'movie':
-				plot = self.meta_get('plot')
+				plot = self.meta_get('plot') if st.show_loading_plot() else ''
 				listitem.setArt({'poster': poster, 'fanart': fanart, 'icon': poster, 'clearlogo': clearlogo})
 				info_tag = listitem.getVideoInfoTag(True)
 				info_tag.setMediaType('movie'), info_tag.setTitle(self.title), info_tag.setOriginalTitle(self.meta_get('original_title')), info_tag.setPlot(plot)
@@ -563,7 +563,8 @@ class RedLightPlayer(xbmc.Player):
 				info_tag.setWriters(writer), info_tag.setDirectors(director), info_tag.setUniqueIDs({'imdb': self.imdb_id, 'tmdb': str(self.tmdb_id)})
 				info_tag.setCast([ku.kodi_actor()(name=item['name'], role=item['role'], thumbnail=item['thumbnail']) for item in cast])
 			else:
-				if st.avoid_episode_spoilers() and int(self.meta_get('playcount') or 0) == 0: plot = self.meta_get('tvshow_plot') or '* Hidden to Prevent Spoilers *'
+				if not st.show_loading_plot(): plot = ''
+				elif st.avoid_episode_spoilers() and int(self.meta_get('playcount') or 0) == 0: plot = self.meta_get('tvshow_plot') or '* Hidden to Prevent Spoilers *'
 				else: plot = self.meta_get('plot') or self.meta_get('tvshow_plot')
 				listitem.setArt({'poster': poster, 'fanart': fanart, 'icon': poster, 'clearlogo': clearlogo, 'tvshow.poster': poster, 'tvshow.clearlogo': clearlogo})
 				info_tag = listitem.getVideoInfoTag(True)

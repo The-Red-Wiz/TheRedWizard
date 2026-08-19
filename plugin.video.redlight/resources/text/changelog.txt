@@ -1,3 +1,8 @@
+[COLOR red][B]Version 2.3.0[/B][/COLOR]
+- [B]EasyNews Video Search[/B]: row previews are set on [I]icon[/I], [I]thumb[/I], [I]poster[/I], [I]landscape[/I], [I]ListItem.Icon[/I], and [I]ListItem.Thumb[/I] so FENtastic Plus Icon / WideList can show them. Nimbus List and Nimbus Plus FlixList bind side art from [I]Art(fanart)[/I] on plugin files, so those skins get the preview there; other skins keep addon fanart as the page backdrop. Results use [I]files[/I] content (same as debrid cloud browsers).
+- [B]Content[/B] ([I]#217[/I]): [B]Show Plot on Loading and Pause[/B] (was Loading Screen only). Off also clears the playing item plot so the skin pause OSD does not show the synopsis. Episode title still shows; [B]Avoid Episode Spoilers[/B] still applies when this is on.
+- [B]OK dialogs[/B]: long text (e.g. [B]About WeTrakr Scrobble[/B], Import & Export summaries) focuses the scrollbar first so Up/Down scrolls immediately — same as long Import & Export confirm dialogs.
+
 [COLOR red][B]Version 2.2.9[/B][/COLOR]
 - [B]EasyNews / My Services[/B]: restore result thumbs and menu icons. Video [I]pr-[/I] and image [I]sm-[/I] previews drop the last 4 hash characters (full id 403s on [I]th.easynews.com[/I]). Search history rows use the search icon, not calendar. Nimbus List gets the preview on [I]fanart[/I] (that skin binds side art there); other skins keep addon fanart so fanart views stay readable.
 - [B]EasyNews Images[/B]: backing out of the thumb grid no longer flashes the search-history list when the query was already at the top — skip [I]Container.Update[/I] when history order did not change. New searches and re-ordering still refresh history on exit. Video Search after Images no longer runs the image processor (that left an empty result list).

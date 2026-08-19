@@ -1044,10 +1044,10 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(30)</visible>
-                          <property name="setting_label">Show Plot on Loading Screen</property>
+                          <property name="setting_label">Show Plot on Loading and Pause</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.show_loading_plot)]</property>
-                          <property name="setting_description">When enabled, show the movie or episode synopsis on the source loading screen. Disable to hide the description.</property>
+                          <property name="setting_description">When enabled, show the movie or episode synopsis on the source loading screen and on the player pause screen. Disable to hide the description on both. Episode title still shows when disabled. Avoid Episode Spoilers still applies when this is on.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=show_loading_plot)</onclick>
                       </item>
                       <item>
