@@ -242,17 +242,40 @@ def numbered_song_title(track, songname):
     return "%s. %s" % (track, songname)
 
 def album_download_names(name):
-    name = settings.decode_text(name or '')
+    """Parse listing title into (artist, album, year).
+    Accepts 'Artist - Album - 1979' and 'Artist - Album (1979)'.
+    """
+    name = settings.decode_text(name or '').strip()
+    year = ''
+    match = re.match(r'^(.*) \((\d{4})\)$', name)
+    if match and match.group(1).strip():
+        name = match.group(1).strip()
+        year = match.group(2)
     parts = name.split(' - ')
+    if not year and len(parts) > 2 and re.match(r'^\d{4}$', parts[-1].strip()):
+        year = parts[-1].strip()
+        parts = parts[:-1]
     if len(parts) < 2:
-        return 'Various', name
-    artist = parts[0]
-    album_parts = parts[1:-1] if len(parts) > 2 and re.match(r'^\d{4}$', parts[-1]) else parts[1:]
-    return artist, ' - '.join(album_parts)
+        return 'Various', parts[0] if parts else name, year
+    return parts[0], ' - '.join(parts[1:]), year
+
+def album_storage_names(name):
+    artist, album, year = album_download_names(name)
+    return artist, album, settings.album_storage_title(album, year)
 
 def _normalize_id3_match(text):
     text = settings.decode_text(text or '').strip().lower()
     return ' '.join(text.split())
+
+def _album_id3_candidates(text):
+    names = []
+    seen = set()
+    for title in settings.album_lookup_titles(text):
+        norm = _normalize_id3_match(title)
+        if norm and norm not in seen:
+            names.append(norm)
+            seen.add(norm)
+    return names
 
 def _id3_tag_value(tags, key):
     val = tags.get(key) if tags else None
@@ -276,12 +299,13 @@ def _legacy_local_path_id3_ok(path, artist, album):
     if not tag_artist.strip() and not tag_album.strip():
         return True
     expected_artist = _normalize_id3_match(artist)
-    expected_album = _normalize_id3_match(album)
+    expected_album = _album_id3_candidates(album)
     if tag_artist.strip() and expected_artist:
         if _normalize_id3_match(tag_artist) != expected_artist:
             return False
     if tag_album.strip() and expected_album:
-        if _normalize_id3_match(tag_album) != expected_album:
+        tag_albums = set(_album_id3_candidates(tag_album))
+        if tag_albums.isdisjoint(expected_album):
             return False
     return True
 
@@ -300,14 +324,19 @@ def find_local_track(artist, album, track, songname, title=None):
             candidates.append((path, verify_id3))
             seen_candidates.add(path)
 
-    if FOLDERSTRUCTURE == "0":
-        album_bases = [(os.path.join(settings.music_dir(), settings.sanitize_filename(artist), settings.sanitize_filename(album)), False)]
-    else:
-        # New escaped flat folders first; old Artist - Album folders only with ID3 check (separator collisions).
-        album_bases = [
-            (settings.album_storage_folder(artist, album, create=False), False),
-            (settings.legacy_flat_album_storage_folder(artist, album), True),
-        ]
+    album_bases = []
+    seen_bases = set()
+    for album_title in settings.album_lookup_titles(album):
+        primary = settings.album_storage_folder(artist, album_title, create=False)
+        if primary not in seen_bases:
+            album_bases.append((primary, False))
+            seen_bases.add(primary)
+        if FOLDERSTRUCTURE != "0":
+            # Old unescaped Artist - Album folders only with ID3 check (separator collisions).
+            legacy_flat = settings.legacy_flat_album_storage_folder(artist, album_title)
+            if legacy_flat not in seen_bases:
+                album_bases.append((legacy_flat, True))
+                seen_bases.add(legacy_flat)
     for base, verify_id3 in album_bases:
         for filename in (settings.album_track_basename(track_id, songname), settings.sanitize_filename(numbered), settings.sanitize_filename(songname)):
             add_candidate(base, filename, verify_id3=verify_id3)
@@ -315,10 +344,11 @@ def find_local_track(artist, album, track, songname, title=None):
         if path and os.path.exists(path) and (not verify_id3 or _legacy_local_path_id3_ok(path, artist, album)):
             return path
     # Pre-2026.07.16 album downloads used album title only — keep for legacy users, but verify ID3 when present.
-    legacy_base = os.path.join(settings.music_dir(), settings.sanitize_filename(album))
-    legacy_path = os.path.join(legacy_base, settings.sanitize_filename(numbered) + '.mp3')
-    if legacy_path and os.path.exists(legacy_path) and _legacy_local_path_id3_ok(legacy_path, artist, album):
-        return legacy_path
+    for album_title in settings.album_lookup_titles(album):
+        legacy_base = os.path.join(settings.music_dir(), settings.sanitize_filename(album_title))
+        legacy_path = os.path.join(legacy_base, settings.sanitize_filename(numbered) + '.mp3')
+        if legacy_path and os.path.exists(legacy_path) and _legacy_local_path_id3_ok(legacy_path, artist, album):
+            return legacy_path
     return None
 
 # RunPlugin / action-only modes must not call endOfDirectory or Kodi shows a blank list.
@@ -560,6 +590,9 @@ def compilations_list(name, url, iconimage, page):
     #match=re.compile('<a href="(.+?)"><img alt="(.+?)" src="(.+?)" /></a><a class="(.+?)" href="(.+?)">(.+?)</a><span class="(.+?)">(.+?)</span><span class="f_year">(.+?)</span><span class="ga_price">(.+?)</span></div>').findall(link)
     for link, d1, iconimage, cl, url2, title, cl, artist, year, prc in match:
         link ='http://www.goldenmp3.ru' + link
+        year = str(year or '').strip()
+        if re.match(r'^\d{4}$', year) and not title.endswith(' (%s)' % year):
+            title = "%s (%s)" % (title, year)
         addDir(title, link, 5, iconimage, 'albums')
     if page != 'n':
         nextpage = int(page) + 1
@@ -646,7 +679,7 @@ def album_list(name, url):
     all_albums = re.compile('<a class="album_report__link" href="(.+?)"><img alt="(.+?)" class="album_report__image" src="(.+?)"/><span class="album_report__name">(.+?)</span>(.+?)"album_report__artist" href="(.+?)">(.+?)</a>, <span class="album_report__date">(.+?)</span>').findall(link)
     #all_albums = re.compile('<a class="album_report__link" href="(.+?)"><img alt="(.+?)" class="album_report__image" src="(.+?)" /><span class="album_report__name">(.+?)</span>(.+?)"album_report__artist" href="(.+?)">(.+?)</a>, <span class="album_report__date">(.+?)</span>').findall(link)
     for url1,d1,thumb,album,plot,artisturl,artist,year in all_albums:
-        title = "%s - %s - %s" % (artist, album, year)
+        title = "%s - %s (%s)" % (artist, album, year)
         thumb = thumb.replace('al', 'alm').replace('covers', 'mcovers')
         addDir(title,'http://musicmp3.ru' + url1,5,thumb,'albums')
     pgnumf = url.find('page=') + 5
@@ -668,7 +701,7 @@ def albums(name, url):
     all_albums = re.compile('<div class="album_report"><h5 class="album_report__heading"><a class="album_report__link" href="(.+?)"><img alt="(.+?)" class="album_report__image" src="(.+?)"/><span class="album_report__name">(.+?)</span></a></h5><div cla(.+?)lbum_report__second_line"><span class="album_report__date">(.+?)</span>').findall(link)
     #all_albums = re.compile('<div class="album_report"><h5 class="album_report__heading"><a class="album_report__link" href="(.+?)"><img alt="(.+?)" class="album_report__image" src="(.+?)"/><span class="album_report__name">(.+?)</span></a></h5><div class="album_report__second_line"><span class="album_report__date">(.+?)</span>').findall(link)
     for url1,d1,thumb,album,d2,year in all_albums:
-        title = "%s - %s - %s" % (name, album, year)
+        title = "%s - %s (%s)" % (name, album, year)
         if title not in duplicate:
             duplicate.append(title)
             thumb = thumb.replace('al', 'alm').replace('covers', 'mcovers')
@@ -690,7 +723,7 @@ def find_url(id):
         return 'https://listen.musicmp3.ru/1d6c13041066bed9/'
 
 def play_album(name, url, iconimage, mix, clear):
-    nartist, nalbum = album_download_names(name)
+    nartist, nalbum, storage_album = album_storage_names(name)
     if GOLDEN_PATH:
         url=url.replace('http://','https://').replace('musicmp3','www.goldenmp3').replace('artist_','/').replace('__album_','/').replace('.html','')
     origurl=url
@@ -758,7 +791,7 @@ def play_album(name, url, iconimage, mix, clear):
                 title = "%s. %s" % (trn, songname)
                 dur=dur.replace('(','').replace(')','')
                 dur=str((int(dur.split(':')[0])*60) + int(dur.split(':')[1]))
-            addDirAudio(title, url, 10, iconimage, songname, artist, album, dur, '', nartist, nalbum)
+            addDirAudio(title, url, 10, iconimage, songname, artist, album, dur, '', nartist, storage_album)
         return
     import playerMP3
     if mix != 'mix':
@@ -801,14 +834,14 @@ def play_album(name, url, iconimage, mix, clear):
             album = settings.decode_text(name)
             title = "%s. %s" % (trn, songname)
             dur=str((int(dur.split(':')[0])*60) + int(dur.split(':')[1]))
-        addDirAudio(title, url, 10, iconimage, songname, artist, album, dur, '', nartist, nalbum)
+        addDirAudio(title, url, 10, iconimage, songname, artist, album, dur, '', nartist, storage_album)
         if 'musicmp3' in origurl:
-            url, liz = playerMP3.getListItem(songname, artist, album, trn, iconimage, dur, url, fanart, 'true', GOTHAM_FIX_2, nartist, nalbum)
+            url, liz = playerMP3.getListItem(songname, artist, album, trn, iconimage, dur, url, fanart, 'true', GOTHAM_FIX_2, nartist, storage_album)
         elif 'goldenmp3' in origurl:
-            url, liz = playerMP3.getListItem(ntrack, songname, album, trn, iconimage, dur, url, fanart, 'true', GOTHAM_FIX_2, nartist, nalbum)
+            url, liz = playerMP3.getListItem(ntrack, songname, album, trn, iconimage, dur, url, fanart, 'true', GOTHAM_FIX_2, nartist, storage_album)
         else:
-            url, liz = playerMP3.getListItem(songname, artist, album, trn, iconimage, dur, url, fanart, 'true', GOTHAM_FIX_2, nartist, nalbum)
-        stored_path = find_local_track(nartist, nalbum, trn, songname, title=title)
+            url, liz = playerMP3.getListItem(songname, artist, album, trn, iconimage, dur, url, fanart, 'true', GOTHAM_FIX_2, nartist, storage_album)
+        stored_path = find_local_track(nartist, storage_album, trn, songname, title=title)
         if stored_path:
             url = stored_path
         playlist.append((url, liz))
@@ -902,9 +935,10 @@ class DownloadMusicThread(Thread):
             xbmc.executebuiltin(notify)
 '''
 def download_album(url, name, iconimage):
-    nartist, nalbum = album_download_names(name)
+    nartist, nalbum, storage_album = album_storage_names(name)
     xbmc.log("nartist = {0}".format(nartist), xbmc.LOGINFO)
     xbmc.log("nalbum = {0}".format(nalbum), xbmc.LOGINFO)
+    xbmc.log("storage_album = {0}".format(storage_album), xbmc.LOGINFO)
     if GOLDEN_PATH:
         url = url.replace('http','https').replace('musicmp3','www.goldenmp3').replace('artist_','/').replace('__album_','/').replace('.html','')
     origurl = url
@@ -931,7 +965,7 @@ def download_album(url, name, iconimage):
         xbmc.log("match = {0}".format(match), xbmc.LOGINFO)
         nSong = len(match)
         count = 0
-        album_path = settings.album_storage_folder(nartist, nalbum)
+        album_path = settings.album_storage_folder(nartist, storage_album)
         for track, id, songurl, meta, album, artist, songname, dur in match:
             count += 1
             songname = settings.decode_text(songname)
@@ -964,14 +998,14 @@ def download_album(url, name, iconimage):
             message = 'Album download finished'
             if failed:
                 message = 'Album download finished (%s skipped)' % failed
-            notification(nartist + ' ' + nalbum, message, '3000', iconimage)
+            notification(nartist + ' ' + storage_album, message, '3000', iconimage)
         elif nSong:
-            notification(nartist + ' ' + nalbum, 'Album download failed', '3000', iconimage)
+            notification(nartist + ' ' + storage_album, 'Album download failed', '3000', iconimage)
         else:
-            notification(nartist + ' ' + nalbum, 'No tracks found', '3000', iconimage)
+            notification(nartist + ' ' + storage_album, 'No tracks found', '3000', iconimage)
     except Exception as exc:
         xbmc.log('MP3 Streams album download failed for %s: %s' % (name, exc), xbmc.LOGERROR)
-        notification(nartist + ' ' + nalbum, 'Album download failed', '3000', iconimage)
+        notification(nartist + ' ' + storage_album, 'Album download failed', '3000', iconimage)
     finally:
         if os.path.exists(download_lock_path()):
             os.remove(download_lock_path())
@@ -1008,6 +1042,9 @@ class Getid3Thread(Thread):
                         audio["artist"] = artist
                         audio["album"] = album
                         audio["tracknumber"] = track
+                        year = settings.year_from_storage_name(splitlist[0])
+                        if year:
+                            audio["date"] = year
                         audio.save()
                         remove_from_list(list, DOWNLOAD_LIST)
         notification('Music Library', 'ID3 tags updated', '3000', iconart)

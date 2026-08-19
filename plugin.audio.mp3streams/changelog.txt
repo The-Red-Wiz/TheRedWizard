@@ -1,3 +1,8 @@
+2026.08.19
+- album download, keep-downloads cache, and local playback folders include the release year as Album (1979) so two albums by the same artist with the same title no longer share a folder
+- listing titles use Artist - Album (Year); older Artist - Album - Year favourites and year-less download folders still resolve
+- ID3 album title stays clean; year is written to the date tag when the folder has one
+
 2026.07.20
 - harden song and album downloads: stream to a per-process .part file, validate HTTP status / size / audio magic (reject HTML error bodies), then atomically replace the final .mp3
 - Content-Length checks skip when Content-Encoding is present (avoids false failures on decoded streams)

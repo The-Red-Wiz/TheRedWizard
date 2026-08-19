@@ -1,6 +1,7 @@
 import xbmcvfs
 import xbmcaddon
 import os
+import re
 import html
 
 ADDON = xbmcaddon.Addon(id='plugin.audio.mp3streams')
@@ -115,6 +116,49 @@ def sanitize_filename(text):
         text = text.replace(char, replacement)
     return text.strip()
 
+ALBUM_YEAR_SUFFIX_RE = re.compile(r'^(.*) \((\d{4})\)$')
+
+def parse_album_year_suffix(album):
+    """If album ends with ' (YYYY)', return (title, year), else (album, '')."""
+    album = decode_text(album or '').strip()
+    match = ALBUM_YEAR_SUFFIX_RE.match(album)
+    if match and match.group(1).strip():
+        return match.group(1).strip(), match.group(2)
+    return album, ''
+
+def album_storage_title(album, year=''):
+    """Folder name: 'Album (1979)' when year is known; do not double-append."""
+    album = decode_text(album or '').strip()
+    year = str(year or '').strip()
+    if not re.match(r'^\d{4}$', year):
+        return album
+    _bare, existing = parse_album_year_suffix(album)
+    if existing == year:
+        return album
+    return '%s (%s)' % (album, year)
+
+def album_lookup_titles(album):
+    """Preferred storage title first, then title without (YYYY) for legacy folders."""
+    album = decode_text(album or '').strip()
+    titles = []
+    seen = set()
+    for title in (album, parse_album_year_suffix(album)[0]):
+        if title and title not in seen:
+            titles.append(title)
+            seen.add(title)
+    return titles
+
+def year_from_storage_name(path_or_name):
+    """YYYY from 'Album (1979)' or a folder path whose basename ends that way."""
+    name = decode_text(path_or_name or '').strip().rstrip('/\\')
+    if not name:
+        return ''
+    for candidate in (os.path.basename(name), name):
+        _bare, year = parse_album_year_suffix(candidate)
+        if year:
+            return year
+    return ''
+
 FLAT_ALBUM_SEPARATOR = ' - '
 _FLAT_ALBUM_ESCAPES = (
     ('%', '%25'),
@@ -151,7 +195,7 @@ def create_directory(dir_path, dir_name=None):
     return dir_path
 
 def album_storage_folder(artist, album, create=True):
-    """One folder per album (album artist + title) — collab albums stay together; same title, different artist do not."""
+    """One folder per album (album artist + title, with year when known)."""
     artist = decode_text(artist or '')
     album = decode_text(album or '')
     base = music_dir()

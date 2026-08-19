@@ -593,7 +593,8 @@ class Downloader(threading.Thread):
          audio['artist']      = self.artist
          audio['album']       = self.album
          audio['tracknumber'] = str(self.track)
-         audio['date']        = ''
+         import settings
+         audio['date']        = settings.year_from_storage_name(os.path.dirname(self.filename))
          audio['genre']       = ''
          audio.save(v1=2)
          log(audio.pprint())
