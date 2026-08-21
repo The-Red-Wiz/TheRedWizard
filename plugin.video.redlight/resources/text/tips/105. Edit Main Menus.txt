@@ -2,3 +2,5 @@
 Pressing the Context Menu on Root, Movie or TV Show menu items will allow you to change many things about the menu systems in Red Light. A few include removing a menu item, changing it's position within the menu, or adding lists from other menus.
 
 Also, try out the Shortcut Folders feature, for many more options to customize Red Light. See 'Shortcut Folders' tip for more info.
+
+TV Shows and Anime have two extra Next Episodes lists that are not on the default menus: Next Episodes (Recently Watched) and Next Episodes (Airdate). They use the same watched membership as the original Next Episodes (Trakt, Simkl, MDBList, PunchPlay, or Red Light). Add them from Context > Check for New Menu Items. If you add them then remove them later, Browse Removed items can put them back (choose a position, or just open the list). Restore Menu returns the stock menu; Check for New Menu Items is how you add those extras again. Settings Sort Type still only applies to the original Next Episodes item. Both extra lists can be widgeted at once; each keeps its own order.
