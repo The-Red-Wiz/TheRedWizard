@@ -3132,7 +3132,7 @@ class Sources():
 					url = self.resolve_internal(scrape_provider, item['id'], item['url_dl'], item.get('direct_debrid_link', False), item.get('cloud_media_type'))
 			elif 'cache_provider' in item or item.get('debrid'):
 				raw_cache = item.get('cache_provider', '')
-				if 'Uncached' in raw_cache:
+				if str(raw_cache).startswith('Uncached '):
 					return None
 				cache_provider = debrid.normalize_debrid_provider(raw_cache or item.get('debrid'))
 				if self.meta['media_type'] == 'episode':

@@ -243,6 +243,7 @@ class TVShows:
 			tmdb_id, total_seasons, total_aired_eps = meta_get('tmdb_id'), meta_get('total_seasons'), meta_get('total_aired_eps')
 			progress_aired_eps = watched_status.progress_aired_eps(meta)
 			unaired = total_aired_eps == 0
+			if settings.hide_unaired_watchlist_item(self.action, unaired): return
 			if unaired: progress, playcount, total_watched, total_unwatched = 0, 0, 0, progress_aired_eps
 			else:
 				playcount, total_watched, total_unwatched = watched_status.get_watched_status_tvshow(self.watched_info.get(str(tmdb_id), None), progress_aired_eps)

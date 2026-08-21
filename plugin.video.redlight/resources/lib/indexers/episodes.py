@@ -589,19 +589,23 @@ def build_single_episode(list_type, params={}):
 		except: pass
 		mdblist_menu_next = list_type == 'episode.mdblist_next'
 		include_unwatched, include_unaired, nextep_content = settings.nextep_include_unwatched(), settings.nextep_include_unaired(), settings.nextep_method()
-		sort_key, sort_direction = settings.nextep_sort_key(), settings.nextep_sort_direction()
+		sort_override = settings.parse_nextep_sort_key(params.get('nextep_sort'))
+		sort_key, sort_direction = settings.nextep_sort_key(sort_override), settings.nextep_sort_direction()
 		include_airdate = settings.nextep_include_airdate()
 		if watched_indicators in (1, 2, 3, 4):
 			resformat, resinsert = '%Y-%m-%dT%H:%M:%S.%fZ', '2000-01-01T00:00:00.000Z'
 			list_type = {1: 'episode.next_trakt', 2: 'episode.next_simkl', 3: 'episode.next_mdblist', 4: 'episode.next_punchplay'}[watched_indicators]
 		else: resformat, resinsert, list_type = '%Y-%m-%d %H:%M:%S', '2000-01-01 00:00:00', 'episode.next_redlight'
 		if mdblist_menu_next: category_override = 'MDBList Next Up'
+		elif sort_override == 'last_played': category_override = 'Next Episodes (Recently Watched)'
+		elif sort_override == 'first_aired': category_override = 'Next Episodes (Airdate)'
+		elif sort_override == 'name': category_override = 'Next Episodes (Title)'
 		list_type_compare = list_type.split('episode.')[1]
 		list_type_starts_with = list_type_compare.startswith
 		# Umbrella-style: reuse built rows when watched/progress/hide (+ include-unwatched) unchanged.
 		try:
 			from caches import nextep_cache
-			_nextep_ck = nextep_cache.cache_id(watched_indicators, mdblist_menu_next, is_anime_list, is_external)
+			_nextep_ck = nextep_cache.cache_id(watched_indicators, mdblist_menu_next, is_anime_list, is_external, sort_key)
 			_nextep_token = nextep_cache.activity_token(watched_indicators)
 			if include_unwatched != 0:
 				_uw_extra = []
@@ -749,7 +753,9 @@ def build_single_episode(list_type, params={}):
 			except: data = sorted(data, key=lambda i: i['sort_title'], reverse=True)
 	elif list_type == 'episode.simkl_public':
 		from apis.simkl_api import simkl_get_public_calendar
-		feeds = params.get('feeds') or 'all'
+		feeds = params.get('feeds')
+		if not feeds:
+			feeds = 'all' if settings.public_calendar_include_anime() else 'tv'
 		data = simkl_get_public_calendar(feeds)
 		list_type = 'episode.simkl_public_calendar'
 		if feeds == 'anime': category_override = 'Public Anime Calendar'

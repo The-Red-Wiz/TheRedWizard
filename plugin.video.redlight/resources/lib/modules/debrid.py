@@ -32,6 +32,8 @@ def normalize_debrid_provider(provider):
 		return provider
 	if provider.startswith('Uncached '):
 		provider = provider[9:]
+	elif provider.startswith('Unchecked '):
+		provider = provider[10:]
 	aliases = {
 		'offcloud': 'Offcloud',
 		'oc_cloud': 'Offcloud',
@@ -291,26 +293,36 @@ def AD_check(hash_list, cached_hashes, data, active_debrid):
 def PM_check(hash_list, cached_hashes):
 	expires = 24
 	cached_hashes, unchecked_hashes = cached_check(hash_list, cached_hashes, 'pm')
-	if unchecked_hashes:
-		results = PremiumizeAPI().check_cache(unchecked_hashes)
-		if results:
-			cached_append = cached_hashes.append
-			process_list = []
-			process_append = process_list.append
-			try:
-				results = results['response']
-				for c, h in enumerate(unchecked_hashes):
-					cached = 'False'
-					try:
-						if results[c] is True:
-							cached_append(h)
-							cached = 'True'
-					except: pass
-					process_append((h, cached))
-			except:
-				for i in unchecked_hashes: process_append((i, 'False'))
-		else: process_list, expires  = [(h, 'False') for h in unchecked_hashes], 2
-		add_to_local_cache(process_list, 'pm', expires)
+	if not unchecked_hashes:
+		return cached_hashes
+	api = PremiumizeAPI()
+	cached_append = cached_hashes.append
+	process_list = []
+	try:
+		for offset in range(0, len(unchecked_hashes), 50):
+			chunk = unchecked_hashes[offset:offset + 50]
+			results = api.check_cache(chunk)
+			if not results:
+				raise RuntimeError('empty Premiumize cache check response')
+			responses = results['response']
+			for c, h in enumerate(chunk):
+				cached = 'False'
+				try:
+					if responses[c] is True:
+						cached_append(h)
+						cached = 'True'
+				except Exception:
+					pass
+				process_list.append((h, cached))
+	except Exception as e:
+		try:
+			from modules.kodi_utils import logger
+			logger('DebridCacheCheck', 'provider=Premiumize.me incomplete=%s hashes=%d done=%d' % (
+				type(e).__name__, len(unchecked_hashes), len(process_list)))
+		except Exception:
+			pass
+		return None
+	add_to_local_cache(process_list, 'pm', expires)
 	return cached_hashes
 
 def _tb_cached_hash_set(api_response):
@@ -334,48 +346,61 @@ def _tb_cached_hash_set(api_response):
 
 def OC_check(hash_list, cached_hashes):
 	cached_hashes, unchecked_hashes = cached_check(hash_list, cached_hashes, 'oc')
-	if unchecked_hashes:
+	if not unchecked_hashes:
+		return cached_hashes
+	try:
 		results = OffcloudAPI().check_cache(unchecked_hashes)
-		if results:
-			cached_append = cached_hashes.append
-			process_list = []
-			process_append = process_list.append
-			try:
-				results = results['cachedItems']
-				for h in unchecked_hashes:
-					cached = 'False'
-					if h in results:
-						cached_append(h)
-						cached = 'True'
-					process_append((h, cached))
-			except Exception:
-				for i in unchecked_hashes: process_append((i, 'False'))
-			add_to_local_cache(process_list, 'oc')
+		if not results:
+			raise RuntimeError('empty Offcloud cache check response')
+		cached_items = results['cachedItems']
+		cached_append = cached_hashes.append
+		process_list = []
+		for h in unchecked_hashes:
+			cached = 'False'
+			if h in cached_items:
+				cached_append(h)
+				cached = 'True'
+			process_list.append((h, cached))
+	except Exception as e:
+		try:
+			from modules.kodi_utils import logger
+			logger('DebridCacheCheck', 'provider=Offcloud incomplete=%s hashes=%d' % (type(e).__name__, len(unchecked_hashes)))
+		except Exception:
+			pass
+		return None
+	add_to_local_cache(process_list, 'oc')
 	return cached_hashes
 
 def TB_check(hash_list, cached_hashes):
 	expires = 24
 	cached_hashes, unchecked_hashes = cached_check(hash_list, cached_hashes, 'tb')
-	if unchecked_hashes:
-		cached_append = cached_hashes.append
-		process_list = []
-		process_append = process_list.append
-		cached_set = set()
-		api = TorBoxAPI()
+	if not unchecked_hashes:
+		return cached_hashes
+	cached_append = cached_hashes.append
+	process_list = []
+	cached_set = set()
+	api = TorBoxAPI()
+	try:
+		for offset in range(0, len(unchecked_hashes), 100):
+			chunk = unchecked_hashes[offset:offset + 100]
+			results = api.check_cache(chunk)
+			if results:
+				cached_set.update(_tb_cached_hash_set(results))
+			elif results is None:
+				raise RuntimeError('empty TorBox cache check response')
+		for h in unchecked_hashes:
+			h_lower = str(h).lower()
+			if h_lower in cached_set:
+				cached_append(h)
+				process_list.append((h, 'True'))
+			else:
+				process_list.append((h, 'False'))
+	except Exception as e:
 		try:
-			for offset in range(0, len(unchecked_hashes), 100):
-				chunk = unchecked_hashes[offset:offset + 100]
-				results = api.check_cache(chunk)
-				if results:
-					cached_set.update(_tb_cached_hash_set(results))
-			for h in unchecked_hashes:
-				h_lower = str(h).lower()
-				if h_lower in cached_set:
-					cached_append(h)
-					process_append((h, 'True'))
-				else:
-					process_append((h, 'False'))
-		except:
-			for i in unchecked_hashes: process_append((i, 'False'))
-		add_to_local_cache(process_list, 'tb', expires)
+			from modules.kodi_utils import logger
+			logger('DebridCacheCheck', 'provider=TorBox incomplete=%s hashes=%d' % (type(e).__name__, len(unchecked_hashes)))
+		except Exception:
+			pass
+		return None
+	add_to_local_cache(process_list, 'tb', expires)
 	return cached_hashes

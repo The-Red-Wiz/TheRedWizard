@@ -224,6 +224,7 @@ class Movies:
 			duration = meta_get('duration')
 			if not first_airdate or self.current_date < first_airdate: unaired = True
 			else: unaired = False
+			if settings.hide_unaired_watchlist_item(self.action, unaired): return
 			progress = watched_status.get_progress_status_movie(self.bookmarks, str_tmdb_id)
 			playcount = watched_status.get_watched_status_movie(self.watched_info, str_tmdb_id)
 			play_params = self.build_url({'mode': self.play_mode, 'media_type': 'movie', 'tmdb_id': tmdb_id, self.playback_key: self.playback_key})

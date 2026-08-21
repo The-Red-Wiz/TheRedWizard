@@ -69,6 +69,10 @@ class NavigatorCache:
 	{'name': 'In Progress Episodes', 'mode': 'build_in_progress_episode', 'iconImage': 'player'},
 	{'name': 'Next Episodes', 'mode': 'build_next_episode', 'iconImage': 'next_episodes'}
 				]
+	tvshow_optional = [
+	{'name': 'Next Episodes (Recently Watched)', 'mode': 'build_next_episode', 'nextep_sort': 'last_played', 'iconImage': 'next_episodes'},
+	{'name': 'Next Episodes (Airdate)', 'mode': 'build_next_episode', 'nextep_sort': 'first_aired', 'iconImage': 'next_episodes'}
+				]
 	anime_list = [
 	{'name': 'Anime Trending', 'mode': 'build_tvshow_list', 'action': 'trakt_anime_trending', 'random_support': 'true', 'iconImage': 'trending'},
 	{'name': 'Anime Trending Recent', 'mode': 'build_tvshow_list', 'action': 'trakt_anime_trending_recent', 'random_support': 'true', 'iconImage': 'trending_recent'},
@@ -91,20 +95,51 @@ class NavigatorCache:
 	{'name': 'Anime In Progress Episodes', 'mode': 'build_in_progress_episode', 'is_anime_list': 'true', 'iconImage': 'player'},
 	{'name': 'Anime Next Episodes', 'mode': 'build_next_episode', 'iconImage': 'next_episodes', 'is_anime_list': 'true'}
 					]
+	anime_optional = [
+	{'name': 'Anime Next Episodes (Recently Watched)', 'mode': 'build_next_episode', 'nextep_sort': 'last_played', 'iconImage': 'next_episodes', 'is_anime_list': 'true'},
+	{'name': 'Anime Next Episodes (Airdate)', 'mode': 'build_next_episode', 'nextep_sort': 'first_aired', 'iconImage': 'next_episodes', 'is_anime_list': 'true'}
+					]
 
 	main_menus = {'RootList': root_list, 'MovieList': movie_list, 'TVShowList': tvshow_list, 'AnimeList': anime_list}
+	optional_menus = {'TVShowList': tvshow_optional, 'AnimeList': anime_optional}
 	
+	def without_optional_extras(self, list_name, rows):
+		optional = (getattr(self, 'optional_menus', None) or {}).get(list_name) or []
+		skip_names = {i.get('name') for i in optional}
+		return [i for i in (rows or []) if not i.get('nextep_sort') and i.get('name') not in skip_names]
+
+	def stock_menu_contents(self, list_name):
+		"""Catalog menu without optional extras (Next Episodes sort variants, etc.)."""
+		return self.without_optional_extras(list_name, [dict(i) for i in (self.main_menus.get(list_name) or [])])
+
+	def get_opted_optional(self, list_name):
+		"""Extras the user added via Check for New, until Restore. Not stored on default."""
+		contents = self.get_memory_cache(list_name, 'opted_optional')
+		if contents is None:
+			contents = self.get_list(list_name, 'opted_optional')
+		if contents:
+			return contents
+		default = self.get_memory_cache(list_name, 'default') or self.get_list(list_name, 'default') or []
+		optional = (getattr(self, 'optional_menus', None) or {}).get(list_name) or []
+		canonical = {i.get('name'): dict(i) for i in optional}
+		seen, extras = set(), []
+		for item in default:
+			name = item.get('name')
+			if name in canonical and name not in seen:
+				seen.add(name)
+				extras.append(canonical[name])
+		if extras:
+			self.set_list(list_name, 'opted_optional', extras)
+		return extras
+
 	def get_main_lists(self, list_name):
-		default_contents = self.get_memory_cache(list_name, 'default')
-		if not default_contents:
-			default_contents = self.get_list(list_name, 'default')
-			if default_contents == None:
-				self.rebuild_database()
-				return self.get_main_lists(list_name)
-			try: edited_contents = self.get_list(list_name, 'edited')
-			except: edited_contents = None
-		else:
-			edited_contents = self.get_memory_cache(list_name, 'edited')
+		default_contents = self.get_memory_cache(list_name, 'default') or self.get_list(list_name, 'default')
+		if default_contents == None:
+			self.rebuild_database()
+			return self.get_main_lists(list_name)
+		edited_contents = self.get_memory_cache(list_name, 'edited')
+		if edited_contents is None:
+			edited_contents = self.get_list(list_name, 'edited')
 		return default_contents, edited_contents
 
 	def get_list(self, list_name, list_type):
@@ -155,22 +190,28 @@ class NavigatorCache:
 	def currently_used_list(self, list_name):
 		used_list = None
 		try:
-			used_list = self.get_memory_cache(list_name, 'edited') or self.get_memory_cache(list_name, 'default') \
-						or self.get_list(list_name, 'edited') or self.get_list(list_name, 'default')
+			edited = self.get_memory_cache(list_name, 'edited')
+			if edited is None:
+				edited = self.get_list(list_name, 'edited')
+			if edited:
+				return edited
+			used_list = self.get_memory_cache(list_name, 'default') or self.get_list(list_name, 'default')
+			if used_list:
+				return self.without_optional_extras(list_name, used_list)
 		except: pass
 		if not used_list:
 			try: self.rebuild_database()
 			except: pass
-			used_list = NavigatorCache.main_menus.get(list_name) or []
+			used_list = self.stock_menu_contents(list_name)
 		return used_list
 
 	def rebuild_database(self):
-		dbcon = connect_database('navigator_db')
-		main_items = NavigatorCache.main_menus.items()
-		for list_name, list_contents in main_items: self.set_list(list_name, 'default', list_contents)
+		for list_name in NavigatorCache.main_menus:
+			self.set_list(list_name, 'default', self.stock_menu_contents(list_name))
 
 	def _get_list_prop(self, list_type):
-		return {'default': 'redlight_%s_default', 'edited': 'redlight_%s_edited', 'shortcut_folder': 'redlight_%s_shortcut_folder'}[list_type]
+		return {'default': 'redlight_%s_default', 'edited': 'redlight_%s_edited', 'shortcut_folder': 'redlight_%s_shortcut_folder',
+			'opted_optional': 'redlight_%s_opted_optional'}[list_type]
 	
 	def random_movie_lists(self):
 		m_list = NavigatorCache.movie_list

@@ -12,8 +12,9 @@ _CACHE_PREFIX = 'nextep_list_'
 _CACHE_HOURS = 168  # safety TTL; activity token usually invalidates sooner
 
 
-def _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, is_external):
+def _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, is_external, sort_key=None):
 	from modules import settings
+	resolved_sort = sort_key if sort_key in ('last_played', 'first_aired', 'name') else settings.nextep_sort_key()
 	parts = (
 		watched_indicators,
 		1 if mdblist_menu_next else 0,
@@ -26,7 +27,7 @@ def _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, 
 		1 if settings.nextep_airing_today() else 0,
 		1 if settings.nextep_limit_history() else 0,
 		settings.nextep_limit() if settings.nextep_limit_history() else 0,
-		settings.nextep_sort_key(),
+		resolved_sort,
 		1 if settings.nextep_sort_direction() else 0,
 		settings.single_ep_display_format(is_external),
 		1 if settings.single_ep_unwatched_episodes() else 0,
@@ -42,8 +43,8 @@ def _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, 
 	return '_'.join(str(p) for p in parts)
 
 
-def cache_id(watched_indicators, mdblist_menu_next, is_anime_list, is_external):
-	return '%s%s' % (_CACHE_PREFIX, _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, is_external))
+def cache_id(watched_indicators, mdblist_menu_next, is_anime_list, is_external, sort_key=None):
+	return '%s%s' % (_CACHE_PREFIX, _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, is_external, sort_key))
 
 
 def activity_token(watched_indicators):

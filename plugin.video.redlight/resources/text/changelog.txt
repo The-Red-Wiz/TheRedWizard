@@ -1,3 +1,14 @@
+[COLOR red][B]Version 2.3.2[/B][/COLOR]
+- [B]MDBList[/B]: API calls always use OAuth Bearer (removed the unused personal-API-key fallback from the original key-auth pass).
+- [B]Watchlists[/B]: [B]Include Unaired Media in Watchlists[/B] (Content > General) now covers Trakt Watchlist, MDBList Watchlist, PunchPlay Watchlist and Planning, and Simkl Plan to Watch (was Trakt only). Default remains on.
+- [B]External cache check[/B]: a Premiumize / TorBox / Offcloud hash-check timeout or empty reply no longer crashes the check thread or marks every hash uncached. That provider is labelled [B]UNCHECKED[/B] and stays in the list; other debrids keep their real cached/uncached split. Avoids the auto [B]Rescrape With No Cache Check[/B] pass that made every row UNCHECKED. Premiumize checks in chunks with a longer timeout.
+
+[COLOR red][B]Version 2.3.1[/B][/COLOR]
+- [B]Next Episodes[/B]: optional [B]Next Episodes (Recently Watched)[/B] and [B]Next Episodes (Airdate)[/B] (same membership for Trakt, Simkl, MDBList, PunchPlay, and Red Light). Not on the default TV Shows / Anime menus — add with context [B]Check for New Menu Items[/B]. After you add then remove them, [B]Browse Removed items[/B] can put them back; [B]Restore Menu[/B] returns the stock list and Check for New is how they are added again. Settings Sort Type still only applies to the original Next Episodes item. Both lists can be widgeted at once; each caches its own order.
+- [B]TV Shows / Specials[/B]: watched count on the Specials season row no longer copies the latest regular season (e.g. S5 10/10 showing as Specials 10/37). Specials now uses its own watched total.
+- [B]Menus[/B]: [B]Browse Removed items[/B] can add the item back (choose position) or just open it — Restore Menu is not required.
+- [B]Public Calendar[/B]: Removing it toasts to turn that setting off instead of Cancelled. Move now works.
+
 [COLOR red][B]Version 2.3.0[/B][/COLOR]
 - [B]EasyNews Video Search[/B]: row previews are set on [I]icon[/I], [I]thumb[/I], [I]poster[/I], [I]landscape[/I], [I]ListItem.Icon[/I], and [I]ListItem.Thumb[/I] so FENtastic Plus Icon / WideList can show them. Nimbus List and Nimbus Plus FlixList bind side art from [I]Art(fanart)[/I] on plugin files, so those skins get the preview there; other skins keep addon fanart as the page backdrop. Results use [I]files[/I] content (same as debrid cloud browsers).
 - [B]Content[/B] ([I]#217[/I]): [B]Show Plot on Loading and Pause[/B] (was Loading Screen only). Off also clears the playing item plot so the skin pause OSD does not show the synopsis. Episode title still shows; [B]Avoid Episode Spoilers[/B] still applies when this is on.

@@ -37,7 +37,10 @@ def mdblist_user_active():
 	from caches.settings_cache import settings_cache
 	user = settings_cache.read_db_value('mdblist.user')
 	token = settings_cache.read_db_value('mdblist.token')
-	return user not in (None, 'empty_setting', '') and token not in (None, '0', '', 'empty_setting')
+	refresh = get_setting('redlight.mdblist.refresh', '0')
+	return (user not in (None, 'empty_setting', '')
+		and token not in (None, '0', '', 'empty_setting')
+		and refresh not in (None, '0', '', 'empty_setting'))
 
 def punchplay_user_active():
 	"""Authorised when a usable access token exists (username is display-only)."""
@@ -171,8 +174,18 @@ def ai_model_order():
 def ai_model_limit():
 	return max(1, int(get_setting('redlight.ai_model.limit', '10')))
 
+WATCHLIST_UNAIRED_ACTIONS = frozenset((
+	'trakt_watchlist', 'trakt_watchlist_lists',
+	'mdblist_watchlist',
+	'punchplay_watchlist', 'punchplay_plantowatch',
+	'simkl_plantowatch',
+))
+
 def show_unaired_watchlist():
 	return get_setting('redlight.show_unaired_watchlist', 'true') == 'true'
+
+def hide_unaired_watchlist_item(action, unaired):
+	return bool(unaired) and action in WATCHLIST_UNAIRED_ACTIONS and not show_unaired_watchlist()
 
 def lists_cache_duraton():
 	return int(get_setting('redlight.lists_cache_duraton', '48'))
@@ -1198,8 +1211,21 @@ def nextep_airing_today():
 def nextep_include_unaired():
 	return get_setting('redlight.nextep.include_unaired', 'false') == 'true'
 
-def nextep_sort_key():
-	return {0: 'last_played', 1: 'first_aired', 2: 'name'}[int(get_setting('redlight.nextep.sort_type', '0'))]
+_NEXTEP_SORT_ALIASES = {
+	'last_played': 'last_played', 'first_aired': 'first_aired', 'name': 'name',
+	'0': 'last_played', '1': 'first_aired', '2': 'name',
+	'recently_watched': 'last_played', 'airdate': 'first_aired', 'title': 'name'
+}
+
+def parse_nextep_sort_key(value):
+	if value in (None, ''): return None
+	return _NEXTEP_SORT_ALIASES.get(str(value).strip().lower())
+
+def nextep_sort_key(override=None):
+	parsed = parse_nextep_sort_key(override)
+	if parsed: return parsed
+	try: return {0: 'last_played', 1: 'first_aired', 2: 'name'}[int(get_setting('redlight.nextep.sort_type', '0'))]
+	except: return 'last_played'
 
 def nextep_sort_direction():
 	return int(get_setting('redlight.nextep.sort_order', '0')) == 0

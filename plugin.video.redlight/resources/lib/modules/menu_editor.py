@@ -32,6 +32,7 @@ class MenuEditor:
 
 	def move(self):
 		list_items = navigator_cache.currently_used_list(self.active_list)
+		list_items = self._materialize_injected_public_calendar(list_items)
 		if len(list_items) <= 1: return
 		if self.position < 0 or self.position >= len(list_items): return kodi_utils.notification('Cancelled', 1500)
 		if not self.name: self.name = list_items[self.position].get('name', '')
@@ -42,6 +43,8 @@ class MenuEditor:
 		self._db_execute('set', self.active_list, list_items)
 
 	def remove(self):
+		if self._is_settings_public_calendar():
+			return kodi_utils.notification('Turn off Show Public Calendar in Settings > Single Episode Lists > Calendars.', 4000)
 		if not kodi_utils.confirm_dialog(): return kodi_utils.notification('Cancelled', 1500)
 		list_items = navigator_cache.currently_used_list(self.active_list)
 		if len(list_items) == 1: return kodi_utils.notification('Cancelled', 1500)
@@ -49,10 +52,61 @@ class MenuEditor:
 		list_items.pop(self.position)
 		self._db_execute('set', self.active_list, list_items)
 
+	def _public_calendar_item(self):
+		optional = navigator_cache.optional_menus.get(self.active_list) or []
+		item = next((dict(i) for i in optional if i.get('mode') == 'build_simkl_public_calendar'), None)
+		if not item:
+			item = {'name': 'Public Calendar', 'mode': 'build_simkl_public_calendar', 'iconImage': 'calender'}
+		if self.active_list == 'TVShowList' and not item.get('feeds'):
+			from modules import settings as s
+			item['feeds'] = 'all' if s.public_calendar_include_anime() else 'tv'
+		elif self.active_list == 'AnimeList':
+			item['feeds'] = 'anime'
+		return item
+
+	def _focused_is_public_calendar(self):
+		if self.name == 'Public Calendar': return True
+		stored = navigator_cache.currently_used_list(self.active_list) or []
+		if stored and 0 <= self.position < len(stored) and stored[self.position].get('mode') == 'build_simkl_public_calendar':
+			return True
+		try:
+			item = self._get_menu_item(kodi_utils.get_infolabel('ListItem.FileNameAndPath'))
+			return item.get('mode') == 'build_simkl_public_calendar' or item.get('name') == 'Public Calendar'
+		except: return False
+
+	def _is_settings_public_calendar(self):
+		if self.active_list not in ('TVShowList', 'AnimeList'): return False
+		from modules import settings as s
+		if not s.show_public_calendars(): return False
+		return self._focused_is_public_calendar()
+
+	def _materialize_injected_public_calendar(self, list_items):
+		list_items = list(list_items or [])
+		item = self._public_calendar_item()
+		if self._menu_has_item(list_items, item):
+			if self.position < 0 or self.position >= len(list_items):
+				for idx, row in enumerate(list_items):
+					if row.get('mode') == 'build_simkl_public_calendar':
+						self.position = idx
+						break
+			return list_items
+		if not self._focused_is_public_calendar(): return list_items
+		list_items.append(item)
+		self.position = len(list_items) - 1
+		return list_items
+
 	def restore(self):
 		if not kodi_utils.confirm_dialog(): return kodi_utils.notification('Cancelled', 1500)
-		self._db_execute('delete', self.active_list, list_type='edited', refresh=False)
-		self._db_execute('set', self.active_list, navigator_cache.main_menus[self.active_list], 'default')
+		if self.active_list not in navigator_cache.main_menus: return kodi_utils.notification('Cancelled', 1500)
+		contents = navigator_cache.stock_menu_contents(self.active_list)
+		for list_type in ('edited', 'opted_optional', 'default'):
+			navigator_cache.delete_memory_cache(self.active_list, list_type)
+		navigator_cache.delete_list(self.active_list, 'edited')
+		navigator_cache.delete_list(self.active_list, 'opted_optional')
+		navigator_cache.set_list(self.active_list, 'default', contents)
+		kodi_utils.notification('Success', 1500)
+		kodi_utils.sleep(500)
+		kodi_utils.container_update(kodi_utils.build_folder_url({'mode': 'navigator.main', 'action': self.active_list}))
 
 	def reload(self):
 		default, edited = navigator_cache.get_main_lists(self.active_list)
@@ -65,20 +119,43 @@ class MenuEditor:
 		self._db_execute('set', self.active_list, list_items, list_type)
 
 	def update(self):
-		new_contents = navigator_cache.main_menus[self.active_list]
+		stock = navigator_cache.main_menus.get(self.active_list) or []
+		optional = navigator_cache.optional_menus.get(self.active_list) or []
 		default, edited = navigator_cache.get_main_lists(self.active_list)
 		list_type = 'edited' if edited else'default'
-		current_list = edited or default
-		if default == new_contents: return kodi_utils.notification('No New Items', 1500)
-		new_entry = [i for i in new_contents if not i in default][0]
-		new_entry_translated_name = new_entry.get('name')
-		if not kodi_utils.confirm_dialog(text='New item [B]%s[/B] Exists[CR]Would you like to add this to the Menu?' % new_entry_translated_name):
-			return kodi_utils.notification('Cancelled', 1500)
-		item_position = self._menu_select(current_list, new_entry_translated_name, position_list=True)
-		if item_position == None: return kodi_utils.notification('Cancelled', 1500)
-		current_list.insert(item_position, new_entry)
-		self._db_execute('set', self.active_list, current_list, list_type)
-		if list_type == 'edited': self._db_execute('set', self.active_list, new_contents, 'default')
+		current_list = edited or navigator_cache.without_optional_extras(self.active_list, default)
+		new_from_catalog = [i for i in stock if not self._menu_has_item(default, i)]
+		# Optional extras already opted-in belong in Browse Removed until Restore.
+		opted = navigator_cache.get_opted_optional(self.active_list)
+		new_optional = [i for i in optional if not self._menu_has_item(current_list, i) and not self._menu_has_item(opted, i)]
+		new_entries = new_from_catalog + new_optional
+		if not new_entries: return kodi_utils.notification('No New Items', 1500)
+		added = False
+		added_optional = False
+		optional_names = {i.get('name') for i in optional}
+		for new_entry in new_entries:
+			new_entry_translated_name = new_entry.get('name')
+			if not kodi_utils.confirm_dialog(text='New item [B]%s[/B] Exists[CR]Would you like to add this to the Menu?' % new_entry_translated_name):
+				continue
+			item_position = self._menu_select(current_list, new_entry_translated_name, position_list=True)
+			if item_position == None: continue
+			current_list.insert(item_position, new_entry)
+			added = True
+			if new_entry.get('name') in optional_names: added_optional = True
+		if not added: return kodi_utils.notification('Cancelled', 1500)
+		# Default stays stock so Restore cannot put extras back. Opted extras are a separate list.
+		stock_contents = navigator_cache.stock_menu_contents(self.active_list)
+		if added_optional or list_type == 'edited':
+			self._db_execute('set', self.active_list, current_list, 'edited', refresh=False)
+			self._db_execute('set', self.active_list, stock_contents, 'default', refresh=False)
+			if added_optional:
+				for entry in current_list:
+					if entry.get('name') in optional_names and not self._menu_has_item(opted, entry):
+						opted.append(dict(entry))
+				navigator_cache.set_list(self.active_list, 'opted_optional', opted)
+			self._refresh_menu()
+		else:
+			self._db_execute('set', self.active_list, current_list, 'default')
 
 	def browse(self):
 		list_name =  self.main_list_name_dict[self.active_list]
@@ -88,6 +165,26 @@ class MenuEditor:
 		browse_item = self._menu_select(choice_items, list_name)
 		if browse_item == None: return
 		browse_item = choice_items[browse_item]
+		item_name = browse_item.get('name', '')
+		# Let the item picker close first — a second Select on top of it never appears.
+		kodi_utils.sleep(400)
+		add_back = kodi_utils.confirm_dialog(heading=item_name,
+			text='Add [B]%s[/B] back to this menu, or browse?' % item_name,
+			ok_label='Add to Menu', cancel_label='Browse', default_control=10)
+		if add_back == None: return
+		if add_back:
+			default, edited = navigator_cache.get_main_lists(self.active_list)
+			optional_names = {i.get('name') for i in (navigator_cache.optional_menus.get(self.active_list) or [])}
+			is_optional = browse_item.get('name') in optional_names or browse_item.get('nextep_sort')
+			current_list = edited or navigator_cache.without_optional_extras(self.active_list, default)
+			position = self._menu_select(current_list, item_name, multi_line='true', position_list=True)
+			if position == None: return kodi_utils.notification('Cancelled', 1500)
+			current_list.insert(position, browse_item)
+			if is_optional or edited:
+				self._db_execute('set', self.active_list, current_list, 'edited')
+			else:
+				self._db_execute('set', self.active_list, current_list, 'default')
+			return
 		if browse_item.get('mode') == 'build_popular_people': command = 'RunPlugin(%s)'
 		else: command = 'Container.Update(%s)'
 		kodi_utils.execute_builtin(command % kodi_utils.build_url(browse_item))
@@ -240,8 +337,22 @@ class MenuEditor:
 		return icon_choice
 
 	def _get_removed_items(self):
-		default_list_items, list_items = navigator_cache.get_main_lists(self.active_list)
-		return [i for i in default_list_items if not i in list_items]
+		default_list_items, edited = navigator_cache.get_main_lists(self.active_list)
+		current = edited if edited else navigator_cache.without_optional_extras(self.active_list, default_list_items)
+		stock_removed = [i for i in (default_list_items or []) if not self._menu_has_item(current, i)
+			and i.get('mode') != 'build_simkl_public_calendar' and not i.get('nextep_sort')]
+		removed = [i for i in stock_removed if i.get('name') not in {x.get('name') for x in (navigator_cache.optional_menus.get(self.active_list) or [])}]
+		for item in navigator_cache.get_opted_optional(self.active_list):
+			if not self._menu_has_item(current, item) and not self._menu_has_item(removed, item):
+				removed.append(item)
+		return removed
+
+	def _same_menu_item(self, a, b):
+		return (str(a.get('name')) == str(b.get('name')) and a.get('mode') == b.get('mode')
+			and a.get('nextep_sort') == b.get('nextep_sort'))
+
+	def _menu_has_item(self, menu, item):
+		return any(self._same_menu_item(item, i) for i in (menu or []))
 
 	def _get_external_name_input(self, current_name):
 		new_name = kodi_utils.kodi_dialog().input('', defaultt=current_name)
@@ -259,7 +370,7 @@ class MenuEditor:
 	def _refresh_menu(self):
 		folder = kodi_utils.folder_path()
 		if folder and 'plugin.video.redlight' in folder:
-			return kodi_utils.container_update(kodi_utils.sanitize_folder_url(folder))
+			return kodi_utils.container_refresh()
 		if self.active_list in navigator_cache.main_menus:
 			return kodi_utils.container_update(kodi_utils.build_folder_url({'mode': 'navigator.main', 'action': self.active_list}))
 		if self.active_list:

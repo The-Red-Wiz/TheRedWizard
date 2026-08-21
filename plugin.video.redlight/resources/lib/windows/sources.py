@@ -277,10 +277,18 @@ class SourcesResults(BaseDialog):
 					provider = get('debrid', source_site).replace('.me', '').upper()
 					provider_lower = provider.lower()
 					provider_icon = self.get_provider_and_path(provider_lower)[1]
-					if 'Uncached' in item['cache_provider']:
+					cache_provider = item.get('cache_provider') or ''
+					if cache_provider.startswith('Uncached '):
 						if 'seeders' in item: set_properties({'source_type': 'UNCACHED (%d SEEDERS)' % get('seeders', 0)})
 						else: set_properties({'source_type': 'UNCACHED'})
 						item_highlight = 'FF7C7C7C'
+					elif cache_provider.startswith('Unchecked '):
+						cache_flag = 'UNCHECKED'
+						if highlight_type == 0: key = provider_lower
+						else: key = basic_quality
+						item_highlight = self.info_highlights_dict[key]
+						if pack: set_properties({'source_type': '%s [B]PACK[/B]' % cache_flag})
+						else: set_properties({'source_type': '%s' % cache_flag})
 					else:
 						provider_check_names = {'REAL-DEBRID': 'Real-Debrid', 'ALLDEBRID': 'AllDebrid', 'TORBOX': 'TorBox', 'PREMIUMIZE': 'Premiumize.me', 'OFFCLOUD': 'Offcloud'}
 						check_provider = provider_check_names.get(provider)
