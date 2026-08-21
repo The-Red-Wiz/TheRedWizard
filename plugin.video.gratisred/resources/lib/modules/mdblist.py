@@ -51,7 +51,8 @@ def _oauth_active():
 
 
 def getMdblistCredentialsInfo():
-    return bool(_token() and _token() not in ('0', 'empty_setting') and (control.setting('mdblist.user') or '').strip())
+    return bool(_token() and _token() not in ('0', 'empty_setting') and _oauth_active()
+                and (control.setting('mdblist.user') or '').strip())
 
 
 def getMdblistIndicatorsInfo():
@@ -84,16 +85,12 @@ def call_mdblist(path, params=None, json_data=None, method=None, _retried=False)
     token = _token()
     if not token or token in ('0', 'empty_setting'):
         return None
-    headers = {}
-    if _oauth_active():
-        headers['Authorization'] = 'Bearer %s' % token
-    else:
-        params['apikey'] = token
+    headers = {'Authorization': 'Bearer %s' % token}
     try:
         response = session.request(
             method or 'get', BASE_URL % path.lstrip('/'),
             params=params, json=json_data, headers=headers, timeout=30)
-        if response.status_code == 401 and _oauth_active() and not _retried:
+        if response.status_code == 401 and not _retried:
             if _refresh_access_token():
                 return call_mdblist(path, params=params, json_data=json_data, method=method, _retried=True)
         if not response.ok:
