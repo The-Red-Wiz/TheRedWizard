@@ -1,3 +1,6 @@
+[COLOR red][B]Version 2.3.3[/B][/COLOR]
+- [B]AIOStreams[/B]: when a title has no IMDb id, search with [I]tmdb:XXXX[/I] (and [I]tmdb:XXXX:S:E[/I] for episodes) instead of skipping the scrape. IMDb is still preferred when present.
+
 [COLOR red][B]Version 2.3.2[/B][/COLOR]
 - [B]MDBList[/B]: API calls always use OAuth Bearer (removed the unused personal-API-key fallback from the original key-auth pass).
 - [B]Watchlists[/B]: [B]Include Unaired Media in Watchlists[/B] (Content > General) now covers Trakt Watchlist, MDBList Watchlist, PunchPlay Watchlist and Planning, and Simkl Plan to Watch (was Trakt only). Default remains on.

@@ -576,22 +576,36 @@ def _log_search_response(response, payload, results, instance=None):
 def _parse_api_errors(payload):
 	return [': '.join(str(v) for v in i.values()) for i in payload.get('errors', []) if isinstance(i, dict)]
 
-def search(media_type, imdb_id, season=None, episode=None, timeout=30):
+def _search_id(imdb_id=None, tmdb_id=None):
+	"""Prefer IMDb (tt…); fall back to tmdb:XXXX when IMDb is missing."""
+	imdb = str(imdb_id or '').strip()
+	if imdb and imdb not in ('None', '0', 'empty_setting') and imdb.lower().startswith('tt'):
+		return imdb
+	tmdb = str(tmdb_id or '').strip()
+	if tmdb and tmdb not in ('None', '0', 'empty_setting'):
+		try:
+			return 'tmdb:%s' % int(tmdb)
+		except Exception:
+			pass
+	return None
+
+def search(media_type, imdb_id=None, season=None, episode=None, timeout=30, tmdb_id=None):
 	credentials = auth()
 	if not credentials:
 		logger('aiostreams API', 'search skipped — username/password not configured')
 		return [], ['AIOStreams username/password not configured']
-	if not imdb_id:
-		logger('aiostreams API', 'search skipped — missing IMDb id')
-		return [], ['Missing IMDb id for AIOStreams search']
+	media_id = _search_id(imdb_id, tmdb_id)
+	if not media_id:
+		logger('aiostreams API', 'search skipped — missing IMDb and TMDb id')
+		return [], ['Missing IMDb/TMDb id for AIOStreams search']
 	base = base_url()
 	if not base:
 		logger('aiostreams API', 'search skipped — no instance URL configured')
 		return [], ['No AIOStreams instance URL configured']
 	if media_type == 'movie':
-		params = {'type': 'movie', 'id': imdb_id}
+		params = {'type': 'movie', 'id': media_id}
 	else:
-		params = {'type': 'series', 'id': '%s:%s:%s' % (imdb_id, season, episode)}
+		params = {'type': 'series', 'id': '%s:%s:%s' % (media_id, season, episode)}
 	search_link = '%s/api/v1/search' % base
 	instance = active_instance_label()
 	read_s = _aio_read_timeout(timeout)

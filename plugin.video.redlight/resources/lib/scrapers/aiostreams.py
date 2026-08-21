@@ -22,10 +22,12 @@ class source:
 			self.year = int(info.get('year') or 0)
 			self.season, self.episode = info.get('season'), info.get('episode')
 			imdb_id = info.get('imdb_id')
+			tmdb_id = info.get('tmdb_id')
 			self.aliases = source_utils.get_aliases_titles(info.get('aliases', []))
 			timeout = int(get_setting('redlight.results.timeout', '60'))
 			if 'timeout' in info: timeout = max(1, int(info['timeout']) - 1)
-			scrape_results, self.errors = aiostreams_api.search(self.media_type, imdb_id, self.season, self.episode, timeout=timeout)
+			scrape_results, self.errors = aiostreams_api.search(
+				self.media_type, imdb_id, self.season, self.episode, timeout=timeout, tmdb_id=tmdb_id)
 			if self.errors and not scrape_results:
 				logger('aiostreams scraper', 'API errors: %s' % '; '.join(self.errors))
 			if not scrape_results: return source_utils.internal_results(self.scrape_provider, self.sources)
