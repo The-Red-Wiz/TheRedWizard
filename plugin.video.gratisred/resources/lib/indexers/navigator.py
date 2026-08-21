@@ -734,6 +734,10 @@ class navigator:
         #    self.addDirectoryItem('script.gratisred.artwork - Install Addon', 'installAddon&id=script.gratisred.artwork', 'tools.png', 'DefaultAddonProgram.png', isFolder=False)
         #else:
         #    self.addDirectoryItem('script.gratisred.artwork - Open Settings', 'open_settings&query=0.0', 'tools.png', 'DefaultAddonProgram.png', isFolder=False)
+        if not control.condVisibility('System.HasAddon(service.mdblist-scrobbler)'):
+            self.addDirectoryItem('service.mdblist-scrobbler - Install Addon', 'installAddon&id=service.mdblist-scrobbler&refresh=installs_menu', 'tools.png', 'DefaultAddonProgram.png', isFolder=False)
+        else:
+            self.addDirectoryItem('service.mdblist-scrobbler - Open Settings', 'open_settings&id=service.mdblist-scrobbler', 'tools.png', 'DefaultAddonProgram.png', isFolder=False)
         if not control.condVisibility('System.HasAddon(script.simkl)'):
             self.addDirectoryItem('script.simkl - Install Addon', 'installAddon&id=script.simkl&refresh=installs_menu', 'tools.png', 'DefaultAddonProgram.png', isFolder=False)
         else:

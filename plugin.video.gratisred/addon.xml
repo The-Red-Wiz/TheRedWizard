@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<addon id="plugin.video.gratisred" version="1.2.7" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.video.gratisred" version="1.2.8" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
     <requires>
         <import addon="script.gratisred.artwork" version="1.0.5"/>
         <import addon="script.module.kodi-six"/>
@@ -28,9 +28,9 @@
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/The-Red-Wizard</source>
         <news>[COLOR red]2026-08-21
-- Summary of v1.2.7 (see Tools > Changelog for the detail):
- * MDBList account (indicators, My Lists, watchlist/library/dropped, progress, calendar)
- * Trakt / Simkl watchlist unaired filter, In Progress leftover progress, Simkl season ticks[/COLOR]</news>
+- Summary of v1.2.8 (see Tools > Changelog for the detail):
+ * Optional Installs: service.mdblist-scrobbler (Install / Open Settings)
+ * MDBList playback still defers scrobble when that add-on is authorised[/COLOR]</news>
         <assets>
             <icon>resources/images/icon.png</icon>
             <fanart>resources/images/fanart.jpg</fanart>

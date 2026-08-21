@@ -1129,6 +1129,13 @@ def markSeasonAsNotWatched(imdb, season, tmdb=None):
 
 def mdblist_official_status():
     """True when official MDBList scrobbler should own progress writes."""
+    if not control.condVisibility('System.HasAddon(service.mdblist-scrobbler)'):
+        return False
+    try:
+        if not control.condVisibility('System.AddonIsEnabled(service.mdblist-scrobbler)'):
+            return False
+    except Exception:
+        pass
     try:
         addon = control.addon('service.mdblist-scrobbler')
     except Exception:
@@ -1139,17 +1146,21 @@ def mdblist_official_status():
             token = (addon.getSetting(key) or '').strip()
         except Exception:
             token = ''
-        if token:
+        if token and token not in ('empty_setting', '0'):
             break
+        token = ''
     if not token:
         return False
     for key in ('scrobble', 'scrobble_enabled', 'enable_scrobble', 'scrobble_movies', 'scrobble_episodes'):
         try:
-            if addon.getSetting(key) in ('true', 'True', '1'):
-                return True
+            val = (addon.getSetting(key) or '').strip().lower()
         except Exception:
-            pass
-    return False
+            continue
+        if val in ('false', '0', 'no', 'off'):
+            return False
+        if val in ('true', '1', 'yes', 'on'):
+            return True
+    return True
 
 
 def mdblist_scrobble(action, media_type, percent=0, tmdb=None, imdb=None, season=None, episode=None):
