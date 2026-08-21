@@ -350,16 +350,20 @@ class seasons:
         traktCredentials = trakt.getTraktCredentialsInfo()
         tmdbCredentials = tmdb_utils.getTMDbCredentialsInfo()
         try:
-            indicators = playcount.getSeasonIndicators(items[0]['imdb'])
+            indicators = playcount.getSeasonIndicators(items[0]['imdb'], items[0].get('tmdb'))
         except:
             pass
         from resources.lib.modules import simkl as simkl_mod
+        from resources.lib.modules import mdblist as mdblist_mod
         simklCredentials = simkl_mod.getSimklCredentialsInfo()
+        mdblistCredentials = mdblist_mod.getMdblistCredentialsInfo()
         _ind = simkl_mod.getIndicatorsProvider()
         if _ind == 'trakt':
             watchedMenu, unwatchedMenu = 'Watched in Trakt', 'Unwatched in Trakt'
         elif _ind == 'simkl':
             watchedMenu, unwatchedMenu = 'Watched in Simkl', 'Unwatched in Simkl'
+        elif _ind == 'mdblist':
+            watchedMenu, unwatchedMenu = 'Watched in MDBList', 'Unwatched in MDBList'
         else:
             watchedMenu, unwatchedMenu = 'Watched in Gratis Red', 'Unwatched in Gratis Red'
         tv_library = libtools.libtvshows()
@@ -413,6 +417,8 @@ class seasons:
                 cm.append(('Queue Item', 'RunPlugin(%s?action=queue_item)' % sysaddon))
                 if simklCredentials == True:
                     cm.append(('Simkl Lists Manager', 'RunPlugin(%s?action=simkl_manager&name=%s&imdb=%s&tmdb=%s&content=tvshow)' % (sysaddon, sysname, imdb, tmdb)))
+                if mdblistCredentials == True:
+                    cm.append(('MDBList Lists Manager', 'RunPlugin(%s?action=mdblist_manager&name=%s&imdb=%s&tmdb=%s&content=tvshow)' % (sysaddon, sysname, imdb, tmdb)))
                 if tmdbCredentials == True:
                     cm.append(('TMDb Lists Manager', 'RunPlugin(%s?action=tmdb_manager&name=%s&tmdb=%s&content=tvshow)' % (sysaddon, sysname, tmdb)))
                 if traktCredentials == True:
@@ -590,6 +596,19 @@ class episodes:
                     self.list = self.simkl_ondeck_list()
                 elif str(url) == 'simkl_mycalendar':
                     self.list = self.simkl_calendar_list()
+                else:
+                    self.list = []
+                if not isinstance(self.list, list):
+                    self.list = []
+                self.episodeDirectory(self.list)
+                return self.list
+            if url and str(url).startswith('mdblist_'):
+                if str(url) == 'mdblist_progress':
+                    self.list = self.mdblist_progress_list()
+                elif str(url) == 'mdblist_ondeck':
+                    self.list = self.mdblist_ondeck_list()
+                elif str(url) == 'mdblist_mycalendar':
+                    self.list = self.mdblist_calendar_list()
                 else:
                     self.list = []
                 if not isinstance(self.list, list):
@@ -787,6 +806,8 @@ class episodes:
             items = trakt.getTraktAsJson(u)
             for item in items:
                 try:
+                    if '/sync/playback' in url and control.playback_progress_stale(item):
+                        raise Exception()
                     title = item.get('episode', {}).get('title')
                     if not title:
                         raise Exception()
@@ -1172,6 +1193,19 @@ class episodes:
             items = simkl_mod.calendar_episode_items(mine_only=True)
         except Exception:
             return []
+        return self._enrich_calendar_tips(items)
+
+
+    def mdblist_calendar_list(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        try:
+            items = mdblist_mod.calendar_episode_items()
+        except Exception:
+            return []
+        return self._enrich_calendar_tips(items)
+
+
+    def _enrich_calendar_tips(self, items):
         self.list = []
 
         def items_list(i):
@@ -1260,6 +1294,19 @@ class episodes:
             items = simkl_mod.progress_seeds()
         except Exception:
             return []
+        return self._cloud_progress_list(items)
+
+
+    def mdblist_progress_list(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        try:
+            items = mdblist_mod.progress_seeds()
+        except Exception:
+            return []
+        return self._cloud_progress_list(items)
+
+
+    def _cloud_progress_list(self, items):
         self.list = []
         sortorder = control.setting('prgr.sortorder')
 
@@ -1373,6 +1420,19 @@ class episodes:
             items = simkl_mod.playback_episode_items()
         except Exception:
             return []
+        return self._playback_episode_list(items)
+
+
+    def mdblist_ondeck_list(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        try:
+            items = mdblist_mod.playback_episode_items()
+        except Exception:
+            return []
+        return self._playback_episode_list(items)
+
+
+    def _playback_episode_list(self, items):
         self.list = []
 
         def items_list(i):
@@ -2192,12 +2252,16 @@ class episodes:
         isFolder = False if not sysaction == 'episodes' else True
         playbackMenu = 'Select Source' if control.setting('hosts.mode') == '2' else 'Auto Play'
         from resources.lib.modules import simkl as simkl_mod
+        from resources.lib.modules import mdblist as mdblist_mod
         simklCredentials = simkl_mod.getSimklCredentialsInfo()
+        mdblistCredentials = mdblist_mod.getMdblistCredentialsInfo()
         _ind = simkl_mod.getIndicatorsProvider()
         if _ind == 'trakt':
             watchedMenu, unwatchedMenu = 'Watched in Trakt', 'Unwatched in Trakt'
         elif _ind == 'simkl':
             watchedMenu, unwatchedMenu = 'Watched in Simkl', 'Unwatched in Simkl'
+        elif _ind == 'mdblist':
+            watchedMenu, unwatchedMenu = 'Watched in MDBList', 'Unwatched in MDBList'
         else:
             watchedMenu, unwatchedMenu = 'Watched in Gratis Red', 'Unwatched in Gratis Red'
         tv_library = libtools.libtvshows()
@@ -2269,6 +2333,8 @@ class episodes:
                 cm.append(('Queue Item', 'RunPlugin(%s?action=queue_item)' % sysaddon))
                 if simklCredentials == True:
                     cm.append(('Simkl Lists Manager', 'RunPlugin(%s?action=simkl_manager&name=%s&imdb=%s&tmdb=%s&content=tvshow)' % (sysaddon, systvshowtitle, imdb, tmdb)))
+                if mdblistCredentials == True:
+                    cm.append(('MDBList Lists Manager', 'RunPlugin(%s?action=mdblist_manager&name=%s&imdb=%s&tmdb=%s&content=tvshow)' % (sysaddon, systvshowtitle, imdb, tmdb)))
                 if tmdbCredentials == True:
                     cm.append(('TMDb Lists Manager', 'RunPlugin(%s?action=tmdb_manager&name=%s&tmdb=%s&content=tvshow)' % (sysaddon, systvshowtitle, tmdb)))
                 if traktCredentials == True:

@@ -4,6 +4,7 @@ import sys
 
 from resources.lib.modules import bookmarks
 from resources.lib.modules import control
+from resources.lib.modules import mdblist
 from resources.lib.modules import simkl
 from resources.lib.modules import trakt
 
@@ -28,6 +29,13 @@ def getMovieIndicators(refresh=False):
                 # Activities + date_from delta when possible (same idea as Trakt activity gate).
                 simkl.syncSimklWatched(silent=True)
             return simkl.cachesyncMovies(timeout=720)
+        except Exception:
+            return
+    if provider == 'mdblist':
+        try:
+            if refresh:
+                mdblist.syncMdblistWatched(silent=True)
+            return mdblist.cachesyncMovies(timeout=720)
         except Exception:
             return
     try:
@@ -56,6 +64,13 @@ def getTVShowIndicators(refresh=False):
             return simkl.cachesyncTVShows(timeout=720)
         except Exception:
             return
+    if provider == 'mdblist':
+        try:
+            if refresh:
+                mdblist.syncMdblistWatched(silent=True)
+            return mdblist.cachesyncTVShows(timeout=720)
+        except Exception:
+            return
     try:
         if refresh == False:
             timeout = 720
@@ -68,11 +83,16 @@ def getTVShowIndicators(refresh=False):
         pass
 
 
-def getSeasonIndicators(imdb):
+def getSeasonIndicators(imdb, tmdb=None):
     provider = _provider()
     if provider == 'simkl':
         try:
-            return simkl.syncSeason(imdb)
+            return simkl.syncSeason(imdb, tmdb=tmdb)
+        except Exception:
+            return
+    if provider == 'mdblist':
+        try:
+            return mdblist.syncSeason(imdb, tmdb=tmdb)
         except Exception:
             return
     try:
@@ -186,6 +206,15 @@ def markMovieDuringPlayback(imdb, watched, tmdb=None):
             _flag_playback_marked()
             if simkl.getSimklAddonMovieInfo() == True:
                 simkl.markMovieAsNotWatched(imdb, tmdb=tmdb)
+        elif provider == 'mdblist':
+            if int(watched) == 7:
+                mdblist.markMovieAsWatched(imdb, tmdb=tmdb)
+            else:
+                mdblist.markMovieAsNotWatched(imdb, tmdb=tmdb)
+            mdblist.cachesyncMovies(timeout=0)
+            _flag_playback_marked()
+            if mdblist.mdblist_official_status():
+                mdblist.markMovieAsNotWatched(imdb, tmdb=tmdb)
     except:
         pass
     try:
@@ -216,6 +245,15 @@ def markEpisodeDuringPlayback(imdb, tmdb, season, episode, watched, tvdb=None):
             _flag_playback_marked()
             if simkl.getSimklAddonEpisodeInfo() == True:
                 simkl.markEpisodeAsNotWatched(imdb, season, episode, tmdb=tmdb)
+        elif provider == 'mdblist':
+            if int(watched) == 7:
+                mdblist.markEpisodeAsWatched(imdb, season, episode, tmdb=tmdb)
+            else:
+                mdblist.markEpisodeAsNotWatched(imdb, season, episode, tmdb=tmdb)
+            mdblist.cachesyncTVShows(timeout=0)
+            _flag_playback_marked()
+            if mdblist.mdblist_official_status():
+                mdblist.markEpisodeAsNotWatched(imdb, season, episode, tmdb=tmdb)
     except:
         pass
     try:
@@ -241,6 +279,12 @@ def movies(imdb, watched, tmdb=None):
             else:
                 simkl.markMovieAsNotWatched(imdb, tmdb=tmdb)
             simkl.cachesyncMovies(timeout=0)
+        elif provider == 'mdblist':
+            if int(watched) == 7:
+                mdblist.markMovieAsWatched(imdb, tmdb=tmdb)
+            else:
+                mdblist.markMovieAsNotWatched(imdb, tmdb=tmdb)
+            mdblist.cachesyncMovies(timeout=0)
         else:
             raise Exception()
     except:
@@ -271,6 +315,12 @@ def episodes(imdb, tmdb, season, episode, watched):
             else:
                 simkl.markEpisodeAsNotWatched(imdb, season, episode, tmdb=tmdb)
             simkl.cachesyncTVShows(timeout=0)
+        elif provider == 'mdblist':
+            if int(watched) == 7:
+                mdblist.markEpisodeAsWatched(imdb, season, episode, tmdb=tmdb)
+            else:
+                mdblist.markEpisodeAsNotWatched(imdb, season, episode, tmdb=tmdb)
+            mdblist.cachesyncTVShows(timeout=0)
         else:
             raise Exception()
     except:
@@ -366,6 +416,23 @@ def tvshows(tvshowtitle, imdb, tmdb, season, watched):
                 else:
                     simkl.markTVShowAsNotWatched(imdb, tmdb=tmdb)
             simkl.cachesyncTVShows(timeout=0)
+        elif provider == 'mdblist':
+            if season:
+                from resources.lib.indexers import episodes
+                items = episodes.episodes().get(tvshowtitle, '0', imdb, tmdb, meta=None, season=season, idx=False)
+                items = [(int(i['season']), int(i['episode'])) for i in items]
+                items = [i[1] for i in items if int('%01d' % int(season)) == int('%01d' % i[0])]
+                for i in items:
+                    if int(watched) == 7:
+                        mdblist.markEpisodeAsWatched(imdb, season, i, tmdb=tmdb)
+                    else:
+                        mdblist.markEpisodeAsNotWatched(imdb, season, i, tmdb=tmdb)
+            else:
+                if int(watched) == 7:
+                    mdblist.markTVShowAsWatched(imdb, tmdb=tmdb)
+                else:
+                    mdblist.markTVShowAsNotWatched(imdb, tmdb=tmdb)
+            mdblist.cachesyncTVShows(timeout=0)
     except:
         pass
     _finish_manual_mark(watched)

@@ -126,18 +126,29 @@ def getSimklCredentialsInfo():
     return bool(_token() and (control.setting('simkl.user') or '').strip())
 
 
+def _mdblist_ok():
+    try:
+        from resources.lib.modules import mdblist
+        return mdblist.getMdblistCredentialsInfo()
+    except Exception:
+        return False
+
+
 def getIndicatorsProvider():
-    """Return 'local', 'trakt', or 'simkl' based on Indicators setting + credentials."""
+    """Return 'local', 'trakt', 'simkl', or 'mdblist' based on Indicators + credentials."""
     from resources.lib.modules import trakt
     trakt_ok = trakt.getTraktCredentialsInfo()
     simkl_ok = getSimklCredentialsInfo()
-    if not trakt_ok and not simkl_ok:
+    mdblist_ok = _mdblist_ok()
+    if not trakt_ok and not simkl_ok and not mdblist_ok:
         return 'local'
     val = control.setting('indicators.alt')
     if val == '1' and trakt_ok:
         return 'trakt'
     if val == '2' and simkl_ok:
         return 'simkl'
+    if val == '3' and mdblist_ok:
+        return 'mdblist'
     return 'local'
 
 
@@ -145,15 +156,17 @@ def getSimklIndicatorsInfo():
     return getIndicatorsProvider() == 'simkl'
 
 
-_INDICATOR_LABELS = {'0': 'Local', '1': 'Trakt', '2': 'Simkl'}
+_INDICATOR_LABELS = {'0': 'Local', '1': 'Trakt', '2': 'Simkl', '3': 'MDBList'}
 
 
 def indicators_options():
-    """Authorised Indicators choices only (stable values: 0 Local, 1 Trakt, 2 Simkl)."""
+    """Authorised Indicators choices only (0 Local, 2 Simkl, 3 MDBList, 1 Trakt)."""
     from resources.lib.modules import trakt
     opts = [('Local', '0')]
     if getSimklCredentialsInfo():
         opts.append(('Simkl', '2'))
+    if _mdblist_ok():
+        opts.append(('MDBList', '3'))
     if trakt.getTraktCredentialsInfo():
         opts.append(('Trakt', '1'))
     return opts
@@ -161,7 +174,7 @@ def indicators_options():
 
 def indicators_display_name(value=None):
     if value is None:
-        value = {'local': '0', 'trakt': '1', 'simkl': '2'}.get(getIndicatorsProvider(), '0')
+        value = {'local': '0', 'trakt': '1', 'simkl': '2', 'mdblist': '3'}.get(getIndicatorsProvider(), '0')
     return _INDICATOR_LABELS.get(str(value), 'Local')
 
 
@@ -182,7 +195,7 @@ def sync_bookmarks_label(value=None):
 
 
 def set_bookmarks_source(value, notify=False):
-    """Set Resume Point Source only (0 Local, 1 Trakt, 2 Simkl)."""
+    """Set Resume Point Source only (0 Local, 1 Trakt, 2 Simkl, 3 MDBList)."""
     value = str(value)
     if value not in _INDICATOR_LABELS:
         value = '0'
@@ -193,7 +206,7 @@ def set_bookmarks_source(value, notify=False):
 
 
 def set_watched_provider(value, notify=False):
-    """Set Indicators + matching Resume Point Source (0 Local, 1 Trakt, 2 Simkl)."""
+    """Set Indicators + matching Resume Point Source (0 Local, 1 Trakt, 2 Simkl, 3 MDBList)."""
     value = str(value)
     if value not in _INDICATOR_LABELS:
         value = '0'
@@ -219,22 +232,26 @@ def ensure_indicators_valid():
     from resources.lib.modules import trakt
     val = control.setting('indicators.alt') or '0'
     if val == '1' and not trakt.getTraktCredentialsInfo():
-        set_watched_provider('2' if getSimklCredentialsInfo() else '0')
+        set_watched_provider('2' if getSimklCredentialsInfo() else ('3' if _mdblist_ok() else '0'))
     elif val == '2' and not getSimklCredentialsInfo():
-        set_watched_provider('1' if trakt.getTraktCredentialsInfo() else '0')
+        set_watched_provider('3' if _mdblist_ok() else ('1' if trakt.getTraktCredentialsInfo() else '0'))
+    elif val == '3' and not _mdblist_ok():
+        set_watched_provider('2' if getSimklCredentialsInfo() else ('1' if trakt.getTraktCredentialsInfo() else '0'))
     else:
         sync_indicators_label(val)
         ensure_bookmarks_valid()
 
 
 def fallback_indicators_on_revoke(revoked):
-    """revoked: 'trakt' or 'simkl'. Adjust Indicators if that provider was selected."""
+    """revoked: 'trakt', 'simkl', or 'mdblist'. Adjust Indicators if that provider was selected."""
     from resources.lib.modules import trakt
     val = control.setting('indicators.alt') or '0'
     if revoked == 'trakt' and val == '1':
-        set_watched_provider('2' if getSimklCredentialsInfo() else '0')
+        set_watched_provider('2' if getSimklCredentialsInfo() else ('3' if _mdblist_ok() else '0'))
     elif revoked == 'simkl' and val == '2':
-        set_watched_provider('1' if trakt.getTraktCredentialsInfo() else '0')
+        set_watched_provider('3' if _mdblist_ok() else ('1' if trakt.getTraktCredentialsInfo() else '0'))
+    elif revoked == 'mdblist' and val == '3':
+        set_watched_provider('2' if getSimklCredentialsInfo() else ('1' if trakt.getTraktCredentialsInfo() else '0'))
     else:
         sync_indicators_label()
         ensure_bookmarks_valid()
@@ -695,6 +712,8 @@ def directory_playback_movies():
         try:
             if item.get('type') and item.get('type') != 'movie':
                 continue
+            if control.playback_progress_stale(item):
+                continue
             movie = item.get('movie') or item
             ids = movie.get('ids') or {}
             title = movie.get('title') or 'Unknown'
@@ -721,6 +740,8 @@ def playback_episode_items():
     for item in get_playback('episodes'):
         try:
             if item.get('type') and item.get('type') != 'episode':
+                continue
+            if control.playback_progress_stale(item):
                 continue
             show = item.get('show') or {}
             ep = item.get('episode') or {}
@@ -1264,9 +1285,39 @@ def getWatchedActivity():
         return 0
 
 
-def syncSeason(imdb):
-    """Season overlays rely on episode-level Simkl sync; return empty here."""
-    return []
+def syncSeason(imdb, tmdb=None):
+    """Fully watched season numbers from the local Simkl TV indicator cache."""
+    try:
+        rows = cachesyncTVShows(timeout=720) or []
+        tmdb_s = str(tmdb or '0')
+        row = None
+        if tmdb_s not in ('0', '', 'None'):
+            for item in rows:
+                try:
+                    if str(item[0]) == tmdb_s:
+                        row = item
+                        break
+                except Exception:
+                    continue
+        if row is None:
+            return []
+        watched = row[2] or []
+        by_season = {}
+        for pair in watched:
+            try:
+                season_n, episode_n = int(pair[0]), int(pair[1])
+            except Exception:
+                continue
+            by_season.setdefault(season_n, set()).add(episode_n)
+        fully = []
+        for season_n, episodes in by_season.items():
+            if not episodes:
+                continue
+            if min(episodes) == 1 and len(episodes) >= max(episodes):
+                fully.append('%01d' % season_n)
+        return fully
+    except Exception:
+        return []
 
 
 def _list_ids(tmdb=None, imdb=None, tvdb=None):

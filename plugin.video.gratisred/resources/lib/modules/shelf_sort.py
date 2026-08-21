@@ -30,16 +30,19 @@ SHELF_LABELS = {
     'collection': 'Library',
     'watchlist': 'Watchlist',
     'favorites': 'Favorites',
+    'watched': 'Watched',
 }
 
 SIMKL_SORTABLE = frozenset(('plantowatch', 'watching', 'completed', 'hold', 'dropped'))
 TRAKT_SORTABLE = frozenset(('collection', 'watchlist', 'favorites'))
 TMDB_SORTABLE = frozenset(('favorites', 'watchlist'))
+MDBLIST_SORTABLE = frozenset(('watchlist', 'collection', 'dropped', 'watched'))
 
 _PROVIDER_BRAND = {
     'simkl': 'Simkl',
     'trakt': 'Trakt',
     'tmdb': 'TMDb',
+    'mdblist': 'MDBList',
 }
 
 _PERSONAL_PREFIX = 'ulist_'
@@ -122,6 +125,8 @@ def get_list_sort(provider, media, shelf):
     if provider == 'simkl' and shelf in SIMKL_SORTABLE:
         return 'title:asc'
     if provider == 'tmdb' and shelf in TMDB_SORTABLE:
+        return 'title:asc'
+    if provider == 'mdblist' and shelf in ('collection', 'dropped', 'watched'):
         return 'title:asc'
     # Personal lists / Watchlist: keep provider order until the user picks a sort.
     return SORT_DEFAULT

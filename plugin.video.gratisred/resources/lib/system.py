@@ -103,6 +103,28 @@ def router(_argv):
         simkl.refreshSimklCache()
 
 
+    elif action == 'auth_mdblist':
+        from resources.lib.modules import mdblist
+        reopen = (params.get('source') or '').lower() == 'settings'
+        mdblist.authMdblist(reopen_settings=reopen)
+
+
+    elif action == 'revoke_mdblist':
+        from resources.lib.modules import mdblist
+        reopen = (params.get('source') or '').lower() == 'settings'
+        mdblist.revokeMdblist(reopen_settings=reopen)
+
+
+    elif action == 'refresh_mdblist_cache':
+        from resources.lib.modules import mdblist
+        mdblist.refreshMdblistCache()
+
+
+    elif action == 'mdblist_list_sort':
+        from resources.lib.modules import mdblist
+        mdblist.choose_list_sort(params.get('media'), params.get('status'), label=params.get('label'))
+
+
     elif action == 'simkl_list_sort':
         from resources.lib.modules import simkl
         simkl.choose_list_sort(params.get('media'), params.get('status'))
@@ -137,6 +159,21 @@ def router(_argv):
     elif action == 'my_simkl_tvshows_menu':
         from resources.lib.indexers import navigator
         navigator.navigator().mysimkltvshows()
+
+
+    elif action == 'my_mdblist_menu':
+        from resources.lib.indexers import navigator
+        navigator.navigator().mymdblist()
+
+
+    elif action == 'my_mdblist_movies_menu':
+        from resources.lib.indexers import navigator
+        navigator.navigator().mymdblistmovies()
+
+
+    elif action == 'my_mdblist_tvshows_menu':
+        from resources.lib.indexers import navigator
+        navigator.navigator().mymdblisttvshows()
 
 
     elif action == 'opensubs_check':
@@ -463,6 +500,21 @@ def router(_argv):
         movies.movies().userlists_tmdb()
 
 
+    elif action == 'movies_userlists_mdblist':
+        from resources.lib.indexers import movies
+        movies.movies().userlists_mdblist()
+
+
+    elif action == 'movies_userlists_mdblist_liked':
+        from resources.lib.indexers import movies
+        movies.movies().userlists_mdblist_liked()
+
+
+    elif action == 'movies_userlists_mdblist_top':
+        from resources.lib.indexers import movies
+        movies.movies().userlists_mdblist_top()
+
+
     elif action == 'my_tmdb_menu':
         from resources.lib.indexers import navigator
         navigator.navigator().mytmdb()
@@ -601,6 +653,11 @@ def router(_argv):
     elif action == 'simkl_manager':
         from resources.lib.modules import simkl
         simkl.manager(name, imdb, tmdb, content)
+
+
+    elif action == 'mdblist_manager':
+        from resources.lib.modules import mdblist
+        mdblist.manager(name, imdb, tmdb, content)
 
 
     elif action == 'tvshow_to_library':
@@ -756,6 +813,21 @@ def router(_argv):
     elif action == 'tvshows_userlists_tmdb':
         from resources.lib.indexers import tvshows
         tvshows.tvshows().userlists_tmdb()
+
+
+    elif action == 'tvshows_userlists_mdblist':
+        from resources.lib.indexers import tvshows
+        tvshows.tvshows().userlists_mdblist()
+
+
+    elif action == 'tvshows_userlists_mdblist_liked':
+        from resources.lib.indexers import tvshows
+        tvshows.tvshows().userlists_mdblist_liked()
+
+
+    elif action == 'tvshows_userlists_mdblist_top':
+        from resources.lib.indexers import tvshows
+        tvshows.tvshows().userlists_mdblist_top()
 
 
     elif action == 'update_library':

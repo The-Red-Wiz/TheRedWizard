@@ -42,6 +42,14 @@ def _tmdb_credentials():
     return tmdb_utils.getTMDbCredentialsInfo()
 
 
+def _mdblist_credentials():
+    try:
+        from resources.lib.modules import mdblist
+        return mdblist.getMdblistCredentialsInfo()
+    except Exception:
+        return False
+
+
 class navigator:
     def root(self):
         # Persistent 'What's New' entry — visible until the user opens/dismisses it.
@@ -326,15 +334,71 @@ class navigator:
     def mylists(self):
         if _simkl_credentials():
             self.addDirectoryItem('My Simkl', 'my_simkl_menu', 'simkl.png', 'DefaultSets.png')
+        if _mdblist_credentials():
+            self.addDirectoryItem('My MDBList', 'my_mdblist_menu', 'mdblist.png', 'DefaultSets.png')
         if _tmdb_credentials():
             self.addDirectoryItem('My TMDb', 'my_tmdb_menu', 'tmdb.png', 'DefaultSets.png')
         if _trakt_credentials():
             self.addDirectoryItem('My Trakt', 'my_trakt_menu', 'trakt.png', 'DefaultSets.png')
-        if _trakt_credentials() or _tmdb_credentials():
+        if _trakt_credentials() or _tmdb_credentials() or _mdblist_credentials():
             self.addDirectoryItem('My UserLists', 'my_userlists_menu', 'userlists.png', 'DefaultSets.png')
         self.addDirectoryItem('My Favorites', 'favoritesNavigator', 'most-popular.png', 'DefaultFolder.png')
         self.addDirectoryItem('My Library', 'library_menu', 'mymovies.png', 'DefaultAddonProgram.png')
         self.addDirectoryItem('My Downloads', 'download_menu', 'downloads.png', 'DefaultFolder.png')
+        self.endDirectory()
+
+
+    def mymdblist(self):
+        if not _mdblist_credentials():
+            self.addDirectoryItem('Authorize MDBList (QR Code)', 'auth_mdblist', 'mdblist.png', 'DefaultAddonProgram.png', isFolder=False)
+            self.endDirectory()
+            return
+        self.addDirectoryItem('My MDBList Movies', 'my_mdblist_movies_menu', 'mymovies.png', 'DefaultMovies.png')
+        self.addDirectoryItem('My MDBList TV Shows', 'my_mdblist_tvshows_menu', 'mytvshows.png', 'DefaultTVShows.png')
+        self.addDirectoryItem('Refresh MDBList Cache', 'refresh_mdblist_cache', 'tools.png', 'DefaultAddonProgram.png', isFolder=False)
+        self.endDirectory()
+
+
+    def mymdblistmovies(self):
+        if not _mdblist_credentials():
+            self.addDirectoryItem('Authorize MDBList (QR Code)', 'auth_mdblist', 'mdblist.png', 'DefaultAddonProgram.png', isFolder=False)
+        else:
+            sort = lambda shelf: ('Set Sort Order', 'mdblist_list_sort&media=movies&status=%s' % shelf)
+            lib = lambda url: ('Add to Library', 'movies_to_library&url=%s' % url)
+            self.addDirectoryItem('Watchlist', 'movies&url=mdblist_watchlist', 'mymovies.png', 'DefaultMovies.png', queue=True, context=[
+                sort('watchlist'), lib('mdblist_watchlist')])
+            self.addDirectoryItem('Library', 'movies&url=mdblist_collection', 'mymovies.png', 'DefaultMovies.png', queue=True, context=[
+                sort('collection'), lib('mdblist_collection')])
+            self.addDirectoryItem('In Progress', 'movies&url=mdblist_ondeck', 'people-watching.png', 'DefaultMovies.png', queue=True, context=[
+                lib('mdblist_ondeck')])
+            self.addDirectoryItem('Watched', 'movies&url=mdblist_watched', 'mymovies.png', 'DefaultMovies.png', queue=True, context=[
+                sort('watched'), lib('mdblist_watched')])
+            self.addDirectoryItem('My Lists', 'movies_userlists_mdblist', 'mdblist.png', 'DefaultVideoPlaylists.png')
+            self.addDirectoryItem('Liked Lists', 'movies_userlists_mdblist_liked', 'mdblist.png', 'DefaultVideoPlaylists.png')
+            self.addDirectoryItem('Popular MDBLists', 'movies_userlists_mdblist_top', 'mdblist.png', 'DefaultVideoPlaylists.png')
+        self.endDirectory()
+
+
+    def mymdblisttvshows(self):
+        if not _mdblist_credentials():
+            self.addDirectoryItem('Authorize MDBList (QR Code)', 'auth_mdblist', 'mdblist.png', 'DefaultAddonProgram.png', isFolder=False)
+        else:
+            sort = lambda shelf: ('Set Sort Order', 'mdblist_list_sort&media=tvshows&status=%s' % shelf)
+            lib = lambda url: ('Add to Library', 'tvshows_to_library&url=%s' % url)
+            self.addDirectoryItem('Watchlist', 'tvshows&url=mdblist_watchlist', 'mytvshows.png', 'DefaultTVShows.png', queue=True, context=[
+                sort('watchlist'), lib('mdblist_watchlist')])
+            self.addDirectoryItem('Library', 'tvshows&url=mdblist_collection', 'mytvshows.png', 'DefaultTVShows.png', queue=True, context=[
+                sort('collection'), lib('mdblist_collection')])
+            self.addDirectoryItem('Upcoming Episodes', 'calendar&url=mdblist_mycalendar', 'calendar.png', 'DefaultRecentlyAddedEpisodes.png', queue=True)
+            self.addDirectoryItem('Continue Watching', 'calendar&url=mdblist_progress', 'people-watching.png', 'DefaultRecentlyAddedEpisodes.png', queue=True)
+            self.addDirectoryItem('In Progress Episodes', 'calendar&url=mdblist_ondeck', 'latest-episodes.png', 'DefaultTVShows.png')
+            self.addDirectoryItem('Watched', 'tvshows&url=mdblist_watched', 'mytvshows.png', 'DefaultTVShows.png', queue=True, context=[
+                sort('watched'), lib('mdblist_watched')])
+            self.addDirectoryItem('Dropped', 'tvshows&url=mdblist_dropped', 'mytvshows.png', 'DefaultTVShows.png', queue=True, context=[
+                sort('dropped'), lib('mdblist_dropped')])
+            self.addDirectoryItem('My Lists', 'tvshows_userlists_mdblist', 'mdblist.png', 'DefaultVideoPlaylists.png')
+            self.addDirectoryItem('Liked Lists', 'tvshows_userlists_mdblist_liked', 'mdblist.png', 'DefaultVideoPlaylists.png')
+            self.addDirectoryItem('Popular MDBLists', 'tvshows_userlists_mdblist_top', 'mdblist.png', 'DefaultVideoPlaylists.png')
         self.endDirectory()
 
 
@@ -472,13 +536,14 @@ class navigator:
 
 
     def myuserlists(self):
-        if _trakt_credentials() or _tmdb_credentials():
+        if _trakt_credentials() or _tmdb_credentials() or _mdblist_credentials():
             self.addDirectoryItem('Movie UserLists', 'my_userlists_movies_menu', 'mymovies.png', 'DefaultMovies.png')
             self.addDirectoryItem('TV Show UserLists', 'my_userlists_tvshows_menu', 'mytvshows.png', 'DefaultTVShows.png')
         if _trakt_credentials():
             self.addDirectoryItem('Episode UserLists', 'episodes_userlists', 'mytvshows.png', 'DefaultTVShows.png')
-        if not (_trakt_credentials() or _tmdb_credentials()):
+        if not (_trakt_credentials() or _tmdb_credentials() or _mdblist_credentials()):
             self.addDirectoryItem('Authorize TMDb (QR Code)', 'auth_tmdb', 'tmdb.png', 'DefaultAddonProgram.png', isFolder=False)
+            self.addDirectoryItem('Authorize MDBList (QR Code)', 'auth_mdblist', 'mdblist.png', 'DefaultAddonProgram.png', isFolder=False)
             self.addDirectoryItem('Authorize Trakt (QR Code)', 'auth_trakt', 'trakt.png', 'DefaultAddonProgram.png', isFolder=False)
         self.endDirectory()
 
@@ -486,11 +551,16 @@ class navigator:
     def myuserlistsmovies(self):
         if _tmdb_credentials():
             self.addDirectoryItem('TMDb UserLists', 'movies_userlists_tmdb', 'tmdb.png', 'DefaultMovies.png')
+        if _mdblist_credentials():
+            self.addDirectoryItem('MDBList UserLists', 'movies_userlists_mdblist', 'mdblist.png', 'DefaultMovies.png')
+            self.addDirectoryItem('MDBList Liked Lists', 'movies_userlists_mdblist_liked', 'mdblist.png', 'DefaultMovies.png')
+            self.addDirectoryItem('Popular MDBLists', 'movies_userlists_mdblist_top', 'mdblist.png', 'DefaultMovies.png')
         if _trakt_credentials():
             self.addDirectoryItem('Trakt UserLists', 'movies_userlists_trakt', 'trakt.png', 'DefaultMovies.png')
             self.addDirectoryItem('Trakt Liked UserLists', 'movies_userlists_trakt_liked', 'trakt.png', 'DefaultMovies.png')
-        if not (_trakt_credentials() or _tmdb_credentials()):
+        if not (_trakt_credentials() or _tmdb_credentials() or _mdblist_credentials()):
             self.addDirectoryItem('Authorize TMDb (QR Code)', 'auth_tmdb', 'tmdb.png', 'DefaultAddonProgram.png', isFolder=False)
+            self.addDirectoryItem('Authorize MDBList (QR Code)', 'auth_mdblist', 'mdblist.png', 'DefaultAddonProgram.png', isFolder=False)
             self.addDirectoryItem('Authorize Trakt (QR Code)', 'auth_trakt', 'trakt.png', 'DefaultAddonProgram.png', isFolder=False)
         self.endDirectory()
 
@@ -498,11 +568,16 @@ class navigator:
     def myuserliststvshows(self):
         if _tmdb_credentials():
             self.addDirectoryItem('TMDb UserLists', 'tvshows_userlists_tmdb', 'tmdb.png', 'DefaultTVShows.png')
+        if _mdblist_credentials():
+            self.addDirectoryItem('MDBList UserLists', 'tvshows_userlists_mdblist', 'mdblist.png', 'DefaultTVShows.png')
+            self.addDirectoryItem('MDBList Liked Lists', 'tvshows_userlists_mdblist_liked', 'mdblist.png', 'DefaultTVShows.png')
+            self.addDirectoryItem('Popular MDBLists', 'tvshows_userlists_mdblist_top', 'mdblist.png', 'DefaultTVShows.png')
         if _trakt_credentials():
             self.addDirectoryItem('Trakt UserLists', 'tvshows_userlists_trakt', 'trakt.png', 'DefaultTVShows.png')
             self.addDirectoryItem('Trakt Liked UserLists', 'tvshows_userlists_trakt_liked', 'trakt.png', 'DefaultTVShows.png')
-        if not (_trakt_credentials() or _tmdb_credentials()):
+        if not (_trakt_credentials() or _tmdb_credentials() or _mdblist_credentials()):
             self.addDirectoryItem('Authorize TMDb (QR Code)', 'auth_tmdb', 'tmdb.png', 'DefaultAddonProgram.png', isFolder=False)
+            self.addDirectoryItem('Authorize MDBList (QR Code)', 'auth_mdblist', 'mdblist.png', 'DefaultAddonProgram.png', isFolder=False)
             self.addDirectoryItem('Authorize Trakt (QR Code)', 'auth_trakt', 'trakt.png', 'DefaultAddonProgram.png', isFolder=False)
         self.endDirectory()
 
@@ -559,6 +634,12 @@ class navigator:
             self.addDirectoryItem('Import Simkl TV Show Completed...', 'tvshows_to_library&url=simkl_completed', 'simkl.png', 'DefaultTVShows.png', isFolder=False)
             self.addDirectoryItem('Import Simkl TV Show On Hold...', 'tvshows_to_library&url=simkl_hold', 'simkl.png', 'DefaultTVShows.png', isFolder=False)
             self.addDirectoryItem('Import Simkl TV Show Dropped...', 'tvshows_to_library&url=simkl_dropped', 'simkl.png', 'DefaultTVShows.png', isFolder=False)
+        if _mdblist_credentials():
+            self.addDirectoryItem('Import MDBList Movie Watchlist...', 'movies_to_library&url=mdblist_watchlist', 'mdblist.png', 'DefaultMovies.png', isFolder=False)
+            self.addDirectoryItem('Import MDBList Movie Library...', 'movies_to_library&url=mdblist_collection', 'mdblist.png', 'DefaultMovies.png', isFolder=False)
+            self.addDirectoryItem('Import MDBList TV Show Watchlist...', 'tvshows_to_library&url=mdblist_watchlist', 'mdblist.png', 'DefaultTVShows.png', isFolder=False)
+            self.addDirectoryItem('Import MDBList TV Show Library...', 'tvshows_to_library&url=mdblist_collection', 'mdblist.png', 'DefaultTVShows.png', isFolder=False)
+            self.addDirectoryItem('Import MDBList TV Show Dropped...', 'tvshows_to_library&url=mdblist_dropped', 'mdblist.png', 'DefaultTVShows.png', isFolder=False)
         if _trakt_credentials() == True:
             self.addDirectoryItem('Import Trakt Movie Collection...', 'movies_to_library&url=trakt_collection', 'trakt.png', 'DefaultMovies.png', isFolder=False)
             self.addDirectoryItem('Import Trakt Movie Watchlist...', 'movies_to_library&url=trakt_watchlist', 'trakt.png', 'DefaultMovies.png', isFolder=False)
@@ -585,6 +666,8 @@ class navigator:
         self.addDirectoryItem('Setup ViewTypes', 'views_menu', 'tools.png', 'DefaultAddonProgram.png')
         if not _simkl_credentials():
             self.addDirectoryItem('Authorize Simkl (QR Code)', 'auth_simkl', 'simkl.png', 'DefaultAddonProgram.png', isFolder=False)
+        if not _mdblist_credentials():
+            self.addDirectoryItem('Authorize MDBList (QR Code)', 'auth_mdblist', 'mdblist.png', 'DefaultAddonProgram.png', isFolder=False)
         if not _tmdb_credentials():
             self.addDirectoryItem('Authorize TMDb (QR Code)', 'auth_tmdb', 'tmdb.png', 'DefaultAddonProgram.png', isFolder=False)
         if not _trakt_credentials():

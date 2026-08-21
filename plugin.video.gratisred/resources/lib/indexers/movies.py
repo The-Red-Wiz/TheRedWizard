@@ -541,6 +541,42 @@ class movies:
         return self.list
 
 
+    def userlists_mdblist(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        self.list = mdblist_mod.user_list_directory('user', 'movies')
+        if not self.list:
+            if not mdblist_mod.getMdblistCredentialsInfo():
+                control.infoDialog('Authorize MDBList in Settings > Account Settings to see your lists.', sound=True)
+            else:
+                control.infoDialog('No MDBList movie lists found.', sound=True)
+        self.list = sorted(self.list, key=lambda k: (k.get('name') or '').lower())
+        self.addDirectory(self.list, queue=True)
+        return self.list
+
+
+    def userlists_mdblist_liked(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        self.list = mdblist_mod.user_list_directory('liked', 'movies')
+        if not self.list:
+            if not mdblist_mod.getMdblistCredentialsInfo():
+                control.infoDialog('Authorize MDBList in Settings > Account Settings to see your lists.', sound=True)
+            else:
+                control.infoDialog('No liked MDBLists found.', sound=True)
+        self.list = sorted(self.list, key=lambda k: (k.get('name') or '').lower())
+        self.addDirectory(self.list, queue=True)
+        return self.list
+
+
+    def userlists_mdblist_top(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        self.list = mdblist_mod.user_list_directory('top', 'movies')
+        if not self.list:
+            control.infoDialog('No popular MDBLists found.', sound=True)
+        self.list = sorted(self.list, key=lambda k: (k.get('name') or '').lower())
+        self.addDirectory(self.list, queue=True)
+        return self.list
+
+
     def local_library(self):
         self.list = libtools.libmovies().scan_local_items()
         if not self.list:
@@ -615,6 +651,8 @@ class movies:
                     if int(year) > int(self.datetime.strftime('%Y')):
                         if self.shownoyear != 'true':
                             raise Exception()
+                    if '/sync/playback' in url and control.playback_progress_stale(item):
+                        raise Exception()
                     imdb = item.get('ids', {}).get('imdb')
                     if not imdb:
                         imdb = '0'
@@ -1176,6 +1214,7 @@ class movies:
 
     def get(self, url, idx=True, create_directory=True):
         try:
+            self._list_key = str(url or '')
             if url and str(url).startswith('simkl_'):
                 from resources.lib.modules import simkl as simkl_mod
                 key = str(url)
@@ -1188,6 +1227,19 @@ class movies:
                 else:
                     status = key[6:]
                     self.list = simkl_mod.directory_movies(status)
+                if idx == True:
+                    self.worker()
+                if idx == True and create_directory == True:
+                    self.movieDirectory(self.list)
+                return self.list
+            if url and str(url).startswith('mdblist_'):
+                from resources.lib.modules import mdblist as mdblist_mod
+                self.list = mdblist_mod.directory_from_url(url, 'movies') or []
+                if str(url) == 'mdblist_ondeck':
+                    try:
+                        self.list = sorted(self.list, key=lambda k: str(k.get('paused_at') or ''), reverse=True)
+                    except Exception:
+                        pass
                 if idx == True:
                     self.worker()
                 if idx == True and create_directory == True:
@@ -1276,9 +1328,9 @@ class movies:
                 if idx == True:
                     self.worker()
 
-            if idx == True and create_directory == True:
-                self.movieDirectory(self.list)
-            return self.list
+                if idx == True and create_directory == True:
+                    self.movieDirectory(self.list)
+                return self.list
         except:
             #log_utils.log('get', 1)
             pass
@@ -1287,6 +1339,7 @@ class movies:
     def movieDirectory(self, items):
         sysaddon = sys.argv[0]
         syshandle = int(sys.argv[1])
+        items = control.filter_watchlist_unaired(items, getattr(self, '_list_key', ''), self.today_date, media='movie')
         if items == None or len(items) == 0:
             control.idle()
             control.content(syshandle, 'movies')
@@ -1295,8 +1348,10 @@ class movies:
         addonPoster, addonBanner = control.addonPoster(), control.addonBanner()
         addonFanart = control.addonFanart()
         from resources.lib.modules import simkl as simkl_mod
+        from resources.lib.modules import mdblist as mdblist_mod
         traktCredentials = trakt.getTraktCredentialsInfo()
         simklCredentials = simkl_mod.getSimklCredentialsInfo()
+        mdblistCredentials = mdblist_mod.getMdblistCredentialsInfo()
         tmdbCredentials = tmdb_utils.getTMDbCredentialsInfo()
         isPlayable = True if not 'plugin' in control.infoLabel('Container.PluginName') else False
         indicators = playcount.getMovieIndicators()#refresh=True) if action == 'movies' else playcount.getMovieIndicators()
@@ -1306,6 +1361,8 @@ class movies:
             watchedMenu, unwatchedMenu = 'Watched in Trakt', 'Unwatched in Trakt'
         elif _ind == 'simkl':
             watchedMenu, unwatchedMenu = 'Watched in Simkl', 'Unwatched in Simkl'
+        elif _ind == 'mdblist':
+            watchedMenu, unwatchedMenu = 'Watched in MDBList', 'Unwatched in MDBList'
         else:
             watchedMenu, unwatchedMenu = 'Watched in Gratis Red', 'Unwatched in Gratis Red'
         nextMenu = '[I]Next Page[/I]'
@@ -1355,6 +1412,8 @@ class movies:
                 cm.append(('Queue Item', 'RunPlugin(%s?action=queue_item)' % sysaddon))
                 if simklCredentials == True:
                     cm.append(('Simkl Lists Manager', 'RunPlugin(%s?action=simkl_manager&name=%s&imdb=%s&tmdb=%s&content=movie)' % (sysaddon, sysname, imdb, tmdb)))
+                if mdblistCredentials == True:
+                    cm.append(('MDBList Lists Manager', 'RunPlugin(%s?action=mdblist_manager&name=%s&imdb=%s&tmdb=%s&content=movie)' % (sysaddon, sysname, imdb, tmdb)))
                 if tmdbCredentials == True:
                     cm.append(('TMDb Lists Manager', 'RunPlugin(%s?action=tmdb_manager&name=%s&tmdb=%s&content=movie)' % (sysaddon, sysname, tmdb)))
                 if traktCredentials == True:

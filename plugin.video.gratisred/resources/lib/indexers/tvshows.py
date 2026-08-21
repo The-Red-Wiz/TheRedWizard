@@ -451,6 +451,42 @@ class tvshows:
         return self.list
 
 
+    def userlists_mdblist(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        self.list = mdblist_mod.user_list_directory('user', 'tvshows')
+        if not self.list:
+            if not mdblist_mod.getMdblistCredentialsInfo():
+                control.infoDialog('Authorize MDBList in Settings > Account Settings to see your lists.', sound=True)
+            else:
+                control.infoDialog('No MDBList TV lists found.', sound=True)
+        self.list = sorted(self.list, key=lambda k: (k.get('name') or '').lower())
+        self.addDirectory(self.list)
+        return self.list
+
+
+    def userlists_mdblist_liked(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        self.list = mdblist_mod.user_list_directory('liked', 'tvshows')
+        if not self.list:
+            if not mdblist_mod.getMdblistCredentialsInfo():
+                control.infoDialog('Authorize MDBList in Settings > Account Settings to see your lists.', sound=True)
+            else:
+                control.infoDialog('No liked MDBLists found.', sound=True)
+        self.list = sorted(self.list, key=lambda k: (k.get('name') or '').lower())
+        self.addDirectory(self.list)
+        return self.list
+
+
+    def userlists_mdblist_top(self):
+        from resources.lib.modules import mdblist as mdblist_mod
+        self.list = mdblist_mod.user_list_directory('top', 'tvshows')
+        if not self.list:
+            control.infoDialog('No popular MDBLists found.', sound=True)
+        self.list = sorted(self.list, key=lambda k: (k.get('name') or '').lower())
+        self.addDirectory(self.list)
+        return self.list
+
+
     def local_library(self):
         self.list = libtools.libtvshows().scan_local_items()
         if not self.list:
@@ -1398,6 +1434,7 @@ class tvshows:
 
     def get(self, url, idx=True, create_directory=True):
         try:
+            self._list_key = str(url or '')
             if url and str(url).startswith('simkl_'):
                 from resources.lib.modules import simkl as simkl_mod
                 key = str(url)
@@ -1407,6 +1444,14 @@ class tvshows:
                 else:
                     status = key[6:]
                     self.list = simkl_mod.directory_tvshows(status)
+                if idx == True:
+                    self.worker()
+                if idx == True and create_directory == True:
+                    self.tvshowDirectory(self.list)
+                return self.list
+            if url and str(url).startswith('mdblist_'):
+                from resources.lib.modules import mdblist as mdblist_mod
+                self.list = mdblist_mod.directory_from_url(url, 'tvshows') or []
                 if idx == True:
                     self.worker()
                 if idx == True and create_directory == True:
@@ -1505,6 +1550,7 @@ class tvshows:
     def tvshowDirectory(self, items):
         sysaddon = sys.argv[0]
         syshandle = int(sys.argv[1])
+        items = control.filter_watchlist_unaired(items, getattr(self, '_list_key', ''), self.today_date, media='tvshow')
         if items == None or len(items) == 0:
             control.idle()
             control.content(syshandle, 'tvshows')
@@ -1516,12 +1562,16 @@ class tvshows:
         tmdbCredentials = tmdb_utils.getTMDbCredentialsInfo()
         indicators = playcount.getTVShowIndicators()#refresh=True) if action == 'tvshows' else playcount.getTVShowIndicators()
         from resources.lib.modules import simkl as simkl_mod
+        from resources.lib.modules import mdblist as mdblist_mod
         simklCredentials = simkl_mod.getSimklCredentialsInfo()
+        mdblistCredentials = mdblist_mod.getMdblistCredentialsInfo()
         _ind = simkl_mod.getIndicatorsProvider()
         if _ind == 'trakt':
             watchedMenu, unwatchedMenu = '[I]Watched in Trakt[/I]', '[I]Unwatched in Trakt[/I]'
         elif _ind == 'simkl':
             watchedMenu, unwatchedMenu = '[I]Watched in Simkl[/I]', '[I]Unwatched in Simkl[/I]'
+        elif _ind == 'mdblist':
+            watchedMenu, unwatchedMenu = '[I]Watched in MDBList[/I]', '[I]Unwatched in MDBList[/I]'
         else:
             watchedMenu, unwatchedMenu = '[I]Watched in Gratis Red[/I]', '[I]Unwatched in Gratis Red[/I]'
         nextMenu = '[I]Next Page[/I]'
@@ -1577,6 +1627,8 @@ class tvshows:
                 cm.append(('Queue Item', 'RunPlugin(%s?action=queue_item)' % sysaddon))
                 if simklCredentials == True:
                     cm.append(('Simkl Lists Manager', 'RunPlugin(%s?action=simkl_manager&name=%s&imdb=%s&tmdb=%s&content=tvshow)' % (sysaddon, sysname, imdb, tmdb)))
+                if mdblistCredentials == True:
+                    cm.append(('MDBList Lists Manager', 'RunPlugin(%s?action=mdblist_manager&name=%s&imdb=%s&tmdb=%s&content=tvshow)' % (sysaddon, sysname, imdb, tmdb)))
                 if tmdbCredentials == True:
                     cm.append(('TMDb Lists Manager', 'RunPlugin(%s?action=tmdb_manager&name=%s&tmdb=%s&content=tvshow)' % (sysaddon, sysname, tmdb)))
                 if traktCredentials == True:

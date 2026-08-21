@@ -16,6 +16,18 @@ def syncTraktLibrary():
         pass
 
 
+def syncMdblistWatched():
+    try:
+        from resources.lib.modules import mdblist
+        if mdblist.syncMdblistWatched(silent=True, force_update=False):
+            log_utils.log('MDBList Watched Sync Successful.')
+        else:
+            log_utils.log('MDBList Watched Sync Skipped.')
+    except Exception:
+        log_utils.log('MDBList Watched Sync Failed.', 1)
+        pass
+
+
 def syncSimklWatched():
     try:
         from resources.lib.modules import simkl
@@ -85,6 +97,21 @@ try:
             syncSimklWatched()
 except Exception:
     log_utils.log('Simkl Watched Sync Failed.', 1)
+    pass
+
+
+try:
+    if control.setting('mdblist.sync') == 'true':
+        synctime = control.setting('mdblist.synctime') or '0'
+        if int(synctime) > 0:
+            timeout = 3600 * int(synctime)
+            log_utils.log('MDBList Watched Sync Delayed: ' + str(synctime) + ' Hours.')
+            schedMdblist = threading.Timer(timeout, syncMdblistWatched)
+            schedMdblist.start()
+        else:
+            syncMdblistWatched()
+except Exception:
+    log_utils.log('MDBList Watched Sync Failed.', 1)
     pass
 
 

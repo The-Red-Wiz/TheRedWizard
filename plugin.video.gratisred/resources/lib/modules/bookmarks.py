@@ -120,6 +120,49 @@ def _simkl_resume(media_type, imdb, season, episode, tmdb=None):
     return 0, 0
 
 
+def _mdblist_resume(media_type, imdb, season, episode, tmdb=None):
+    from resources.lib.modules import mdblist
+    if not mdblist.getMdblistCredentialsInfo():
+        return 0, 0
+    try:
+        imdb_n = mdblist._normalize_imdb(imdb)
+        tmdb_n = str(tmdb or '0')
+        media_filter = 'episodes' if media_type == 'episode' else 'movies'
+        for item in mdblist.get_playback(media_filter):
+            try:
+                progress = float(item.get('progress') or 0)
+            except Exception:
+                continue
+            if not (1 < progress < 92):
+                continue
+            if media_type == 'episode':
+                show = item.get('show') or {}
+                ep = item.get('episode') or {}
+                ids = show.get('ids') or {}
+                try:
+                    if int(season) != int(ep.get('season')):
+                        continue
+                    if int(episode) != int(ep.get('number') or ep.get('episode') or -1):
+                        continue
+                except Exception:
+                    continue
+                if not _ids_match(imdb_n, tmdb_n, mdblist._normalize_imdb(ids.get('imdb')), str(ids.get('tmdb') or show.get('tmdb') or '0')):
+                    continue
+                runtime = _runtime_minutes(ep.get('runtime'), show.get('runtime'), item.get('runtime'))
+            else:
+                movie = item.get('movie') or item
+                ids = movie.get('ids') or {}
+                if not _ids_match(imdb_n, tmdb_n, mdblist._normalize_imdb(ids.get('imdb')), str(ids.get('tmdb') or movie.get('tmdb') or '0')):
+                    continue
+                runtime = _runtime_minutes(movie.get('runtime'), item.get('runtime'))
+            if runtime:
+                return (float(progress) / 100.0) * runtime * 60.0, progress
+            return 0, progress
+    except Exception:
+        pass
+    return 0, 0
+
+
 def get_resume(media_type, imdb, season, episode, local=False, tmdb=None):
     """Return (offset_seconds, progress_percent). Percent is for Simkl when runtime is unknown."""
     source = control.setting('bookmarks.source')
@@ -154,6 +197,10 @@ def get_resume(media_type, imdb, season, episode, local=False, tmdb=None):
         from resources.lib.modules import simkl
         if simkl.getSimklCredentialsInfo():
             return _simkl_resume(media_type, imdb, season, episode, tmdb=tmdb)
+    if source == '3' and local == False:
+        from resources.lib.modules import mdblist
+        if mdblist.getMdblistCredentialsInfo():
+            return _mdblist_resume(media_type, imdb, season, episode, tmdb=tmdb)
     try:
         sql_select = "SELECT * FROM bookmarks WHERE imdb = '%s'" % imdb
         if media_type == 'episode':

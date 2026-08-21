@@ -1,4 +1,12 @@
 
+[B]- 1.2.7 (2026-08-21)[/B] MDBList + Trakt / Simkl from Red Light 2.3.2:
+ * [B]MDBList[/B]: full account like Simkl / Trakt — Authorize (QR / device code) in Account Settings, Watched Indicators value 3 (Resume Point Source stays in lockstep), My MDBList under My Stuff (Simkl > MDBList > TMDb > Trakt). Authorise uses [I]GET /user[/I] with the new token. Service menus, lists, library import, and Authorize rows use [I]mdblist.png[/I] from Gratis Red Artwork 1.0.5.
+ * [B]My MDBList[/B]: Watchlist, Library, In Progress, Watched, Dropped (TV), Upcoming / Continue Watching / In Progress Episodes, My / Liked / Popular lists. Lists Manager on title context. Startup watched sync off by default.
+ * Playback scrobbles to MDBList when Indicators = MDBList (defers if official [I]service.mdblist-scrobbler[/I] is authorised).
+ * [B]Watchlists[/B]: [B]Include Unaired Media in Watchlists[/B] (General Settings, default on) hides unaired titles on Trakt Watchlist, Simkl Plan to Watch, and MDBList Watchlist when turned off. Show Unaired Items still applies to episode lists.
+ * [B]In Progress[/B]: leftover ≤1% Trakt / Simkl playback rows are treated as cleared (same idea as Red Light 2.2.4).
+ * [B]Simkl[/B]: season Watched / Unwatched overlays use the local watched-episode cache instead of always appearing unwatched.
+
 [B]- 1.2.6 (2026-08-09)[/B] Lists Manager open performance:
  * [B]Simkl Lists Manager[/B]: no longer re-downloads every status list on open (was many throttled API calls) — one [I]/sync/all-items/{type}/all[/I] warm fills the list-status cache; later opens and My Simkl shelves reuse it until activities / Manager edits. Same pattern as Red Light 2.2.6.
  * [B]Trakt Lists Manager[/B]: watchlist / library / personal-list membership checks use the short-TTL Trakt cache (cleared on Manager add/remove) instead of live re-paging every open.

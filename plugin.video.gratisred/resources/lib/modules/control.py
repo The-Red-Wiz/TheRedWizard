@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import sys
 import traceback
 
@@ -810,6 +811,61 @@ def _wait_for_addon(addon_id, timeout_sec=120):
     except:
         pass
     return False
+
+
+def show_unaired_watchlist():
+    """Include Unaired Media in Watchlists — default on (Red Light 2.3.2)."""
+    return setting('show.unaired.watchlist') != 'false'
+
+
+def is_watchlist_shelf(url_key):
+    key = str(url_key or '').lower()
+    if key in ('trakt_watchlist', 'simkl_plantowatch', 'mdblist_watchlist'):
+        return True
+    if '/users/me/watchlist/' in key:
+        return True
+    return False
+
+
+def item_is_unaired(item, today_date, media='movie'):
+    if not item:
+        return False
+    today = re.sub(r'[^0-9]', '', str(today_date or ''))
+    premiered = item.get('premiered') or '0'
+    try:
+        if premiered and premiered != '0':
+            return int(re.sub(r'[^0-9]', '', str(premiered))) > int(today)
+    except Exception:
+        pass
+    if media != 'movie':
+        status = item.get('status') or ''
+        if (not premiered or premiered == '0') and status in ('Upcoming', 'In Production', 'Planned'):
+            return True
+    try:
+        year = re.sub(r'[^0-9]', '', str(item.get('year') or ''))
+        if year and int(year) > int(str(today_date or '')[:4] or '0'):
+            return True
+    except Exception:
+        pass
+    return False
+
+
+def filter_watchlist_unaired(items, url_key, today_date, media='movie'):
+    if not items or show_unaired_watchlist() or not is_watchlist_shelf(url_key):
+        return items
+    return [i for i in items if not item_is_unaired(i, today_date, media=media)]
+
+
+def playback_progress_stale(item):
+    """True when a playback row is leftover ≤1% (Red Light 2.2.4)."""
+    if not item:
+        return False
+    if 'progress' not in item or item.get('progress') in (None, ''):
+        return False
+    try:
+        return float(item.get('progress')) <= 1
+    except Exception:
+        return False
 
 
 def checkArtwork():
