@@ -735,7 +735,7 @@ def authTrakt(reopen_settings=False):
 
 
 def getTraktIndicatorsInfo():
-    # True only when Indicators is Trakt (not Local / Simkl).
+    # True only when Indicators is Trakt (not Gratis Red / Simkl).
     try:
         from resources.lib.modules import simkl
         return simkl.getIndicatorsProvider() == 'trakt'

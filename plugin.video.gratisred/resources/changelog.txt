@@ -6,6 +6,7 @@
  * [B]Watchlists[/B]: [B]Include Unaired Media in Watchlists[/B] (General Settings, default on) hides unaired titles on Trakt Watchlist, Simkl Plan to Watch, and MDBList Watchlist when turned off. Show Unaired Items still applies to episode lists.
  * [B]In Progress[/B]: leftover ≤1% Trakt / Simkl playback rows are treated as cleared (same idea as Red Light 2.2.4).
  * [B]Simkl[/B]: season Watched / Unwatched overlays use the local watched-episode cache instead of always appearing unwatched.
+ * [B]Indicators[/B]: device provider labelled [B]Gratis Red[/B] (was Local), matching Red Light.
 
 [B]- 1.2.6 (2026-08-09)[/B] Lists Manager open performance:
  * [B]Simkl Lists Manager[/B]: no longer re-downloads every status list on open (was many throttled API calls) — one [I]/sync/all-items/{type}/all[/I] warm fills the list-status cache; later opens and My Simkl shelves reuse it until activities / Manager edits. Same pattern as Red Light 2.2.6.

@@ -156,13 +156,13 @@ def getSimklIndicatorsInfo():
     return getIndicatorsProvider() == 'simkl'
 
 
-_INDICATOR_LABELS = {'0': 'Local', '1': 'Trakt', '2': 'Simkl', '3': 'MDBList'}
+_INDICATOR_LABELS = {'0': 'Gratis Red', '1': 'Trakt', '2': 'Simkl', '3': 'MDBList'}
 
 
 def indicators_options():
-    """Authorised Indicators choices only (0 Local, 2 Simkl, 3 MDBList, 1 Trakt)."""
+    """Authorised Indicators choices only (0 Gratis Red, 2 Simkl, 3 MDBList, 1 Trakt)."""
     from resources.lib.modules import trakt
-    opts = [('Local', '0')]
+    opts = [('Gratis Red', '0')]
     if getSimklCredentialsInfo():
         opts.append(('Simkl', '2'))
     if _mdblist_ok():
@@ -175,7 +175,7 @@ def indicators_options():
 def indicators_display_name(value=None):
     if value is None:
         value = {'local': '0', 'trakt': '1', 'simkl': '2', 'mdblist': '3'}.get(getIndicatorsProvider(), '0')
-    return _INDICATOR_LABELS.get(str(value), 'Local')
+    return _INDICATOR_LABELS.get(str(value), 'Gratis Red')
 
 
 def sync_indicators_label(value=None):
@@ -189,24 +189,24 @@ def sync_bookmarks_label(value=None):
     try:
         if value is None:
             value = control.setting('bookmarks.source') or '0'
-        control.setSetting('bookmarks.source.name', _INDICATOR_LABELS.get(str(value), 'Local'))
+        control.setSetting('bookmarks.source.name', _INDICATOR_LABELS.get(str(value), 'Gratis Red'))
     except Exception:
         pass
 
 
 def set_bookmarks_source(value, notify=False):
-    """Set Resume Point Source only (0 Local, 1 Trakt, 2 Simkl, 3 MDBList)."""
+    """Set Resume Point Source only (0 Gratis Red, 1 Trakt, 2 Simkl, 3 MDBList)."""
     value = str(value)
     if value not in _INDICATOR_LABELS:
         value = '0'
     control.setSetting('bookmarks.source', value)
     sync_bookmarks_label(value)
     if notify:
-        control.infoDialog('Resume Point Source: %s' % _INDICATOR_LABELS.get(value, 'Local'), sound=True)
+        control.infoDialog('Resume Point Source: %s' % _INDICATOR_LABELS.get(value, 'Gratis Red'), sound=True)
 
 
 def set_watched_provider(value, notify=False):
-    """Set Indicators + matching Resume Point Source (0 Local, 1 Trakt, 2 Simkl, 3 MDBList)."""
+    """Set Indicators + matching Resume Point Source (0 Gratis Red, 1 Trakt, 2 Simkl, 3 MDBList)."""
     value = str(value)
     if value not in _INDICATOR_LABELS:
         value = '0'
@@ -214,7 +214,7 @@ def set_watched_provider(value, notify=False):
     set_bookmarks_source(value, notify=False)
     sync_indicators_label(value)
     if notify:
-        name = _INDICATOR_LABELS.get(value, 'Local')
+        name = _INDICATOR_LABELS.get(value, 'Gratis Red')
         control.infoDialog('Watched Indicators & Resume: %s' % name, sound=True)
 
 

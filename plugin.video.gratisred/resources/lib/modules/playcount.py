@@ -173,7 +173,7 @@ def _notify_marked(watched):
 
 
 def _finish_manual_mark(watched):
-    """Toast + list refresh for Trakt / Simkl / Local manual mark (parity)."""
+    """Toast + list refresh for Trakt / Simkl / Gratis Red manual mark (parity)."""
     try:
         control.idle()
     except Exception:

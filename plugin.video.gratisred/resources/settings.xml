@@ -29,8 +29,8 @@
         <setting type="lsep" label="Watched Status" />
         <setting id="indicators.alt" type="text" label="" default="0" enable="false" visible="false" />
         <setting id="indicators.choose" type="action" label="Change Watched Indicators..." option="close" action="RunPlugin(plugin://plugin.video.gratisred/?action=choose_indicators&amp;source=settings)" />
-        <setting id="indicators.alt.name" type="text" label="Using" default="Local" enable="false" subsetting="true" />
-        <setting id="indicators" type="enum" label="Indicators" values="Local" default="0" visible="false" />
+        <setting id="indicators.alt.name" type="text" label="Using" default="Gratis Red" enable="false" subsetting="true" />
+        <setting id="indicators" type="enum" label="Indicators" values="Gratis Red" default="0" visible="false" />
         <setting id="items.per.page" type="slider" label="Items Per Page" default="20" range="10,40" option="int" />
         <setting id="prgr.sortorder" type="enum" label="Sort Order for Watched Progress" values="Recently aired|Recently watched" default="1" />
         <setting id="trakt.item.limit" type="slider" label="Progress/Episodes Item Limit" default="100" range="50,50,150" option="int" />
@@ -57,7 +57,7 @@
         <setting id="bookmarks" type="bool" label="Resume Playback" default="true" />
         <setting id="bookmarks.auto" type="bool" label="Auto Resume" default="false" enable="!eq(-1,false)" subsetting="true" visible="eq(-1,true)" />
         <setting id="bookmarks.source" type="text" label="" default="0" enable="false" visible="false" />
-        <setting id="bookmarks.source.name" type="text" label="Using" default="Local" enable="false" subsetting="true" visible="eq(-3,true)" />
+        <setting id="bookmarks.source.name" type="text" label="Using" default="Gratis Red" enable="false" subsetting="true" visible="eq(-3,true)" />
         <setting type="lsep" label="When Playback Ends" />
         <setting id="crefresh" type="bool" label="Force Container Refresh/Watched Status" default="false" />
         <setting type="lsep" label="Source Settings" />
