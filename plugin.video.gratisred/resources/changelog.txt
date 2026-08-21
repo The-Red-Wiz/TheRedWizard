@@ -1,4 +1,7 @@
 
+[B]- 1.2.9 (2026-08-21)[/B] Mark Watched list open (Red Light 2.2.8a):
+ * [B]Watched[/B]: Mark Watched or Unwatched no longer blocks the next list open on a full Simkl / Trakt / MDBList watched pull. Local watched is already written; later opens and the service timer still sync. Same skip after in-playback mark.
+
 [B]- 1.2.8 (2026-08-21)[/B] Optional MDBList scrobbler:
  * [B]Tools > Optional Installs[/B]: [I]service.mdblist-scrobbler[/I] (Install when missing, Open Settings once installed; folder refreshes after install). Listed before [I]script.simkl[/I] / [I]script.trakt[/I] (MDBList > Simkl > Trakt). Already an optional dependency.
  * [B]MDBList[/B]: playback scrobble / in-playback mark still defers when the official scrobbler is installed, enabled, and authorised (same idea as Trakt / Simkl).
