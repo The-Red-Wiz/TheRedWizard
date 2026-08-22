@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.0" provider-name="Slam, Sarge, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.1" provider-name="Slam, Sarge, adamsbuilds, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1"/>
 	</requires>
@@ -9,7 +9,7 @@
 	<extension point="xbmc.service" library="service.py" />
 	<extension point="xbmc.addon.metadata">
 		<summary lang="en_GB">[COLOR red]The Red Wizard for Kodi 21 Omega and Kodi 22 Piers[/COLOR]</summary>
-		<description lang="en_GB">[COLOR red]The Red Wizard for installing, updating and maintaining The Red Wizard Kodi 21 Omega and Kodi 22 Piers builds[/COLOR]</description>
+		<description lang="en_GB">[COLOR gold]The Red Wizard for installing, updating and maintaining The Red Wizard Kodi 21 Omega and Kodi 22 Piers builds[/COLOR]</description>
 		<disclaimer lang="en_GB">[COLOR red]The author of this add-on does not host any content and has no affiliation with the content providers[/COLOR]</disclaimer>
 		<language>en</language>
 		<platform>all</platform>
@@ -18,14 +18,27 @@
 		<website>https://redwizard.xyz/</website> 
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/Slamious/plugin.program.simplewizard</source>
-		<news>[COLOR red]2026-05-02
-- Reorganisation and rewrite of menus:
- * (Kodi) Maintenance and (Wizard) Tools separated into separate submenus
- * Add-on Whitelist moved to the Main menu
- * Notification moved to the Wizard menu
- * Enable/Disable Skin Override Protection made visible (Tools submenu, thanks Zaxxon709)
-- Supports Kodi 21 Omega and Kodi 22 Piers
-- The Red Wizard has a new home! Go to https://redwizard.xyz[/COLOR]</news>
+		<news>[COLOR red]2026-08-22[/COLOR][COLOR gold]
+ * Save Debrid and Meta Account Data list updated
+ * Authorise Debrid and Meta Accounts added to Account Manager (installed add-ons only)
+ * Authorise accounts are listed debrid A–Z, then meta A–Z; headings are hidden when there is only one group
+ * Enable Skin Override Protection hidden again; Disable is only shown if protection is already on
+ * Account Manager Lite is only shown when it is installed
+ * Refined binary add-on handling so Kodi can update them without deleting the add-on folder
+ * Build installs now keep the zip's add-on database; full table wipe is only used on Fresh Start
+ * Clear Packages on Startup can be Disabled, Every startup, 10 packages or 20 packages
+ * Fresh Start progress dialog now closes before files are deleted
+ * Video cache device presets use adaptive read factor (Kodi 21 and 22)
+ * Whitelist Add-Ons moved to the Tools menu; Add/Remove lists show the add-on name only, including disabled add-ons
+ * Force Update Add-ons now also scans local add-ons, not only repositories
+ * Optional Kodi name, full version, release date and OS on the main menu (default on)
+ * Build Menu only shows the build count when it is greater than zero
+ * Build install shows a finalising notification after extraction
+ * Video Cache Settings only shown on Kodi 21 and 22
+ * New-build notification ignores list reordering and no longer shows a blank name
+ * Upload Kodi Log added; View Logs kept as a fallback, with a plain dark scrollable window
+ * ResolveURL OffCloud and TorBox open the ResolveURL settings page to add an account
+ * Build rename map prompts even when the version number is unchanged[/COLOR]</news>
 		<assets>
 				<icon>resources/media/icon.png</icon>
 				<fanart>resources/media/fanart.jpg</fanart>

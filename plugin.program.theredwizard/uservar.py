@@ -25,5 +25,5 @@ BUILDS = [{'Old Build': "The Red Wizard Full Build", 'New Build': "Red Wizard Fu
           {'Old Build': "The Red Wizard Ultra-Lite Gratis Build", 'New Build': "Ultra-Lite Gratis"},
           {'Old Build': "The Red Wizard Ultra-Lite Gratis Family Build", 'New Build': "Ultra-Lite Gratis Family"},
           {'Old Build': "The Red Wizard Touch! 18 Adult", 'New Build': "Touch! 18+"},
-          {'Old Build': "The Red Wizard Touch!", 'New Build': "Touch!"}]
-          
+          {'Old Build': "The Red Wizard Touch!", 'New Build': "Touch!"},
+          {'Old Build': "Redflix - The Gears", 'New Build': "Redflix - Red Light"}]

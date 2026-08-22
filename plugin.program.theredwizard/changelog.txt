@@ -1,3 +1,36 @@
+v4.3.1 (2026-08-22)
+ - Authorise accounts are listed debrid A–Z, then meta A–Z; headings are hidden when there is only one group
+ - Enable Skin Override Protection hidden again; Disable is only shown if protection is already on
+ - Screenshots updated
+
+v4.3.1~beta2 (2026-08-21)
+ - Build rename map prompts even when the version number is unchanged
+ - Build unzip progress keeps a solid background; Fresh Start still closes the dialog before the wipe
+ - Account Manager Lite is only shown when it is installed
+ - Authorise Debrid and Meta Accounts list expanded
+ - ResolveURL OffCloud and TorBox open the ResolveURL settings page to add an account
+ - Show Kodi / OS information now updates the main menu when toggled
+ - Upload Kodi Log added; View Logs kept as a fallback
+ - View Logs uses a plain dark window and can be scrolled
+ - Whitelist Add-Ons moved to the Tools menu (less relevant with updated Save Debrid and Meta Account Data list)
+ - Fixed Whitelist selection highlight on first open
+
+v4.3.1~beta1 (2026-08-21)
+ - Save Debrid and Meta Account Data list updated
+ - Authorise Debrid and Meta Accounts added to Account Manager (installed add-ons only)
+ - Refined binary add-on handling so Kodi can update them without deleting the add-on folder
+ - Build installs now keep the zip's add-on database; full table wipe is only used on Fresh Start
+ - Clear Packages on Startup can be Disabled, Every startup, 10 packages or 20 packages
+ - Fresh Start progress dialog now closes before files are deleted
+ - Video cache device presets use adaptive read factor (Kodi 21 and 22)
+ - Whitelist Add/Remove lists show the add-on name only, without Kodi colour codes, including disabled add-ons
+ - Force Update Add-ons now also scans local add-ons, not only repositories
+ - Optional Kodi name, full version, release date and OS on the main menu (default on)
+ - Build Menu only shows the build count when it is greater than zero
+ - Build install shows a finalising notification after extraction
+ - Video Cache Settings only shown on Kodi 21 and 22
+ - New-build notification ignores list reordering and no longer shows a blank name
+
 v4.3.0 (2026-05-02)
  - Reorganisation and rewrite of menus:
   * (Kodi) Maintenance and (Wizard) Tools separated into separate submenus

@@ -2,7 +2,7 @@
   <filecache>
     <buffermode>2</buffermode>
     <memorysize>192</memorysize>
-    <readfactor>1000</readfactor>
+    <readfactor>0</readfactor>
     <chunksize>131072</chunksize>
   </filecache>
   <network>

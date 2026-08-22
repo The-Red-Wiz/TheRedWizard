@@ -9,6 +9,12 @@ from .addonvar import addons_path, addons_db, installed_date
 
 addon_xmls = []
 
+def force_update():
+    xbmc.log('Updating addon repositories', xbmc.LOGINFO)
+    xbmc.executebuiltin('UpdateAddonRepos')
+    xbmc.log('Updating local addons', xbmc.LOGINFO)
+    xbmc.executebuiltin('UpdateLocalAddons')
+
 def enable_addons():
     for name in glob.glob(os.path.join(addons_path,'*/addon.xml')):
         addon_xmls.append(name)
@@ -35,8 +41,7 @@ def enable_addons():
             enable_db(y)
         except:
             pass
-    xbmc.executebuiltin('UpdateLocalAddons')
-    xbmc.executebuiltin('UpdateAddonRepos')
+    force_update()
     
 def enable_db(d_addon):
     """ create a database connection to a SQLite database """

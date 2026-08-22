@@ -51,6 +51,7 @@ def build_install(name, name2, version, url):
     else:
         extract_gui()
     extract_build()
+    xbmcgui.Dialog().notification(addon_name, '[COLOR gold]Finalising installation, please wait…[/COLOR]', addon_icon, 5000)
     if name2 in [setting('buildname'),  NEW_BUILD]:
         save_backup_restore('restore_gui')
     elif name2 != setting('buildname') and name2 != NEW_BUILD and setting('skin_protection') == 'true' and setting('saveadvanced') == 'true':
@@ -71,7 +72,7 @@ def build_install(name, name2, version, url):
     setting_set('buildinstalled', date)
     setting_set('update_passed', 'false')
     setting_set('firstrun', 'true')
-    #check_binary()
+    check_binary()
     enable_wizard()
     if name2 == 'ELEMico':
         xbmcgui.Dialog().notification(addon_name, '[COLOR gold]Build Install Complete![/COLOR]', addon_icon, 3000)
@@ -124,7 +125,44 @@ def extract_gui():
                     f.write(z.read('userdata/guisettings.xml'))
                 except Exception as e:
                     xbmc.log(f'Error extracting guisettings.xml - {e}', xbmc.LOGINFO)
-                               
+
+def check_binary():
+    for folder in addons_path.iterdir():
+        if not folder.is_dir():
+            continue
+        addon_xml = folder / 'addon.xml'
+        if not addon_xml.exists():
+            continue
+        try:
+            tree = ET.parse(addon_xml)
+            root = tree.getroot()
+            if 'kodi.binary' not in ET.tostring(root, encoding='unicode'):  # Skip non-binaries
+                continue
+            changed = False
+            if root.attrib.get('version') != '1.0.0':
+                root.attrib['version'] = '1.0.0'  # Rollback version
+                changed = True
+            for extension in root.findall('extension'):  # Convert extension point to xbmc.python.script entrypoint
+                if extension.attrib.get('point', '').startswith('kodi.'):
+                    extension.attrib.clear()
+                    extension.attrib['point'] = 'xbmc.python.script'
+                    extension.attrib['library'] = 'default.py'
+                    changed = True
+            platform = root.find("./extension[@point='xbmc.addon.metadata']/platform")
+            if platform is not None and platform.text != 'all':
+                platform.text = 'all'  # Set platform to all
+                changed = True
+            dummy_file = folder / 'default.py'
+            if not dummy_file.exists():
+                with open(dummy_file, 'w', encoding='utf-8') as f:
+                    f.write('# Dummy file used for binary addon update\n')  # Create dummy file
+                changed = True
+            if changed:
+                tree.write(addon_xml, encoding='utf-8', xml_declaration=True)  # Write addon.xml
+                xbmc.log(f'Prepared binary addon for update: {folder.name}', xbmc.LOGINFO)
+        except Exception as e:
+            xbmc.log(f'Failed to prepare binary addon {folder.name}: {e}', xbmc.LOGINFO)
+
 '''def check_binary():
     binary_list = []
     for folder in addons_path.iterdir():

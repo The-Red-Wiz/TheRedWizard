@@ -26,6 +26,12 @@ def rurl_settings_pm():
 def rurl_settings_ad():
         openAddonSettings('script.module.resolveurl', -199, -174)
 
+def rurl_settings_oc():
+        openAddonSettings('script.module.resolveurl', -198, -184)
+
+def rurl_settings_tb():
+        openAddonSettings('script.module.resolveurl', -197, -174)
+
 def am_accounts():
         openAddonSettings('script.module.acctmgr', -200, 0)
 

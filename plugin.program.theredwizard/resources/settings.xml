@@ -8,7 +8,8 @@
 		<setting id="firstrun" type="bool" label="First Run" visible="false"/>
 		<setting id="firstrunNotify" type="bool" label="First Run" visible="false"/>
 		<setting id="notifyversion" type="text" label="Notify Version: " visible="false" default="0"/>
-		<setting id="autoclearpackages" type="bool" label="30057" visible="true" default = "true" />
+		<setting id="showkodistats" type="bool" label="30119" visible="true" default="true" />
+		<setting id="autoclearpackages" type="enum" label="30057" visible="true" default="1" values="Disabled|Every startup|10 packages|20 packages" />
 		<setting id="notifybuild" type="bool" label="Disable New Build(s) Notification" visible="true" default = "false" />
 		<setting id="update_passed" type="bool" label="Disable Update Notification" visible="true" default="false"/>
 		<setting id="autozipsize" type="bool" label="Display Build Size [MB]   (WARNING: Slow load times if your build file is large)" visible="false" default = "false" />
@@ -20,9 +21,9 @@
 	</category>
 	<category label="30059">
 		<setting type="lsep" label="30058"/>
-		<setting id="skin_protection"  type="text" label="" visible="false"default="false"/>
-      		<setting id="savedata"  type="bool" label="Save Trakt & Debrid Data" default="true"/>
-      		<setting id="saveyoutube" type="bool" label="Save Youtube API Keys" default="false"/>
+		<setting id="skin_protection" type="text" label="" visible="false" default="false"/>
+      		<setting id="savedata" type="bool" label="Save Debrid and Meta Account Data" default="true"/>
+      		<setting id="saveyoutube" type="bool" label="Save YouTube API Keys" default="false"/>
 		<setting id="savefavs" type="bool" label="Save Favourites" default="true"/>
 		<setting id="savesources" type="bool" label="Save Sources" default="false"/>
 		<setting id="saveadvanced" type="bool" label="Save Advanced Settings" default="true"/>	

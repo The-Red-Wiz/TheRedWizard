@@ -5,6 +5,7 @@ import xbmcaddon
 import xbmcgui
 import json
 import os
+import platform
 from datetime import datetime
 from xml.etree import ElementTree as ET
 from uservar import buildfile, BUILDS
@@ -21,9 +22,11 @@ addon_fanart    = addon_info("fanart")
 translatePath   = xbmcvfs.translatePath
 addon_profile   = translatePath(addon_info('profile'))
 addon_path      = translatePath(addon_info('path'))    
-setting         = addon.getSetting
+def setting(key):
+    return xbmcaddon.Addon(addon_id).getSetting(key)
 setting_true    = lambda x: bool(True if setting(str(x)) == "true" else False)
-setting_set     = addon.setSetting
+def setting_set(key, value):
+    xbmcaddon.Addon(addon_id).setSetting(key, value)
 local_string    = addon.getLocalizedString
 CURRENT_BUILD   = setting('buildname')
 CURRENT_VERSION = setting('buildversion')
@@ -46,6 +49,9 @@ headers = {'User-Agent': user_agent}
 kodi_ver_ = str(xbmc.getInfoLabel("System.BuildVersion")[:2])
 kodi_ver = str(xbmc.getInfoLabel("System.BuildVersion")[:4])
 kodi_versions = ['K20', 'K21', 'K22']
+build_ver = xbmc.getInfoLabel('System.BuildVersion')
+build_date = xbmc.getInfoLabel('System.BuildDate')
+sys_arch = platform.architecture()[0]
 sleep = xbmc.sleep
 notify_file = os.path.join(addon_profile,'notify.txt')
 texts_path = os.path.join(resources, 'texts/')
@@ -326,3 +332,26 @@ def get_update_details():
            break
     return name, version, url
 BUILD_NAME, UPDATE_VERSION, BUILD_URL = get_update_details()
+
+def get_os():
+    platforms = {
+        'System.Platform.Windows': 'Windows',
+        'System.Platform.Android': 'Android',
+        'System.Platform.Linux': 'Linux',
+        'System.Platform.OSX': 'macOS',
+        'System.Platform.IOS': 'iOS'
+    }
+    for condition, name in platforms.items():
+        if xbmc.getCondVisibility(condition):
+            return name
+    return 'Unknown'
+
+def get_kodi_codename():
+    try:
+        major = int(xbmc.getInfoLabel('System.BuildVersion').split('.')[0])
+        return {20: 'Nexus', 21: 'Omega', 22: 'Piers'}.get(major, 'Unknown')
+    except Exception:
+        return 'Unknown'
+
+os_name = get_os()
+code_name = get_kodi_codename()

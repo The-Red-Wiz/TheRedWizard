@@ -9,7 +9,7 @@ import json
 import shutil
 from xml.etree import ElementTree as ET
 from .skinSwitch import swapSkins
-from .addonvar import setting_set, currSkin, user_path, db_path, addon_name, textures_db, dialog, dp, xbmcPath, packages, setting_set, addon_icon, local_string, addons_db, advancedsettings_xml
+from .addonvar import setting, setting_set, currSkin, user_path, db_path, addon_name, textures_db, dialog, dp, xbmcPath, packages, addon_icon, local_string, addons_db, advancedsettings_xml
 from .whitelist import EXCLUDES_INSTALL, EXCLUDES_FRESH
 
 def purge_db(db):
@@ -65,11 +65,11 @@ def advanced_set(buffer, ram, read):
 def advanced_settings():
     selection = xbmcgui.Dialog().select(local_string(30038), ['[COLOR gold]1GB Devices (e.g., 1st-3rd gen Firestick/Firestick Lite)[/COLOR]','[COLOR gold]1.5GB Devices (e.g., 4K Firestick)[/COLOR]','[COLOR gold]2GB+ Devices (e.g., Shield Pro/Shield Tube/FireTV Cube)[/COLOR]','[COLOR gold]Default (Reset to Default)[/COLOR]'])  # Select Ram Size
     if selection==0:
-        advanced_set('2', '128', '1000')
+        advanced_set('2', '128', '0')
     elif selection==1:
-        advanced_set('2', '192', '1000')
+        advanced_set('2', '192', '0')
     elif selection==2:
-        advanced_set('2', '256', '1000')
+        advanced_set('2', '256', '0')
     elif selection==3:
         advanced_set('4', '20', '400')
     else:
@@ -162,6 +162,8 @@ def fresh_start(standalone=False):
     dp.update(30, local_string(30043))
     xbmc.sleep(100)
     if standalone:
+        dp.close()
+        xbmc.sleep(500)
         for root, dirs, files in os.walk(xbmcPath, topdown=True):
             dirs[:] = [d for d in dirs if d not in EXCLUDES_FRESH]
             for name in files:
@@ -212,7 +214,7 @@ def fresh_start(standalone=False):
         setting_set('buildversion', '0')
         setting_set('skin_protection', 'false')
         purge_db(textures_db)
-        truncate_tables()
+        truncate_tables(Fresh=True)
         xbmcgui.Dialog().notification(addon_name, '[COLOR gold]Fresh Start Complete![/COLOR]', addon_icon, 3000)
         xbmc.sleep(4000)
         xbmcgui.Dialog().notification(addon_name, '[COLOR gold]Force Closing Kodi![/COLOR]', addon_icon, 3000)
@@ -230,10 +232,15 @@ def clean_backups():
             shutil.rmtree(file_path)
 
 def clear_packages_startup():
-    packages_dir = os.listdir(packages)
-    if len(packages_dir) == 0:
-        pass
-    else:
+    if not os.path.exists(packages):
+        return
+    count = len(os.listdir(packages))
+    raw = setting('autoclearpackages')
+    try:
+        user_setting = int(raw)
+    except (TypeError, ValueError):
+        user_setting = 1 if raw == 'true' else 0
+    if ((user_setting == 1 and count >= 1) or (user_setting == 2 and count >= 10) or (user_setting == 3 and count >= 20)):
         clear_packages()
         
 def clear_packages():
@@ -249,16 +256,19 @@ def clear_packages():
             xbmc.log('Failed to delete %s. Reason: %s' % (file_path, e), xbmc.LOGINFO)
     xbmcgui.Dialog().notification(addon_name, str(file_count)+' ' + local_string(30046), addon_icon, 5000, sound=False)  # Packages Cleared
 
-def truncate_tables():
+def truncate_tables(Fresh=False):
     try:
         con = sqlite3.connect(addons_db)
         cursor = con.cursor()
-        cursor.execute('DELETE FROM addonlinkrepo;',)
-        cursor.execute('DELETE FROM addons;',)
-        cursor.execute('DELETE FROM package;',)
-        cursor.execute('DELETE FROM repo;',)
-        cursor.execute('DELETE FROM update_rules;',)
-        cursor.execute('DELETE FROM version;',)
+        for repo_id in ('repository.xbmc.org', 'repository.redwizard'):
+            cursor.execute('UPDATE repo SET version = ?, checksum = ?, lastcheck = ? WHERE addonID = ?', ('', '', '', repo_id))
+        if Fresh:
+            cursor.execute('DELETE FROM addonlinkrepo;',)
+            cursor.execute('DELETE FROM addons;',)
+            cursor.execute('DELETE FROM package;',)
+            cursor.execute('DELETE FROM repo;',)
+            cursor.execute('DELETE FROM update_rules;',)
+            cursor.execute('DELETE FROM version;',)
         con.commit()
     except sqlite3.Error as e:
         xbmc.log('There was an error reading the database - %s' %e, xbmc.LOGINFO)

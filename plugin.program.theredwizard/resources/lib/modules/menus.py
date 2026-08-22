@@ -7,7 +7,7 @@ import urllib
 from .utils import add_dir
 from uservar import buildfile, videos_url, changelog_dir
 from .parser import XmlParser, TextParser, get_page
-from .addonvar import addon_name, setting, setting_set, addon_icon, addon_fanart, local_string, authorize, kodi_ver, kodi_versions, mdb_api_chk, skin_chk, mdblist_key, chk_splash, chk_skin_override, thumbnailsize, packagesize, buildsize, cleanup, headers, home, UPDATE_VERSION, CURRENT_BUILD, BUILD_VERSION, BUILD_NAME, NUM_BUILDS
+from .addonvar import addon_name, setting, setting_set, addon_icon, addon_fanart, local_string, authorize, kodi_ver, kodi_versions, mdb_api_chk, skin_chk, mdblist_key, chk_splash, chk_skin_override, thumbnailsize, packagesize, buildsize, cleanup, headers, home, UPDATE_VERSION, CURRENT_BUILD, BUILD_VERSION, BUILD_NAME, NUM_BUILDS, code_name, os_name, sys_arch, build_ver, build_date
 from .colors import colors
 from .db import lastchk
  
@@ -23,7 +23,11 @@ def main_menu():
 
     add_dir(COLOR1(f"<><> [B]Welcome to {addon_name}[/B] <><>"), '', '', addon_icon, addon_fanart, COLOR1(f'*** {addon_name} ***'), isFolder=False)
     
-    add_dir(COLOR4(f'Kodi Version:  v{kodi_ver}'), '', '', addon_icon, addon_fanart, COLOR2(local_string(30118)), isFolder=False)  # Show the current Kodi version installed
+    if setting('showkodistats') == 'true':
+        add_dir(COLOR4(f'Kodi {code_name} v{kodi_ver}'), '', '', addon_icon, addon_fanart, COLOR2(f'Release Date: {build_date}\n\nFull Version:\n{build_ver}'), isFolder=False)
+        add_dir(COLOR4(f'{os_name} OS {sys_arch}'), '', '', addon_icon, addon_fanart, COLOR2('Current Operating System'), isFolder=False)
+    else:
+        add_dir(COLOR4(f'Kodi Version:  v{kodi_ver}'), '', '', addon_icon, addon_fanart, COLOR2(local_string(30118)), isFolder=False)  # Show the current Kodi version installed
 
     if UPDATE_VERSION > BUILD_VERSION:
         add_dir(COLOR3(f'[B]Build Update Available!!![/B]   [{BUILD_NAME} v{UPDATE_VERSION}]'), '', 41, addon_icon, addon_fanart, COLOR2(local_string(30110)), isFolder=False)  # Build Update Available
@@ -34,18 +38,20 @@ def main_menu():
     if changelog_dir not in ['', 'http://', 'http://CHANGEME/'] and CURRENT_BUILD not in ['No Build Installed', 'No Build']:
         add_dir(COLOR2(f'View Build Changelog'), '', 35, addon_icon, addon_fanart, COLOR2(local_string(30109)), isFolder=False)  # View Build Changelog
 
-    if buildfile not in ['', 'http://', 'http://CHANGEME/']:
-        add_dir(COLOR2(f'Build Menu  ({NUM_BUILDS} Builds)'), '', 1, addon_icon, addon_fanart, COLOR2(local_string(30001)), isFolder=True)  # Build Menu with total builds
-    else:
+    try:
+        build_count = int(NUM_BUILDS)
+    except (TypeError, ValueError):
+        build_count = 0
+    if build_count == 0 or buildfile in ['', 'http://', 'http://CHANGEME/']:
         add_dir(COLOR2(local_string(30010)), '', 1, addon_icon, addon_fanart, COLOR2(local_string(30001)), isFolder=True)  # Build Menu
+    else:
+        add_dir(COLOR2(f'Build Menu  ({build_count} Builds)'), '', 1, addon_icon, addon_fanart, COLOR2(local_string(30001)), isFolder=True)  # Build Menu with total builds
 
     add_dir(COLOR2(local_string(30026)),'',10,addon_icon,addon_fanart,COLOR2(local_string(30070)), isFolder=True)  # Account Manager
         
     add_dir(COLOR2(local_string(30011)), '', 5, addon_icon, addon_fanart, COLOR2(local_string(30002)), isFolder=True)  # Maintenance Menu
     
     add_dir(COLOR2(local_string(30072)), '', 39, addon_icon, addon_fanart, COLOR2(local_string(30071)), isFolder=True)  # Tools Menu
-
-    add_dir(COLOR2(local_string(30074)), '', 42, addon_icon, addon_fanart, COLOR2(local_string(30073)), isFolder=True)  # Whitelist
     
     if videos_url not in ('', 'http://', 'http://CHANGEME'):
         add_dir(COLOR2(local_string(30068)), videos_url, 40, addon_icon, addon_fanart, COLOR2(local_string(30069)), isFolder=True) # Videos
@@ -142,10 +148,10 @@ def submenu_maintenance():
     add_dir(COLOR2(f'Clear Packages [{packagesize}MB]'),'',6,addon_icon,addon_fanart,COLOR2(local_string(30005)),isFolder=False)  # Clear Packages
     add_dir(COLOR2(f'Clear Thumbnails  [{thumbnailsize}MB]'),'',7,addon_icon,addon_fanart,COLOR2(local_string(30008)),isFolder=False)  # Clear Thumbnails
     add_dir(COLOR2('Kodi Fresh Start'), '', 4, addon_icon, addon_fanart, COLOR2(local_string(30003)), isFolder=False) # Fresh Start
-    add_dir(COLOR1('<><> [B]Video Cache Settings[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('Video Cache Settings'),isFolder=False)
-    if '21' or '22' in kodi_ver:
+    if '21' in kodi_ver or '22' in kodi_ver:
+        add_dir(COLOR1('<><> [B]Video Cache Settings[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('Video Cache Settings'),isFolder=False)
         add_dir(COLOR2(local_string(30112)),'',8,addon_icon,addon_fanart,COLOR2(local_string(30009)),isFolder=False)  # Video Cache Settings K21 & K22
-        add_dir(COLOR2('View Cache Settings'),'',75,addon_icon,addon_fanart,COLOR2('View video cache settings. Requires GUI Settings level Advanced or Expert!'), isFolder=False) # View Video Cache Settings
+        add_dir(COLOR2('View Cache Settings'),'',75,addon_icon,addon_fanart,COLOR2('View video cache settings. Requires GUI Settings level Advanced or Expert!'), isFolder=False) # View Cache Settings
 
 def submenu_tools():
     xbmcplugin.setPluginCategory(HANDLE, COLOR1(local_string(30071)))  # Tools
@@ -161,11 +167,13 @@ def submenu_tools():
         #add_dir(COLOR2('Disable Kodi Splash Screen'),'',29,addon_icon,addon_fanart,COLOR2(local_string(30113)),isFolder=False)  # Disable Kodi Splash Screen
     #else:
         #add_dir(COLOR2('Enable Kodi Splash Screen'),'',29,addon_icon,addon_fanart,COLOR2(local_string(30113)),isFolder=False)  # Enable Kodi Splash Screen
-    if chk_skin_override():
-        add_dir(COLOR2('Enable Skin Override Protection'),'',30,addon_icon,addon_fanart,COLOR2(local_string(30115)),isFolder=False)  # Enable Skin Override
-    else:
+    #if chk_skin_override():
+        #add_dir(COLOR2('Enable Skin Override Protection'),'',30,addon_icon,addon_fanart,COLOR2(local_string(30115)),isFolder=False)  # Enable Skin Override
+    if not chk_skin_override():
         add_dir(COLOR2('Disable Skin Override Protection'),'',30,addon_icon,addon_fanart,COLOR2(local_string(30115)),isFolder=False)  # Disable Skin Override
-    add_dir(COLOR2('View Logs'),'', 26, addon_icon,addon_fanart,COLOR2('View Kodi Logs'), isFolder=False) # View Kodis log file
+    add_dir(COLOR2('Upload Kodi Log'),'', 26, addon_icon,addon_fanart,COLOR2('Upload your Kodi log to paste.kodi.tv and get a shareable link'), isFolder=False) # Upload Kodi log
+    add_dir(COLOR2('View Logs'),'', 44, addon_icon,addon_fanart,COLOR2('View Kodi Logs'), isFolder=False) # View Kodi log
+    add_dir(COLOR2('Whitelist Add-Ons'), '', 42, addon_icon, addon_fanart, COLOR2(local_string(30073)), isFolder=True)  # Whitelist Add-Ons
     add_dir(COLOR2(local_string(30013)), '', 34, addon_icon, addon_fanart, COLOR2(local_string(30014)), isFolder=False)  # View Notification
     add_dir(COLOR2('Force Close Kodi'),'', 18, addon_icon,addon_fanart,COLOR2('Force Close Kodi'), isFolder=False) # Force Close Kodi
     
@@ -178,8 +186,8 @@ def submenu_tools():
     #add_dir(COLOR2('Force Close Kodi'),'', 18, addon_icon,addon_fanart,COLOR2('Force Close Kodi'), isFolder=False) # Force Close Kodi
 
 def submenu_whitelist():
-    xbmcplugin.setPluginCategory(HANDLE, COLOR1(local_string(30073)))  # Whitelist
-    add_dir(COLOR1('<><> [B]Add-ons Whitelist[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('Add-ons Whitelist'),isFolder=False)
+    xbmcplugin.setPluginCategory(HANDLE, COLOR1('Whitelist Add-Ons'))
+    add_dir(COLOR1('<><> [B]Whitelist Add-Ons[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('Whitelist Add-Ons'),isFolder=False)
     add_dir(COLOR2('Add To Whitelist'),'',11,addon_icon,addon_fanart,COLOR2(local_string(30064)), isFolder=False)  # Add to Whitelist
     add_dir(COLOR2('Remove From Whitelist'),'', 33, addon_icon,addon_fanart,COLOR2(local_string(30065)), isFolder=False) # Remove from Whitelist
 
@@ -264,9 +272,11 @@ def addon_specific():
     add_dir(COLOR2('Backup & Restore'),'',64, addon_icon,addon_fanart, COLOR2('Backup & Restore Settings'), isFolder=False)
 
     add_dir(COLOR1('<><> [B]ResolveURL Shortcuts[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('ResolveURL Shortcuts'), isFolder=False)
-    add_dir(COLOR2('Real-Debrid'),'',51, addon_icon,addon_fanart, COLOR2('ResolveURL Real-Debrid'), isFolder=False)
-    add_dir(COLOR2('Premiumize'),'',52,addon_icon,addon_fanart,COLOR2('ResolveURL Premiumize'), isFolder=False)
     add_dir(COLOR2('All-Debrid'),'',53, addon_icon,addon_fanart, COLOR2('ResolveURL All-Debrid'), isFolder=False)
+    add_dir(COLOR2('OffCloud'),'',54, addon_icon,addon_fanart, COLOR2('ResolveURL OffCloud'), isFolder=False)
+    add_dir(COLOR2('Premiumize'),'',52,addon_icon,addon_fanart,COLOR2('ResolveURL Premiumize'), isFolder=False)
+    add_dir(COLOR2('Real-Debrid'),'',51, addon_icon,addon_fanart, COLOR2('ResolveURL Real-Debrid'), isFolder=False)
+    add_dir(COLOR2('TorBox'),'',55, addon_icon,addon_fanart, COLOR2('ResolveURL TorBox'), isFolder=False)
 
 #Kodi Builtins
 def kodi_builtins():
@@ -297,8 +307,13 @@ def addonbrowser():
     add_dir(COLOR2('Web Interface Add-ons'),'',144,addon_icon,addon_fanart,COLOR2('Web Interface Add-ons'), isFolder=False)
      
 def authorize_menu():
-    add_dir(COLOR1('<><> [B]Account Manager Lite[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('Account Manager Lite'),isFolder=False)
-    add_dir(COLOR2('[B]Account Manager Lite[/B]'),'',38,addon_icon,addon_fanart,COLOR2(local_string(30067)), isFolder=False)  # Authorize Debrid Services
+    if xbmc.getCondVisibility('System.HasAddon(script.module.acctmgr)'):
+        add_dir(COLOR1('<><> [B]Account Manager Lite[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('Account Manager Lite'),isFolder=False)
+        add_dir(COLOR2('[B]Account Manager Lite[/B]'),'',38,addon_icon,addon_fanart,COLOR2(local_string(30067)), isFolder=False)
+
+    add_dir(COLOR1('<><> [B]Authorise Debrid and Meta Accounts[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('Authorise Debrid and Meta Accounts'),isFolder=False)
+    add_dir(COLOR2('[B]Authorise Debrid and Meta Accounts[/B]'),'',43,addon_icon,addon_fanart,COLOR2('Authorise Debrid and Meta Accounts for Installed Add-ons'), isFolder=True)
+
     add_dir(COLOR1('<><> [B]MDBList API Key[/B] <><>'),'','',addon_icon,addon_fanart, COLOR1('MDBList Ratings (Redflix Builds only)'),isFolder=False)
     if setting('mdb.api.key') == '' or None:
         add_dir(COLOR4('Add MDBList API Key'),'',36,addon_icon,addon_fanart,COLOR2('Add Your MDBList Key'), isFolder=False)  # Add MDBList Key

@@ -300,7 +300,7 @@ msgid "The Red Wizard TV"
 msgstr ""
 
 msgctxt "#30070"
-msgid "MDBList Ratings (Redflix Builds) and Account Manager Lite"
+msgid "Authorise Debrid and Meta Accounts, and MDBList Ratings (Redflix Builds)"
 msgstr ""
 
 msgctxt "#30071"
@@ -316,7 +316,7 @@ msgid "Add and Remove Add-ons From Your Whitelist"
 msgstr ""
 
 msgctxt "#30074"
-msgid "Add-ons Whitelist"
+msgid "Whitelist Add-Ons"
 msgstr ""
 
 msgctxt "#30950"
@@ -487,4 +487,8 @@ msgstr ""
 
 msgctxt "#30118"
 msgid "Installed Version of Kodi"
+msgstr ""
+
+msgctxt "#30119"
+msgid "Show Kodi / OS information on the main menu"
 msgstr ""

@@ -23,7 +23,7 @@ def backup(path, file):
             if os.path.isfile(os.path.join(path, file)):
                 xbmcvfs.copy(os.path.join(path, file), os.path.join(packages, file))   #Backup your Kodi specifics (advancedsettings, favs etc...)
             elif os.path.isdir(os.path.join(path, file)):
-                shutil.copytree(os.path.join(path, file), os.path.join(packages, file), dirs_exist_ok=True)   #Backup your Trakt & Debrid data
+                shutil.copytree(os.path.join(path, file), os.path.join(packages, file), dirs_exist_ok=True)   #Backup your Debrid and Meta Account data
         except Exception as e:
             xbmc.log('Failed to backup %s. Reason: %s' % (os.path.join(packages, file), e), xbmc.LOGINFO)
 
@@ -54,7 +54,7 @@ def restore(path, file):
                     os.unlink(os.path.join(path, file))   #Remove Kodi specifics included with new install
                 shutil.move(os.path.join(packages, file), os.path.join(path, file))   #Restore your backed up Kodi specifics
             elif os.path.isdir(os.path.join(packages, file)):
-                shutil.copytree(os.path.join(packages, file), os.path.join(path, file), dirs_exist_ok=True)   #Restore your backed up Trakt & Debrid data
+                shutil.copytree(os.path.join(packages, file), os.path.join(path, file), dirs_exist_ok=True)   #Restore your backed up Debrid and Meta Account data
         except Exception as e:
             xbmc.log('Failed to restore %s. Reason: %s' % (os.path.join(path, file), e), xbmc.LOGINFO)
             
@@ -88,9 +88,11 @@ def save_backup_restore(_type: str) -> None:
             setting_id = item_list[item]['setting']
             path = item_list[item]['path']
             data = item + '/settings.xml'               #Addon settings
+            settings_db = item + '/databases/settings.db'  #Red Light settings.db
             realizer = item + '/rdauth.json'            #Realizer debrid data
             youtube = item + '/api_keys.json'           #Youtube API Keys
             am_data = item + '/trakt_sync_list.json'    #Account Manager Trakt data
+            chains_db = item + '/database.db'           #The Chains database
             if path == 'user_path':
                 path = user_path
             elif path == 'data_path':
@@ -103,6 +105,10 @@ def save_backup_restore(_type: str) -> None:
                         backup(path, realizer)          #Backup Realizer data
                         backup(path, youtube)           #Backup Youtube data
                         backup(path, am_data)           #Backup Account Manager data
+                        if item == 'plugin.video.redlight':
+                            backup(path, settings_db)   #Backup Red Light settings.db
+                        if item == 'plugin.video.thechains':
+                            backup(path, chains_db)     #Backup The Chains database.db
                     elif _type == 'restore':
                         if item == 'guisettings.xml':
                             pass

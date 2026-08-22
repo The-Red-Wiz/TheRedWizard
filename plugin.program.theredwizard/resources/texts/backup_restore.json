@@ -1,17 +1,12 @@
 {
-    "favourites.xml": {
-        "name": "Favourites",
-        "setting": "savefavs",
-        "path": "user_path"
-    },
     "advancedsettings.xml": {
         "name": "Advanced Settings",
         "setting": "saveadvanced",
         "path": "user_path"
     },
-    "sources.xml": {
-        "name": "Sources",
-        "setting": "savesources",
+    "favourites.xml": {
+        "name": "Favourites",
+        "setting": "savefavs",
         "path": "user_path"
     },
     "guisettings.xml": {
@@ -19,13 +14,48 @@
         "setting": "savegui",
         "path": "user_path"
     },
+    "sources.xml": {
+        "name": "Sources",
+        "setting": "savesources",
+        "path": "user_path"
+    },
+    "plugin.video.absolution": {
+        "name": "Absolution",
+        "setting": "savedata",
+        "path": "data_path"
+    },
     "script.module.acctmgr": {
         "name": "Account Manager Lite",
         "setting": "savedata",
         "path": "data_path"
     },
+    "plugin.video.gratisred": {
+        "name": "Gratis Red",
+        "setting": "savedata",
+        "path": "data_path"
+    },
     "plugin.video.imdb.trailers": {
         "name": "IMDb Trailers",
+        "setting": "savedata",
+        "path": "data_path"
+    },
+    "plugin.video.redlight": {
+        "name": "Red Light",
+        "setting": "savedata",
+        "path": "data_path"
+    },
+    "script.module.resolveurl": {
+        "name": "ResolveURL",
+        "setting": "savedata",
+        "path": "data_path"
+    },
+    "plugin.video.thechains": {
+        "name": "The Chains",
+        "setting": "savedata",
+        "path": "data_path"
+    },
+    "plugin.video.themoviedb.helper": {
+        "name": "TMDB Helper",
         "setting": "savedata",
         "path": "data_path"
     },
