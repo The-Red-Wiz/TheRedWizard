@@ -1449,6 +1449,26 @@ def setView(content, viewType):
     # custom ListItem.Icon. 'files'/'addons' often hides those row icons.
     xbmcplugin.setContent(int(sys.argv[1]), content if content is not None else '')
 
+def _is_existing_local_path(path):
+    try:
+        if os.path.exists(path):
+            return True
+    except (OSError, TypeError, ValueError):
+        pass
+    try:
+        return bool(xbmcvfs.exists(path))
+    except Exception:
+        return False
+
+def _is_local_art_path(url):
+    """True for addon/profile files. A leading '/' is also a local path on Android/Linux."""
+    if url.startswith('special://') or url.startswith('file://'):
+        return True
+    for root in (_addon_path, ARTIST_ART, settings.DATA_PATH):
+        if root and url.startswith(root):
+            return True
+    return _is_existing_local_path(url)
+
 def decorate_art_url(url):
     """Make remote art load in Kodi (musicmp3 needs UA + Referer, same as m3sr2019)."""
     if not url or not str(url).strip():
@@ -1457,6 +1477,12 @@ def decorate_art_url(url):
     if url.startswith('//'):
         url = 'https:' + url
     elif url.startswith('/'):
+        # On Android/Linux every absolute local path starts with '/'. Do not
+        # treat those as musicmp3.ru site-relative URLs or bundled menu/genre
+        # art and cached artist icons are rewritten to a 404. Windows was
+        # unaffected because local paths start with a drive letter.
+        if _is_local_art_path(url):
+            return url
         url = 'https://musicmp3.ru' + url
     if url.startswith('http://') or url.startswith('https://'):
         return '%s|User-Agent=%s&Referer=%s' % (

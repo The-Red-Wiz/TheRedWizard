@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.audio.mp3streams" name="MP3 Streams" version="2026.08.19" provider-name="Jon Bovi, [COLOR crimson]King Krimson[/COLOR]">
+<addon id="plugin.audio.mp3streams" name="MP3 Streams" version="2026.08.22" provider-name="Jon Bovi, [COLOR crimson]King Krimson[/COLOR]">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.future"/>
@@ -15,9 +15,9 @@
         <platform>all</platform>
         <summary>A Music Streaming Collection</summary>
         <description>MP3 Streams for Kodi 19+</description>
-        <news>2026.08.19 - Album download folders include the release year (Album (1979)) so two albums by the same artist with the same title no longer overwrite each other; older year-less folders still play.
-2026.07.20 - Harden audio downloads: atomic .part handoff, validate status/size/magic bytes, skip failed album tracks, clear download lock on failure; keep-download cache uses album storage keys.
-2026.07.19 - Flat Artist - Album folders escape embedded separators so distinct albums no longer collide; legacy flat and album-only folders still resolve with ID3 checks.
+        <news>2026.08.22 - Bundled menu, genre, and cached artist icons load on Android/Linux: local paths that start with / are no longer rewritten as musicmp3.ru URLs (thanks to adamsbuilds).
+2026.08.19 - Album download folders include the release year (Album (1979)) so same-artist, same-title albums no longer overwrite each other.
+2026.07.20 - Harden audio downloads: atomic .part handoff, validate status/size/magic bytes, skip failed album tracks.
 See the changelog. Enjoy!</news>
         <assets>
             <icon>art/icon.png</icon>

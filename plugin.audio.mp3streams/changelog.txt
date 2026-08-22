@@ -1,3 +1,8 @@
+2026.08.22
+- fix bundled menu, genre, and cached artist icons missing on Android and Linux: decorate_art_url no longer treats absolute local paths (which start with /) as musicmp3.ru site-relative URLs (thanks to adamsbuilds)
+- remote album covers, Estuary WideList ListItem.Icon, empty list content, and musicmp3 UA/Referer on http(s) art are unchanged
+- local-path detection uses addon/profile prefixes plus exists(), so a failed stat cannot rewrite our own art
+
 2026.08.19
 - album download, keep-downloads cache, and local playback folders include the release year as Album (1979) so two albums by the same artist with the same title no longer share a folder
 - listing titles use Artist - Album (Year); older Artist - Album - Year favourites and year-less download folders still resolve
