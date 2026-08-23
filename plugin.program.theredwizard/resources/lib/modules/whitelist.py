@@ -94,7 +94,7 @@ def add_whitelist():
         quit()
     ret = xbmcgui.Dialog().multiselect('Select Items to Add to Your Whitelist', names, preselect=[])
     xbmc.log('ret = ' + str(ret), xbmc.LOGINFO)
-    if ret is None:
+    if ret is None or not ret:
         return None
     whitelist = []
     for x in range(len(dirs)):
@@ -133,7 +133,7 @@ def remove_whitelist():
         quit()
     ret = xbmcgui.Dialog().multiselect('Select Items to Remove From Your Whitelist', names, preselect=[])
     xbmc.log('ret = ' + str(ret), xbmc.LOGINFO)
-    if ret is None:
+    if ret is None or not ret:
         return None
     whitelist = []
     for x in range(len(current_whitelist)):

@@ -1,3 +1,6 @@
+v4.3.2 (2026-08-23)
+ - Whitelist Add/Remove no longer reports an update if nothing was changed
+
 v4.3.1 (2026-08-22)
  - Authorise accounts are listed debrid A–Z, then meta A–Z; headings are hidden when there is only one group
  - Enable Skin Override Protection hidden again; Disable is only shown if protection is already on
