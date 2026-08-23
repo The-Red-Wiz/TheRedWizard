@@ -4,7 +4,7 @@ import json
 import time
 import requests
 from threading import Thread
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from caches.main_cache import cache_object
 from caches.settings_cache import get_setting, set_setting
 from modules.utils import copy2clip, make_qrcode
@@ -210,7 +210,20 @@ class PremiumizeAPI:
 		return cache_object(self._post, string, args, False, 0.5)
 
 	def add_headers_to_url(self, url):
-		return url + '|' + urlencode(self.headers())
+		# Play/download links. CDN hosts (EnergyCDN etc) already authenticate in the
+		# signed path — sending API Bearer makes Kodi Range requests restart from
+		# byte 0 (start-of-playback loop). Keep Bearer only when the file host is
+		# premiumize.me itself. api.premiumize.me / www.premiumize.me/api still use
+		# headers() in _get/_post.
+		headers = {'User-Agent': 'Red Light'}
+		host = ''
+		try:
+			host = (urlparse((url or '').split('|')[0]).hostname or '').lower()
+		except Exception:
+			pass
+		if host == 'premiumize.me' or host.endswith('.premiumize.me'):
+			headers['Authorization'] = 'Bearer %s' % self.token
+		return url + '|' + urlencode(headers)
 
 	def headers(self):
 		return {'User-Agent': 'Red Light', 'Authorization': 'Bearer %s' % self.token}

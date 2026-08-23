@@ -1,3 +1,8 @@
+[COLOR red][B]Version 2.3.4[/B][/COLOR]
+- [B]Premiumize[/B]: do not send the API Bearer token on CDN play/download URLs (EnergyCDN etc). If the file host is [I]premiumize.me[/I] itself, Authorization is still added. Cache check, resolve, and account calls still use the Premiumize API with Authorization. Stops Kodi Range requests restarting the file from the beginning (couple-of-seconds loop at start). Seeking is unchanged.
+- [B]Next Episodes[/B]: widgets no longer keep unaired (red) title colouring after the episode has aired. Cached rows now rebuild on the local calendar day (same as personal calendars). Mark Watched on those rows was missing while they were still treated as unaired.
+- [B]Tips[/B]: [B]Multi Scrapers[/B] covers slots, Choose Module, and Search Mode (from Torrent Sources info text).
+
 [COLOR red][B]Version 2.3.3[/B][/COLOR]
 - [B]AIOStreams[/B]: when a title has no IMDb id, search with [I]tmdb:XXXX[/I] (and [I]tmdb:XXXX:S:E[/I] for episodes) instead of skipping the scrape. IMDb is still preferred when present.
 - [B]Tips[/B]: [B]Edit Main Menus[/B] covers optional [B]Next Episodes (Recently Watched)[/B] and [B]Next Episodes (Airdate)[/B] — [B]Check for New Menu Items[/B], [B]Browse Removed items[/B], and [B]Restore Menu[/B].
