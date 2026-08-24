@@ -1,4 +1,9 @@
 
+[B]- 1.3.0 (2026-08-24)[/B] My Trakt Movies lists + MDBList progress:
+ * [B]My Stuff > Trakt > Movies[/B]: Library, Watchlist, Favorites, In Progress, History, and Watched paint again. The shared list render sat one indent too deep (only the last generic Trakt branch ran it) after MDBList handling was added — fetch still ran, then the folder closed empty. Same outer-scope paint as TV Shows. TMDb movie lists and Trakt person / playback routes use that shared paint too.
+ * [B]MDBList In Progress[/B]: pause / stop no longer waits up to an hour on the [I]sync/playback[/I] snapshot. That cache is dropped after a successful local scrobble, and when last-activities reports a pause change (full Refresh already cleared it).
+ * [B]MDBList Continue Watching[/B]: seeds now carry show title / year / IMDb / TVDb from the watched payload (same idea as Simkl filling titles from Watching). Episode name still comes from TMDb.
+
 [B]- 1.2.9 (2026-08-21)[/B] Mark Watched list open (Red Light 2.2.8a):
  * [B]Watched[/B]: Mark Watched or Unwatched no longer blocks the next list open on a full Simkl / Trakt / MDBList watched pull. Local watched is already written; later opens and the service timer still sync. Same skip after in-playback mark.
 

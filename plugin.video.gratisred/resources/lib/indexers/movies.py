@@ -1327,10 +1327,9 @@ class movies:
                     self.list = self.trakt_list(url, self.trakt_user)
                 if idx == True:
                     self.worker()
-
-                if idx == True and create_directory == True:
-                    self.movieDirectory(self.list)
-                return self.list
+            if idx == True and create_directory == True:
+                self.movieDirectory(self.list)
+            return self.list
         except:
             #log_utils.log('get', 1)
             pass
