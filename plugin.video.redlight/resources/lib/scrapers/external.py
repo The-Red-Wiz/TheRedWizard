@@ -394,10 +394,15 @@ class source:
 						else: yield provider
 				except: yield provider
 		final_lock = Lock()
+		frozen_providers = set()
 		def _debrid_api_check_enabled(provider):
 			if self.cache_check_override is not None:
 				return self.cache_check_override
 			return debrid_cache_check(provider)
+		def _is_unchecked_row(item):
+			return str(item.get('cache_provider', '')).startswith('Unchecked ')
+		def _providers_with_rows():
+			return set(i.get('debrid') for i in final_results if i.get('debrid'))
 		def _unchecked_batch(provider, reason):
 			if not self.background:
 				self.process_quality_count_final(results)
@@ -406,6 +411,19 @@ class source:
 				kodi_utils.logger('DebridCacheCheck', 'fallback=unchecked provider=%s reason=%s total=%d' % (provider, reason, len(batch)))
 			except: pass
 			return batch
+		def _commit_cache_batch(provider, batch):
+			with final_lock:
+				if provider in frozen_providers:
+					return
+				existing = [i for i in final_results if i.get('debrid') == provider]
+				if existing:
+					existing_unverified = all(_is_unchecked_row(i) for i in existing)
+					new_verified = batch and not all(_is_unchecked_row(i) for i in batch)
+					if existing_unverified and new_verified:
+						final_results[:] = [i for i in final_results if i.get('debrid') != provider]
+						final_results.extend(batch)
+					return
+				final_results.extend(batch)
 		def _process_cache_check(provider, function):
 			incomplete, cached = False, []
 			try:
@@ -437,8 +455,33 @@ class source:
 				cached_set = set(str(i).lower() for i in cached)
 				if not self.background: self.process_quality_count_final([i for i in results if i.get('hash', '').lower() in cached_set])
 				batch = [dict(i, **{'cache_provider': provider if i.get('hash', '').lower() in cached_set else 'Uncached %s' % provider, 'debrid': provider}) for i in results]
+			_commit_cache_batch(provider, batch)
+		def _apply_missing_provider_fallback(providers_needing_api):
 			with final_lock:
-				final_results.extend(batch)
+				missing_providers = [p for p in providers_needing_api if p not in _providers_with_rows()]
+			if not missing_providers:
+				with final_lock:
+					frozen_providers.update(providers_needing_api)
+				return
+			unchecked_batches = [(provider, _unchecked_batch(provider, 'incomplete_check')) for provider in missing_providers]
+			with final_lock:
+				for provider, batch in unchecked_batches:
+					if provider in _providers_with_rows():
+						continue
+					final_results.extend(batch)
+				verified = set(i.get('debrid') for i in final_results if i.get('debrid') and not _is_unchecked_row(i))
+				if verified:
+					final_results[:] = [i for i in final_results if not (
+						i.get('debrid') in verified and _is_unchecked_row(i))]
+			with final_lock:
+				frozen_providers.update(providers_needing_api)
+				still_unchecked = [p for p in providers_needing_api if p in set(
+					i.get('debrid') for i in final_results if _is_unchecked_row(i))]
+			try:
+				if still_unchecked:
+					kodi_utils.logger('DebridCacheCheck', 'warning=incomplete_check fallback=unchecked providers=%s hashes=%d' % (
+						','.join(still_unchecked), len(hash_list)))
+			except: pass
 		def _debrid_check_dialog(debrid_deadline):
 			# Do not clear a user Back/cancel from the scrape phase — that made cancel
 			# look ignored while cache-check continued and could reopen progress UI.
@@ -504,13 +547,11 @@ class source:
 					_debrid_check_dialog(debrid_deadline)
 					for thread in debrid_check_threads:
 						thread.join(timeout=max(0.0, debrid_deadline - time.time()))
-			if providers_needing_api and not final_results:
-				for provider in providers_needing_api:
-					final_results.extend(_unchecked_batch(provider, 'incomplete_check'))
-				try:
-					kodi_utils.logger('DebridCacheCheck', 'warning=incomplete_check fallback=unchecked providers=%s hashes=%d' % (
-						','.join(providers_needing_api), len(hash_list)))
-				except: pass
+			grace_deadline = time.time() + 2.0
+			for thread in debrid_check_threads:
+				if thread.is_alive():
+					thread.join(timeout=max(0.0, grace_deadline - time.time()))
+			_apply_missing_provider_fallback(providers_needing_api)
 			_log_debrid_cache_summary(final_results, providers_needing_api)
 			return final_results
 		except: return []

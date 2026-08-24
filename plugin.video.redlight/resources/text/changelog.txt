@@ -1,3 +1,7 @@
+[COLOR red][B]Version 2.3.5[/B][/COLOR]
+- [B]Icons[/B]: online menu media (icons, flags, networks, themes) now loads from [I]repo.redwizard.xyz[/I] instead of GitHub. Existing shortcut folders that still point at the old GitHub URLs are remapped. Change Icon lists names from [I]icons.json[/I] on that host.
+- [B]External cache check[/B]: if one debrid's hash check overruns the deadline, that provider is labelled [B]UNCHECKED[/B] and kept; others keep their real cached/uncached split. A check that finishes just after the deadline still replaces Unchecked when it arrives before results are shown.
+
 [COLOR red][B]Version 2.3.4[/B][/COLOR]
 - [B]Premiumize[/B]: do not send the API Bearer token on CDN play/download URLs (EnergyCDN etc). If the file host is [I]premiumize.me[/I] itself, Authorization is still added. Cache check, resolve, and account calls still use the Premiumize API with Authorization. Stops Kodi Range requests restarting the file from the beginning (couple-of-seconds loop at start). Seeking is unchanged.
 - [B]Next Episodes[/B]: widgets no longer keep unaired (red) title colouring after the episode has aired. Cached rows now rebuild on the local calendar day (same as personal calendars). Mark Watched on those rows was missing while they were still treated as unaired.

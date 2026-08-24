@@ -274,31 +274,34 @@ def addon_fanart():
 		or 'special://home/addons/plugin.video.redlight/resources/media/fanart.jpg'
 	)
 
-MEDIA_GITHUB_USER = 'The-Red-Wizard'
-MEDIA_GITHUB_REPO = 'TheRedWizard.github.io'
-MEDIA_GITHUB_RAW = 'https://raw.githubusercontent.com/%s/%s/main/packages/media' % (MEDIA_GITHUB_USER, MEDIA_GITHUB_REPO)
-LEGACY_MEDIA_GITHUB_RAW = 'https://raw.githubusercontent.com/TheRedWizard/TheRedWizard.github.io/main/packages/media'
+MEDIA_REMOTE_BASE = 'https://repo.redwizard.xyz/images/redlight/media'
+# Old GitHub raw hosts — remap stored shortcut/menu URLs onto MEDIA_REMOTE_BASE.
+_MEDIA_GITHUB_PREFIXES = (
+	'https://raw.githubusercontent.com/The-Red-Wizard/TheRedWizard.github.io/main/packages/media',
+	'https://raw.githubusercontent.com/TheRedWizard/TheRedWizard.github.io/main/packages/media',
+)
 # Estuary WideList row icons use ListItem.Icon only for Container.Content() — not files.
 MENU_FOLDER_CONTENT = ''
 # EasyNews search / debrid cloud: skins (FENtastic, Aeon Nox, Nimbus) show thumbs when content is files.
 PREMIUM_FILES_CONTENT = 'files'
 
-def media_github_credentials():
-	return MEDIA_GITHUB_USER, MEDIA_GITHUB_REPO
-
 def get_icon(image_name, image_folder='icons', image_type='png'):
 	local_path = os.path.join(addon_info('path'), 'resources', 'media', image_folder, '%s.%s' % (image_name, image_type))
 	if os.path.exists(local_path):
 		return local_path
-	return '%s/%s/%s.%s' % (MEDIA_GITHUB_RAW, image_folder, image_name, image_type)
+	return '%s/%s/%s.%s' % (MEDIA_REMOTE_BASE, image_folder, image_name, image_type)
+
+def _remap_remote_media_url(url):
+	for prefix in _MEDIA_GITHUB_PREFIXES:
+		if url.startswith(prefix):
+			return MEDIA_REMOTE_BASE + url[len(prefix):]
+	return url
 
 def resolve_list_icon(icon, default_name='folder'):
 	if not icon:
 		return get_icon(default_name)
 	if icon.startswith('http'):
-		if icon.startswith(LEGACY_MEDIA_GITHUB_RAW):
-			return MEDIA_GITHUB_RAW + icon[len(LEGACY_MEDIA_GITHUB_RAW):]
-		return icon
+		return _remap_remote_media_url(icon)
 	icon_norm = icon.replace('\\', '/')
 	if icon_norm.startswith('special://') or 'plugin.video.redlight/resources/media/' in icon_norm:
 		for folder in ('icons', 'flags', 'network_icons', 'results', 'rpdb_posters', 'themes'):
@@ -1442,28 +1445,38 @@ def focus_index(index):
 	try: current_window.getControl(focus_id).selectItem(index)
 	except: pass
 
+def _icon_names_from_payload(data):
+	if not isinstance(data, list) or not data:
+		return None
+	names = []
+	for item in data:
+		if isinstance(item, str):
+			name = item
+		elif isinstance(item, dict):
+			name = item.get('name') or ''
+		else:
+			continue
+		name = os.path.splitext(str(name).strip())[0]
+		if name:
+			names.append(name)
+	return names or None
+
 def get_all_icons():
 	import requests
-	from caches.main_cache import cache_object
-	username, location = media_github_credentials()
-	def _process(dummy):
-		try:
-			results = requests.get('https://api.github.com/repos/%s/%s/contents/packages/media/icons' % (username, location))
-			results = [i['name'].replace('.png', '') for i in results.json()]
-			return results
-		except: return ['folder']
-	return cache_object(_process, 'all_icons', 'foo', False, 168)
-
-def get_all_addon_icons():
-	import requests
-	from caches.main_cache import cache_object
-	username, location = media_github_credentials()
-	def _process(dummy):
-		try:
-			results = requests.get('https://api.github.com/repos/%s/%s/contents/packages/addon_icons' % (username, location))
-			return results.json()
-		except: return []
-	return cache_object(_process, 'all_addon_icons', 'foo', True, 168)
+	from caches.main_cache import main_cache
+	cached = main_cache.get('all_icons_remote')
+	if cached is not None:
+		return cached
+	try:
+		response = requests.get('%s/icons.json' % MEDIA_REMOTE_BASE, timeout=8)
+		if response.status_code == 200:
+			names = _icon_names_from_payload(response.json())
+			if names:
+				main_cache.set('all_icons_remote', names, expiration=168)
+				return names
+	except:
+		pass
+	return []
 
 def upload_logfile(params):
 	import json
