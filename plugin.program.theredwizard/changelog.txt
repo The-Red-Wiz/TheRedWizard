@@ -1,3 +1,6 @@
+v4.3.3 (2026-08-24)
+ - Binary add-on handling only rewrites compiled kodi.binary extensions, not Python context menus or resource add-ons
+
 v4.3.2 (2026-08-23)
  - Whitelist Add/Remove no longer reports an update if nothing was changed
 
