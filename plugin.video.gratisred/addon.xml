@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<addon id="plugin.video.gratisred" version="1.3.0" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.video.gratisred" version="1.3.1" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
     <requires>
         <import addon="script.gratisred.artwork" version="1.0.5"/>
         <import addon="script.module.kodi-six"/>
@@ -28,9 +28,10 @@
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/The-Red-Wizard</source>
         <news>2026-08-24
-- Summary of v1.3.0 (see Tools > Changelog for the detail):
- * My Stuff Trakt movie lists render again
- * MDBList In Progress refreshes after pause; Continue Watching shows titles</news>
+- Summary of v1.3.1 (see Tools > Changelog for the detail):
+ * Special Settings a4kSubtitles heading
+ * Account Settings: MDBList, Simkl, TMDb, Trakt, Fanart.tv, FilePursuit
+ * Optional Installs warns when the addon is not in a repo</news>
         <assets>
             <icon>resources/images/icon.png</icon>
             <fanart>resources/images/fanart.jpg</fanart>

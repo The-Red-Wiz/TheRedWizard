@@ -725,12 +725,21 @@ def _focus_addon_settings_category(category, setting=0):
         return False
 
 
-def openSettings(query=None, id=None):
+def _wait_addon_settings_closed():
+    _wait_addon_settings_window()
+    while _addon_settings_visible() and not monitor.abortRequested():
+        sleep(200)
+
+
+def openSettings(query=None, id=None, reopen_special=False):
     try:
         id = addonInfo('id') if id == None else id
         idle()
         execute('Addon.OpenSettings(%s)' % id)
         if query == None:
+            if reopen_special and id not in (None, addonInfo('id')):
+                _wait_addon_settings_closed()
+                reopen_settings_category(3, 0)
             return
         category, setting = query.split('.')
         _focus_addon_settings_category(int(category), int(setting))
@@ -786,17 +795,104 @@ def finish_auth_ui(reopen_settings=False):
             pass
 
 
-def installAddon(id, refresh_menu=False):
+def _addons_database_path():
+    database_dir = transPath('special://database')
+    if database_dir and database_dir[-1] not in ('\\', '/'):
+        database_dir = database_dir + '/'
     try:
-        addon_path = os.path.join(transPath('special://home/addons'), id)
-        if not os.path.exists(addon_path) == True:
-            execute('InstallAddon(%s)' % id)
-            if refresh_menu and _wait_for_addon(id):
-                refresh()
-        else:
+        _dirs, files = listDir(database_dir)
+    except Exception:
+        files = []
+    candidates = [f for f in files if f.lower().startswith('addons') and f.lower().endswith('.db')]
+    if not candidates:
+        return transPath('special://database/Addons33.db')
+    candidates.sort()
+    return database_dir + candidates[-1]
+
+
+def _addon_listed_in_repo_directories(addon_id):
+    import json
+    try:
+        payload = json.loads(jsonrpc(json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'Addons.GetAddons',
+            'params': {'type': 'xbmc.addon.repository', 'properties': ['name']},
+        })))
+        repos = (payload.get('result') or {}).get('addons') or []
+    except Exception:
+        repos = []
+    addon_id_l = (addon_id or '').lower()
+    for repo in repos:
+        repo_id = repo.get('addonid') or ''
+        if not repo_id:
+            continue
+        for directory in (
+            'addons://%s/' % repo_id,
+            'addons://%s/xbmc.python.module/' % repo_id,
+            'addons://%s/xbmc.python.pluginsource/' % repo_id,
+            'addons://%s/xbmc.python.script/' % repo_id,
+            'addons://%s/xbmc.python.service/' % repo_id,
+            'addons://%s/xbmc.subtitle.module/' % repo_id,
+        ):
+            try:
+                listing = json.loads(jsonrpc(json.dumps({
+                    'jsonrpc': '2.0', 'id': 1, 'method': 'Files.GetDirectory',
+                    'params': {'directory': directory, 'media': 'files', 'properties': ['file']},
+                })))
+                files = (listing.get('result') or {}).get('files') or []
+            except Exception:
+                files = []
+            for item in files:
+                path = (item.get('file') or '').rstrip('/').lower()
+                if path.endswith('/' + addon_id_l) or path.split('/')[-1] == addon_id_l:
+                    return True
+    return False
+
+
+def _addon_available_from_repos(addon_id):
+    if not addon_id:
+        return False
+    try:
+        from sqlite3 import dbapi2 as database
+        dbcon = database.connect(_addons_database_path(), timeout=40.0)
+        row = dbcon.execute(
+            'SELECT 1 FROM addons AS a'
+            ' JOIN addonlinkrepo AS l ON l.idAddon = a.id'
+            ' JOIN repo AS r ON r.id = l.idRepo'
+            ' JOIN installed AS i ON i.addonID = r.addonID'
+            ' WHERE a.addonID = ? AND COALESCE(i.enabled, 1) = 1 LIMIT 1',
+            (addon_id,)).fetchone()
+        dbcon.close()
+        return bool(row)
+    except Exception:
+        return _addon_listed_in_repo_directories(addon_id)
+
+
+def _addon_not_in_repo_dialog(addon_id):
+    okDialog(
+        '%s is not in any installed repository.[CR][CR]Add a repository that provides it, then try again.'
+        % addon_id
+    )
+
+
+def installAddon(id, refresh_menu=False, reopen_settings=False):
+    try:
+        if condVisibility('System.HasAddon(%s)' % id):
             infoDialog('{0} is already installed'.format(id), sound=True)
             if refresh_menu:
                 refresh()
+            elif reopen_settings:
+                reopen_settings_category(3, 0)
+            return
+        if not _addon_available_from_repos(id):
+            _addon_not_in_repo_dialog(id)
+            if reopen_settings:
+                reopen_settings_category(3, 0)
+            return
+        xbmc.executebuiltin('InstallAddon(%s)' % id, True)
+        if refresh_menu and _wait_for_addon(id):
+            refresh()
+        elif reopen_settings:
+            reopen_settings_category(3, 0)
     except:
         return
 

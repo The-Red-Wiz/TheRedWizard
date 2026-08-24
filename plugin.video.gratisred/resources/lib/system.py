@@ -572,7 +572,8 @@ def router(_argv):
 
     elif action == 'open_settings':
         from resources.lib.modules import control
-        control.openSettings(query, id)
+        reopen = (params.get('source') or '').lower() == 'settings'
+        control.openSettings(query, id, reopen_special=reopen)
 
 
     elif action == 'play':
@@ -949,7 +950,8 @@ def router(_argv):
     elif action == 'installAddon':
         from resources.lib.modules import control
         refresh_menu = params.get('refresh') == 'installs_menu'
-        control.installAddon(id, refresh_menu=refresh_menu)
+        reopen = (params.get('source') or '').lower() == 'settings'
+        control.installAddon(id, refresh_menu=refresh_menu, reopen_settings=reopen)
 
 
     elif action == 'alt_play':
