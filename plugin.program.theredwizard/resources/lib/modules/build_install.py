@@ -136,18 +136,21 @@ def check_binary():
         try:
             tree = ET.parse(addon_xml)
             root = tree.getroot()
-            if 'kodi.binary' not in ET.tostring(root, encoding='unicode'):  # Skip non-binaries
+            binary_extensions = [
+                extension for extension in root.findall('extension')
+                if extension.attrib.get('point', '').startswith('kodi.')
+            ]
+            if not binary_extensions:  # Skip Python add-ons that only import kodi.binary.* dependencies.
                 continue
             changed = False
             if root.attrib.get('version') != '1.0.0':
                 root.attrib['version'] = '1.0.0'  # Rollback version
                 changed = True
-            for extension in root.findall('extension'):  # Convert extension point to xbmc.python.script entrypoint
-                if extension.attrib.get('point', '').startswith('kodi.'):
-                    extension.attrib.clear()
-                    extension.attrib['point'] = 'xbmc.python.script'
-                    extension.attrib['library'] = 'default.py'
-                    changed = True
+            for extension in binary_extensions:  # Convert binary extension points to xbmc.python.script entrypoints.
+                extension.attrib.clear()
+                extension.attrib['point'] = 'xbmc.python.script'
+                extension.attrib['library'] = 'default.py'
+                changed = True
             platform = root.find("./extension[@point='xbmc.addon.metadata']/platform")
             if platform is not None and platform.text != 'all':
                 platform.text = 'all'  # Set platform to all

@@ -1286,38 +1286,8 @@ def getWatchedActivity():
 
 
 def syncSeason(imdb, tmdb=None):
-    """Fully watched season numbers from the local Simkl TV indicator cache."""
-    try:
-        rows = cachesyncTVShows(timeout=720) or []
-        tmdb_s = str(tmdb or '0')
-        row = None
-        if tmdb_s not in ('0', '', 'None'):
-            for item in rows:
-                try:
-                    if str(item[0]) == tmdb_s:
-                        row = item
-                        break
-                except Exception:
-                    continue
-        if row is None:
-            return []
-        watched = row[2] or []
-        by_season = {}
-        for pair in watched:
-            try:
-                season_n, episode_n = int(pair[0]), int(pair[1])
-            except Exception:
-                continue
-            by_season.setdefault(season_n, set()).add(episode_n)
-        fully = []
-        for season_n, episodes in by_season.items():
-            if not episodes:
-                continue
-            if min(episodes) == 1 and len(episodes) >= max(episodes):
-                fully.append('%01d' % season_n)
-        return fully
-    except Exception:
-        return []
+    """Simkl's local cache lacks season episode totals, so avoid false full-season overlays."""
+    return []
 
 
 def _list_ids(tmdb=None, imdb=None, tvdb=None):

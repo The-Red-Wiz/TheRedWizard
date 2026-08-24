@@ -432,6 +432,15 @@ def _bust_caches():
         pass
 
 
+def _clear_playback_cache():
+    try:
+        cur = cache._get_connection_cursor()
+        cur.execute('DELETE FROM %s WHERE key LIKE ?' % cache.cache_table, ['_playback_items%'])
+        cur.connection.commit()
+    except Exception:
+        pass
+
+
 def _personal_items(url, media_kind):
     result = _get_mdbl_paginated_list(url)
     if not isinstance(result, dict):
@@ -636,6 +645,7 @@ def progress_seeds():
     for row in indicators:
         try:
             tmdb, aired, watched = str(row[0]), int(row[1]), row[2] or []
+            meta = row[3] if len(row) > 3 and isinstance(row[3], dict) else {}
         except Exception:
             continue
         if not tmdb or tmdb == '0' or tmdb in dropped:
@@ -645,9 +655,12 @@ def progress_seeds():
         if len(watched) >= aired > 0:
             continue
         last = sorted(watched, key=lambda se: (int(se[0]), int(se[1])))[-1]
+        tvshowtitle = meta.get('title') or ''
+        if not tvshowtitle:
+            continue
         out.append({
-            'tmdb': tmdb, 'imdb': '0', 'tvdb': '0',
-            'tvshowtitle': '', 'year': '0', 'studio': [], 'duration': '0',
+            'tmdb': tmdb, 'imdb': meta.get('imdb') or '0', 'tvdb': meta.get('tvdb') or '0',
+            'tvshowtitle': tvshowtitle, 'year': meta.get('year') or '0', 'studio': [], 'duration': '0',
             'mpaa': '0', 'status': '0', 'genre': [],
             'snum': str(last[0]), 'enum': str(last[1]),
             '_last_watched': '0',
@@ -899,6 +912,7 @@ def syncTVShows(user):
         if not isinstance(watched, dict):
             return []
         by_show = {}
+        meta_by_show = {}
         for item in watched.get('episodes') or []:
             try:
                 ep = item.get('episode') or {}
@@ -915,6 +929,13 @@ def syncTVShows(user):
                     continue
                 bucket = by_show.setdefault(tmdb, set())
                 bucket.add((int(season), int(number)))
+                if tmdb not in meta_by_show:
+                    meta_by_show[tmdb] = {
+                        'title': show.get('title') or '',
+                        'year': str(show.get('year') or '0'),
+                        'imdb': _normalize_imdb(ids.get('imdb')),
+                        'tvdb': str(ids.get('tvdb') or '0'),
+                    }
             except Exception:
                 continue
         indicators = []
@@ -923,7 +944,7 @@ def syncTVShows(user):
             # MDBList has no aired-total; keep show overlays from looking fully watched
             # and still allow Continue Watching (progress_seeds skips len >= aired).
             aired = len(watched_pairs) + 1
-            indicators.append((tmdb, aired, watched_pairs))
+            indicators.append((tmdb, aired, watched_pairs, meta_by_show.get(tmdb, {})))
         return indicators
     except Exception:
         return []
@@ -941,37 +962,9 @@ def timeoutsyncTVShows():
 
 
 def syncSeason(imdb, tmdb=None):
-    try:
-        rows = cachesyncTVShows(timeout=720) or []
-        tmdb_s = str(tmdb or '0')
-        row = None
-        if tmdb_s not in ('0', '', 'None'):
-            for item in rows:
-                try:
-                    if str(item[0]) == tmdb_s:
-                        row = item
-                        break
-                except Exception:
-                    continue
-        if row is None:
-            return []
-        watched = row[2] or []
-        by_season = {}
-        for pair in watched:
-            try:
-                season_n, episode_n = int(pair[0]), int(pair[1])
-            except Exception:
-                continue
-            by_season.setdefault(season_n, set()).add(episode_n)
-        fully = []
-        for season_n, episodes in by_season.items():
-            if not episodes:
-                continue
-            if min(episodes) == 1 and len(episodes) >= max(episodes):
-                fully.append('%01d' % season_n)
-        return fully
-    except Exception:
-        return []
+    # MDBList's watched cache stores watched episode numbers but not season episode
+    # totals. Do not infer a full-season overlay from a contiguous watched prefix.
+    return []
 
 
 def syncMdblistWatched(silent=True, force_update=False):
@@ -995,6 +988,8 @@ def syncMdblistWatched(silent=True, force_update=False):
                 'watchlisted_at', 'collected_at', 'dropped_at', 'list_updated_at',
             )):
                 return True
+            if _changed('paused_at') or _changed('episode_paused_at'):
+                _clear_playback_cache()
             if _changed('watched_at'):
                 cachesyncMovies(timeout=0)
             if _changed('episode_watched_at'):
@@ -1185,7 +1180,8 @@ def mdblist_scrobble(action, media_type, percent=0, tmdb=None, imdb=None, season
             }
         # MDBList uses pause for in-progress writes; start is treated the same.
         path = 'scrobble/pause' if action in ('start', 'pause', 'stop') else 'scrobble/pause'
-        call_mdblist(path, json_data=payload, method='post')
+        if call_mdblist(path, json_data=payload, method='post') is not None:
+            _clear_playback_cache()
     except Exception as e:
         log_utils.log('MDBList scrobble failed: %s' % e, 1)
 

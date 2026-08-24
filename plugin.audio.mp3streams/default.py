@@ -285,17 +285,24 @@ def _id3_tag_value(tags, key):
         return str(val[0]) if val else ''
     return str(val)
 
+def _id3_year(tags):
+    match = re.search(r'\d{4}', _id3_tag_value(tags, 'date'))
+    return match.group(0) if match else ''
+
 def _legacy_local_path_id3_ok(path, artist, album):
     """Allow legacy download folders; reject when tagged for a different artist/album."""
+    expected_year = settings.year_from_storage_name(album)
     try:
         audio = MP3(path, ID3=EasyID3)
     except Exception:
-        return True
+        return not expected_year
     tags = audio.tags
     if not tags:
-        return True
+        return not expected_year
     tag_artist = _id3_tag_value(tags, 'artist')
     tag_album = _id3_tag_value(tags, 'album')
+    if expected_year and _id3_year(tags) != expected_year:
+        return False
     if not tag_artist.strip() and not tag_album.strip():
         return True
     expected_artist = _normalize_id3_match(artist)
@@ -329,7 +336,7 @@ def find_local_track(artist, album, track, songname, title=None):
     for album_title in settings.album_lookup_titles(album):
         primary = settings.album_storage_folder(artist, album_title, create=False)
         if primary not in seen_bases:
-            album_bases.append((primary, False))
+            album_bases.append((primary, album_title != album))
             seen_bases.add(primary)
         if FOLDERSTRUCTURE != "0":
             # Old unescaped Artist - Album folders only with ID3 check (separator collisions).

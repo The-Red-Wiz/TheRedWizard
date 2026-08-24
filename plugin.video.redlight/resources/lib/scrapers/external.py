@@ -394,6 +394,7 @@ class source:
 						else: yield provider
 				except: yield provider
 		final_lock = Lock()
+		timed_out_providers = set()
 		def _debrid_api_check_enabled(provider):
 			if self.cache_check_override is not None:
 				return self.cache_check_override
@@ -438,6 +439,8 @@ class source:
 				if not self.background: self.process_quality_count_final([i for i in results if i.get('hash', '').lower() in cached_set])
 				batch = [dict(i, **{'cache_provider': provider if i.get('hash', '').lower() in cached_set else 'Uncached %s' % provider, 'debrid': provider}) for i in results]
 			with final_lock:
+				if provider in timed_out_providers:
+					return
 				final_results.extend(batch)
 		def _debrid_check_dialog(debrid_deadline):
 			# Do not clear a user Back/cancel from the scrape phase — that made cancel
@@ -504,12 +507,19 @@ class source:
 					_debrid_check_dialog(debrid_deadline)
 					for thread in debrid_check_threads:
 						thread.join(timeout=max(0.0, debrid_deadline - time.time()))
-			if providers_needing_api and not final_results:
-				for provider in providers_needing_api:
-					final_results.extend(_unchecked_batch(provider, 'incomplete_check'))
+			if providers_needing_api:
+				with final_lock:
+					providers_with_results = set(i.get('debrid') for i in final_results)
+					missing_providers = [p for p in providers_needing_api if p not in providers_with_results]
+					timed_out_providers.update(missing_providers)
+				for provider in missing_providers:
+					batch = _unchecked_batch(provider, 'incomplete_check')
+					with final_lock:
+						final_results.extend(batch)
 				try:
-					kodi_utils.logger('DebridCacheCheck', 'warning=incomplete_check fallback=unchecked providers=%s hashes=%d' % (
-						','.join(providers_needing_api), len(hash_list)))
+					if missing_providers:
+						kodi_utils.logger('DebridCacheCheck', 'warning=incomplete_check fallback=unchecked providers=%s hashes=%d' % (
+							','.join(missing_providers), len(hash_list)))
 				except: pass
 			_log_debrid_cache_summary(final_results, providers_needing_api)
 			return final_results
