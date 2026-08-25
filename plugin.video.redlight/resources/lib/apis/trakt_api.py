@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
+import re
 import time
 import requests
-from urllib.parse import unquote, quote_plus
+from urllib.parse import unquote, quote, quote_plus
 from caches import trakt_cache
 from caches.settings_cache import get_setting, set_setting, settings_cache
 
@@ -765,10 +766,90 @@ def hide_unhide_progress_items(params):
 	if is_drop: kodi_utils.notification('Dropped from Trakt Progress', 3000)
 	else: kodi_utils.notification('Removed from Trakt Dropped', 3000)
 
+_TRAKT_LIST_ID_URL = re.compile(r'(?:https?://)?(?:www\.)?trakt\.tv/lists/(\d+)\b', re.I)
+_TRAKT_USER_LIST_URL = re.compile(r'(?:https?://)?(?:www\.)?trakt\.tv/users/([^/?#]+)/lists/([^/?#]+)', re.I)
+_TRAKT_USER_PAGE_URL = re.compile(r'(?:https?://)?(?:www\.)?trakt\.tv/users/([^/?#]+)(?:/lists)?/?$', re.I)
+_TRAKT_USER_LIST_SHORT = re.compile(r'^([^/\s]+)/lists/([^/?#]+)$', re.I)
+_TRAKT_USER_LISTS_SHORT = re.compile(r'^([^/\s]+)/lists/?$', re.I)
+_TRAKT_USERNAME_ONLY = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$')
+_TRAKT_USERNAME_SKIP = frozenset(('me', 'likes', 'hidden', 'settings', 'lists'))
+
+def _trakt_clean_list_part(value):
+	value = unquote((value or '').strip())
+	return value.split('?')[0].split('#')[0].rstrip('/')
+
+def _trakt_prep_list_query(query):
+	return unquote((query or '').strip()).strip().strip('/')
+
+def _trakt_as_search_rows(lists):
+	rows = []
+	for item in lists or []:
+		if isinstance(item, dict) and (item.get('ids') or {}).get('trakt'):
+			rows.append({'type': 'list', 'list': item, 'id_lookup': True})
+	rows.sort(key=lambda i: ((i.get('list') or {}).get('name') or '').lower())
+	return rows
+
+def _trakt_lists_for_user(username):
+	username = _trakt_clean_list_part(username)
+	if not username or username.isdigit() or username.lower() in _TRAKT_USERNAME_SKIP:
+		return []
+	params = {'path': 'users/%s/lists', 'path_insert': quote(username, safe='-._~'), 'with_auth': False, 'fetch_all': True}
+	data = get_trakt(params)
+	return data if isinstance(data, list) else []
+
+def trakt_resolve_list_query(query):
+	"""Parse a Trakt list ID or URL. Returns (is_lookup, list_dict_or_None)."""
+	query = _trakt_prep_list_query(query)
+	if not query: return False, None
+	list_id, user, slug = None, None, None
+	match = _TRAKT_LIST_ID_URL.search(query)
+	if match:
+		list_id = match.group(1)
+	else:
+		match = _TRAKT_USER_LIST_URL.search(query)
+		if match:
+			user, slug = _trakt_clean_list_part(match.group(1)), _trakt_clean_list_part(match.group(2))
+		else:
+			match = _TRAKT_USER_LIST_SHORT.match(query)
+			if match:
+				user, slug = _trakt_clean_list_part(match.group(1)), _trakt_clean_list_part(match.group(2))
+			elif query.isdigit():
+				list_id = query
+			else:
+				return False, None
+	if list_id:
+		data = call_trakt('lists/%s' % list_id, with_auth=False)
+	else:
+		if not user or not slug: return True, None
+		data = call_trakt('users/%s/lists/%s' % (quote(user, safe='-._~'), quote(slug, safe='-._~')), with_auth=False)
+	if isinstance(data, list) and data: data = data[0]
+	if isinstance(data, dict) and (data.get('ids') or {}).get('trakt'):
+		return True, data
+	return True, None
+
 def trakt_search_lists(search_title, page_no):
+	query = _trakt_prep_list_query(search_title)
+	is_lookup, resolved = trakt_resolve_list_query(query)
+	if is_lookup:
+		if resolved:
+			return ([{'type': 'list', 'list': resolved, 'id_lookup': True}], 1)
+		# Bare numeric miss still falls through to name search; URLs stay a single lookup.
+		if not query.isdigit():
+			return ([], 1)
+	user = None
+	match = _TRAKT_USER_PAGE_URL.search(query)
+	if match: user = _trakt_clean_list_part(match.group(1))
+	else:
+		match = _TRAKT_USER_LISTS_SHORT.match(query)
+		if match and '.' not in match.group(1): user = _trakt_clean_list_part(match.group(1))
+	if user:
+		return (_trakt_as_search_rows(_trakt_lists_for_user(user)), 1)
+	if _TRAKT_USERNAME_ONLY.match(query) and query.lower() not in _TRAKT_USERNAME_SKIP:
+		rows = _trakt_as_search_rows(_trakt_lists_for_user(query))
+		if rows: return (rows, 1)
 	def _process(dummy_arg):
-		return call_trakt('search', params={'type': 'list', 'fields': 'name,description', 'query': search_title, 'limit': 50}, with_auth=False, pagination=True, page_no=page_no)
-	string = 'trakt_search_lists_%s_%s' % (search_title, page_no)
+		return call_trakt('search', params={'type': 'list', 'fields': 'name,description', 'query': query, 'limit': 50}, with_auth=False, pagination=True, page_no=page_no)
+	string = 'trakt_search_lists_%s_%s' % (query, page_no)
 	return cache_object(_process, string, 'dummy_arg', False, 4)
 
 def trakt_favorites(media_type, dummy_arg):
@@ -782,17 +863,37 @@ def trakt_favorites(media_type, dummy_arg):
 	return trakt_cache.cache_trakt_object(_process, string, params)
 
 def trakt_lists_with_media(media_type, imdb_id):
+	def _normalize(item, is_official=False):
+		if (item.get('item_count') or 0) == 0: return None
+		ids = item.get('ids') or {}
+		if ids.get('slug') in ('', 'None', None) and ids.get('trakt') in (None, '', 0, '0'): return None
+		official = is_official or item.get('type') == 'official'
+		if not official and item.get('privacy') != 'public': return None
+		user = item.get('user') or {}
+		user_slug = (user.get('ids') or {}).get('slug') or user.get('username') or ''
+		if official: user_slug = 'Trakt Official'
+		elif not user_slug: return None
+		row = dict(item)
+		row['type'] = 'official' if official else (row.get('type') or 'personal')
+		row['user'] = {'ids': {'slug': user_slug}, 'username': user.get('username') or user_slug}
+		return row
 	def _process(foo):
-		data = get_trakt(params)
-		result = [i for i in data if i['item_count'] > 0 and i['ids']['slug'] not in ('', 'None', None) and i['privacy'] == 'public']
+		list_query = {'params': {'limit': 100}, 'pagination': False}
+		personal = get_trakt(dict(list_query, path='%s/%s/lists/personal', path_insert=(media_type, imdb_id)))
+		official = get_trakt(dict(list_query, path='%s/%s/lists/official', path_insert=(media_type, imdb_id)))
+		seen, result = set(), []
+		for is_official, payload in ((True, official), (False, personal)):
+			for item in payload or []:
+				row = _normalize(item, is_official=is_official)
+				if not row: continue
+				key = (row.get('ids') or {}).get('trakt') or (row.get('ids') or {}).get('slug')
+				if key in seen: continue
+				seen.add(key)
+				result.append(row)
 		return [kodi_utils.remove_keys(i, media_removals) for i in result]
-	media_removals = ('description', 'privacy', 'type', 'share_link', 'display_numbers', 'allow_comments', 'sort_by', 'sort_how', 'created_at', 'updated_at', 'comment_count')
-	results = []
-	results_append = results.append
-	template = '[B]%02d. [I]%s - %s likes[/I]'
+	media_removals = ('privacy', 'share_link', 'display_numbers', 'allow_comments', 'sort_by', 'sort_how', 'created_at', 'updated_at', 'comment_count')
 	media_type = 'movies' if media_type in ('movie', 'movies') else 'shows'
-	string = 'trakt_lists_with_media_%s' % imdb_id
-	params = {'path': '%s/%s/lists/personal', 'path_insert': (media_type, imdb_id), 'params': {'limit': 100}, 'pagination': False}
+	string = 'trakt_lists_with_media_v3_%s' % imdb_id
 	return cache_object(_process, string, 'foo', False, 168)
 
 def get_trakt_list_contents(list_type, user, slug, with_auth, list_id=None, skip_sort=False):
@@ -807,13 +908,16 @@ def get_trakt_list_contents(list_type, user, slug, with_auth, list_id=None, skip
 	if list_type == 'my_lists':
 		string = 'trakt_list_contents_%s_%s_%s' % (list_type, user, slug)
 		params = {'path': 'users/%s/lists/%s/items', 'path_insert': (user, slug), 'params': {'extended': 'full'}, 'method': method, 'with_auth': with_auth, 'fetch_all': True}
+	elif user == 'Trakt Official':
+		key = list_id if list_id not in (None, '', 'None') else slug
+		string = 'trakt_list_contents_%s_%s' % (list_type, key)
+		params = {'path': 'lists/%s/items', 'path_insert': key, 'params': {'extended': 'full'}, 'method': method, 'fetch_all': True}
 	elif list_id is not None:
 		string = 'trakt_list_contents_%s_%s' % (list_type, list_id)
 		params = {'path': 'users/%s/lists/%s/items', 'path_insert': (user, list_id), 'params': {'extended': 'full'}, 'method': method, 'fetch_all': True}
 	else:
 		string = 'trakt_list_contents_%s_%s_%s' % (list_type, user, slug)
-		if user == 'Trakt Official': params = {'path': 'lists/%s/items', 'path_insert': slug, 'params': {'extended': 'full'}, 'method': method, 'fetch_all': True}
-		else: params = {'path': 'users/%s/lists/%s/items', 'path_insert': (user, slug), 'params': {'extended': 'full'}, 'method': method, 'with_auth': with_auth, 'fetch_all': True}
+		params = {'path': 'users/%s/lists/%s/items', 'path_insert': (user, slug), 'params': {'extended': 'full'}, 'method': method, 'with_auth': with_auth, 'fetch_all': True}
 	data = trakt_cache.cache_trakt_object(get_trakt, string, params) or []
 	# The list's declared order, as recorded in the cached row. 'default' is the standing-in value
 	# for a legacy bare-list row that carries no headers at all.
@@ -883,9 +987,13 @@ def get_trakt_list_selection(included_lists):
 		return _lists
 	def liked_lists():
 		trakt_liked_lists = trakt_get_lists('liked_lists')
-		_lists = [{'name': item['list']['name'], 'display': '[B]LIKED:[/B] [I]%s[/I]' % item['list']['name'].upper(), 'user': item['list']['user']['ids']['slug'],
-			'slug': item['list']['ids']['slug'], 'list_type': 'liked_lists', 'list_id': item['list']['ids']['trakt'], 'item_count': item['list']['item_count']} \
-			for item in trakt_liked_lists]
+		_lists = []
+		for item in trakt_liked_lists:
+			lst = item['list']
+			user = ((lst.get('user') or {}).get('ids') or {}).get('slug')
+			if lst.get('type') == 'official': user = 'Trakt Official'
+			_lists.append({'name': lst['name'], 'display': '[B]LIKED:[/B] [I]%s[/I]' % lst['name'].upper(), 'user': user,
+				'slug': lst['ids']['slug'], 'list_type': 'liked_lists', 'list_id': lst['ids']['trakt'], 'item_count': lst['item_count']})
 		_lists.sort(key=lambda k: (k['display']))
 		return _lists
 	list_dict = {'default': default_lists, 'personal': personal_lists, 'liked': liked_lists}
@@ -917,12 +1025,24 @@ def delete_trakt_list(params):
 	kodi_utils.notification('Success', 3000)
 	kodi_utils.kodi_refresh()
 
+def _trakt_like_list_id(list_id):
+	if list_id in (None, '', 'None', 0, '0'): return None
+	return list_id
+
 def trakt_like_a_list(params):
-	user, list_slug, list_id = params.get('user'), params.get('list_slug'), params.get('list_id')
+	if not settings.trakt_user_active():
+		kodi_utils.notification('Trakt account not authorised', 3000)
+		return False
+	user, list_slug, list_id = params.get('user'), params.get('list_slug'), _trakt_like_list_id(params.get('list_id'))
 	refresh = params.get('refresh', 'true') == 'true'
 	try:
+		# Official lists have no user slug that works with /users/{user}/lists/{slug}/like.
 		if list_id is not None: call_trakt('/lists/%s/like' % list_id, method='post')
-		else: call_trakt('/users/%s/lists/%s/like' % (user, list_slug), method='post')
+		elif user and user != 'Trakt Official' and list_slug:
+			call_trakt('/users/%s/lists/%s/like' % (user, list_slug), method='post')
+		else:
+			kodi_utils.notification('Error', 3000)
+			return False
 		kodi_utils.notification('Success - Trakt List Liked', 3000)
 		trakt_sync_activities()
 		if refresh: kodi_utils.kodi_refresh()
@@ -932,11 +1052,18 @@ def trakt_like_a_list(params):
 		return False
 
 def trakt_unlike_a_list(params):
-	user, list_slug, list_id = params.get('user'), params.get('list_slug'), params.get('list_id')
+	if not settings.trakt_user_active():
+		kodi_utils.notification('Trakt account not authorised', 3000)
+		return False
+	user, list_slug, list_id = params.get('user'), params.get('list_slug'), _trakt_like_list_id(params.get('list_id'))
 	refresh = params.get('refresh', 'true') == 'true'
 	try:
 		if list_id is not None: call_trakt('/lists/%s/like' % list_id, method='delete')
-		else: call_trakt('/users/%s/lists/%s/like' % (user, list_slug), method='delete')
+		elif user and user != 'Trakt Official' and list_slug:
+			call_trakt('/users/%s/lists/%s/like' % (user, list_slug), method='delete')
+		else:
+			kodi_utils.notification('Error', 3000)
+			return False
 		kodi_utils.notification('Success - Trakt List Unliked', 3000)
 		trakt_sync_activities()
 		if refresh: kodi_utils.kodi_refresh()

@@ -346,7 +346,7 @@ class ExtrasUtils:
 		self.media_highlight = '[B]{label} | [/B]$INFO[ListItem.Property(name)]$INFO[ListItem.Property(release_date), • ]$INFO[ListItem.Property(vote_average), • ]'
 		self.wide_thumb_highlight = '[B]{label} | [/B]$INFO[ListItem.Property(name)]'
 		self.extras_items = {
-		2050: {'insert_values': {'heading_label': '[B]Plot[/B]', 'active_lookup': 'plot_enabled', 'content_lookup': 'plot'},
+		2050: {'insert_values': {'active_lookup': 'plot_enabled', 'content_lookup': 'plot'},
 								'template': self.single_text_template()},
 		2051: {'insert_values': {'heading_label': self.media_heading.format(label='Cast', label_lookup='cast'),
 								'highlight_label': self.media_highlight.format(label='Cast')},
@@ -626,15 +626,6 @@ class ExtrasUtils:
                     <visible>String.IsEqual(Window.Property({active_lookup}),true)</visible>
                     <height>760</height>
                     <control type="group">
-                        <control type="label">
-                            <width max="1160">auto</width>
-                            <height>20</height>
-                            <font>font14</font> <!-- REDLIGHT_33 -->
-                            <textcolor>FFCCCCCC</textcolor>
-                            <align>left</align>
-                            <aligny>bottom</aligny>
-                            <label>{heading_label}</label>
-                        </control>
                         <control type="button" id="{container_no}">
                             <top>50</top>
                             <width>1180</width>

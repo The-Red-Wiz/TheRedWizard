@@ -5,7 +5,7 @@ from random import shuffle
 from threading import Thread
 from apis.mdblist_api import (
 	mdbl_get_lists, mdbl_get_liked_lists, mdbl_top_lists, get_mdbl_list_payload,
-	mdbl_list_media_type, mdbl_unified_item_tmdb_id, mdbl_ordered_list_rows
+	mdbl_list_media_type, mdbl_unified_item_tmdb_id, mdbl_ordered_list_rows, mdbl_search_lists
 )
 from indexers.movies import Movies
 from indexers.tvshows import TVShows
@@ -18,7 +18,7 @@ def _mdbl_parent_exit_path(params=None):
 	folder_path = kodi_utils.folder_path()
 	parent_tokens = (
 		'navigator.mdblist_lists', 'navigator.my_lists', 'get_mdbl_lists',
-		'get_mdbl_liked_lists', 'get_mdbl_top_lists', 'search_mdbl_my_lists'
+		'get_mdbl_liked_lists', 'get_mdbl_top_lists', 'search_mdbl_my_lists', 'search_mdbl_lists'
 	)
 	if any(token in folder_path for token in parent_tokens): return kodi_utils.sanitize_folder_url(folder_path)
 	params = params or {}
@@ -53,6 +53,13 @@ def _mdbl_list_open_params(item, list_type, random_contents=False):
 	if random_contents: url_params['random'] = 'true'
 	return url_params
 
+def _mdbl_list_user(item):
+	return (item or {}).get('user_name') or (item or {}).get('username') or ''
+
+def _mdbl_folder_plot(item, user=''):
+	return kodi_utils.list_folder_plot((item or {}).get('description'), user or _mdbl_list_user(item),
+		(item or {}).get('items'), (item or {}).get('likes'))
+
 def _mdbl_shuffle_catalogue(lists, order_prop):
 	returning_to_list = 'build_mdblist_lists_contents' in kodi_utils.folder_path()
 	if returning_to_list:
@@ -84,7 +91,7 @@ def get_mdbl_lists(params):
 				listitem.setLabel(display)
 				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': fanart})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(_mdbl_folder_plot(item))
 				yield (url, listitem, True)
 			except: pass
 	handle = int(sys.argv[1])
@@ -99,6 +106,11 @@ def get_mdbl_lists(params):
 	lists = static + dynamic + external
 	if params.get('shuffle', 'false') == 'true':
 		lists = _mdbl_shuffle_catalogue(lists, 'redlight.mdblist.my_lists.lists.order')
+	else:
+		static.sort(key=lambda k: (k.get('name') or '').lower())
+		dynamic.sort(key=lambda k: (k.get('name') or '').lower())
+		external.sort(key=lambda k: (k.get('name') or '').lower())
+		lists = static + dynamic + external
 	kodi_utils.add_items(handle, list(_process()))
 	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
 	kodi_utils.set_category(handle, params.get('name', 'MDBList Lists'))
@@ -120,7 +132,7 @@ def get_mdbl_liked_lists(params):
 				listitem.setLabel(display)
 				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': fanart})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(_mdbl_folder_plot(item, user))
 				yield (url, listitem, True)
 			except: pass
 	handle = int(sys.argv[1])
@@ -133,6 +145,8 @@ def get_mdbl_liked_lists(params):
 	lists = mdbl_get_liked_lists(media_type)
 	if params.get('shuffle', 'false') == 'true':
 		lists = _mdbl_shuffle_catalogue(lists, 'redlight.mdblist.liked_lists.lists.order')
+	else:
+		lists.sort(key=lambda k: (k.get('name') or '').lower())
 	kodi_utils.add_items(handle, list(_process()))
 	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
 	kodi_utils.set_category(handle, params.get('name', 'Liked Lists'))
@@ -153,7 +167,7 @@ def get_mdbl_top_lists(params):
 				listitem.setLabel(display)
 				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': fanart})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(_mdbl_folder_plot(item, user))
 				yield (url, listitem, True)
 			except: pass
 	handle = int(sys.argv[1])
@@ -185,7 +199,7 @@ def search_mdbl_my_lists(params):
 				listitem.setLabel(display)
 				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': fanart})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(_mdbl_folder_plot(item))
 				yield (url, listitem, True)
 			except: pass
 	handle = int(sys.argv[1])
@@ -208,6 +222,45 @@ def search_mdbl_my_lists(params):
 	except: pass
 	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
 	kodi_utils.set_category(handle, search_title.capitalize() if search_title else 'Search My MDBLists')
+	kodi_utils.end_directory(handle)
+	kodi_utils.set_view_mode('view.main', kodi_utils.MENU_FOLDER_CONTENT)
+
+def search_mdbl_lists(params):
+	"""Public MDBList search by title, username, list ID, or mdblist.com URL. Opens via build_mdbl_list (static + dynamic)."""
+	def _process():
+		for item in data:
+			try:
+				name, list_id = item.get('name', ''), item.get('id')
+				if list_id in (None, '', 0, '0'): continue
+				if item.get('private') and not item.get('_id_lookup'): continue
+				user = _mdbl_list_user(item)
+				count = item.get('items', '?')
+				display = '[B]%s[/B] | [I](x%s) - %s[/I]' % (name, count, user)
+				if item.get('dynamic') or (item.get('type') or '').lower() in ('dynamic', 'ai', 'ailist', 'ai_list'):
+					display = '[COLOR magenta][I]%s[/I][/COLOR] | [I](x%s) - %s[/I]' % (name, count, user)
+				url = build_url(_mdbl_list_open_params(item, 'user_lists'))
+				cm = [('[B]Add to Shortcut Folder[/B]', 'RunPlugin(%s)' % build_url({'mode': 'menu_editor.shortcut_folder_add_known', 'url': url}))]
+				listitem = kodi_utils.make_listitem()
+				listitem.setLabel(display)
+				listitem.setArt({'icon': icon, 'poster': icon, 'thumb': icon, 'fanart': fanart, 'banner': fanart})
+				info_tag = listitem.getVideoInfoTag(True)
+				info_tag.setPlot(_mdbl_folder_plot(item, user))
+				listitem.addContextMenuItems(cm)
+				yield (url, listitem, True)
+			except: pass
+	handle = int(sys.argv[1])
+	_set_mdbl_browse_exit_params()
+	icon, fanart, build_url = kodi_utils.get_icon('mdblist'), kodi_utils.get_addon_fanart(), kodi_utils.build_url
+	search_title = params.get('key_id') or params.get('query') or ''
+	try:
+		if not settings.mdblist_user_active(): data = []
+		else: data = mdbl_search_lists(search_title) or []
+		if data and all(item.get('_id_lookup') for item in data):
+			data.sort(key=lambda k: ((k.get('name') or '').lower(), (k.get('mediatype') or '').lower()))
+		kodi_utils.add_items(handle, list(_process()))
+	except: pass
+	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
+	kodi_utils.set_category(handle, search_title.capitalize() if search_title else 'Search MDBLists')
 	kodi_utils.end_directory(handle)
 	kodi_utils.set_view_mode('view.main', kodi_utils.MENU_FOLDER_CONTENT)
 
@@ -282,16 +335,15 @@ def build_mdbl_list(params):
 		all_movies = [i for i in process_list if i.get('type') == 'movie']
 		all_tvshows = [i for i in process_list if i.get('type') == 'show']
 		all_episodes = [i for i in process_list if i.get('type') == 'episode']
-		def _tmdb_rows(rows):
+		def _id_rows(rows):
 			out = []
 			for c, i in enumerate(rows):
-				try:
-					tmdb_id = (i.get('media_ids') or {}).get('tmdb')
-					if tmdb_id: out.append((i.get('order', c), int(tmdb_id)))
-				except: pass
+				media_ids = i.get('media_ids') or {}
+				if media_ids.get('tmdb') or media_ids.get('imdb') or media_ids.get('tvdb'):
+					out.append((i.get('order', c), media_ids))
 			return out
-		movie_list = {'list': _tmdb_rows(all_movies), 'custom_order': 'true'}
-		tvshow_list = {'list': _tmdb_rows(all_tvshows), 'custom_order': 'true'}
+		movie_list = {'list': _id_rows(all_movies), 'id_type': 'trakt_dict', 'custom_order': 'true'}
+		tvshow_list = {'list': _id_rows(all_tvshows), 'id_type': 'trakt_dict', 'custom_order': 'true'}
 		episode_list = {'list': all_episodes}
 		content = max(
 			[('movies', len(all_movies)), ('tvshows', len(all_tvshows)), ('episodes', len(all_episodes))],

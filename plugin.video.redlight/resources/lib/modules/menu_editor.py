@@ -196,8 +196,10 @@ class MenuEditor:
 		if browsed_result == None: return
 		menu_item = self._get_menu_item(browsed_result['file'])
 		name, icon = browsed_result['label'], self._get_icon_var(browsed_result['thumbnail'])
-		menu_name = self._get_external_name_input(name) or name
+		menu_name = self._prompt_add_name(name)
+		if not menu_name: return
 		icon_choice = self._icon_select(default_icon=icon)
+		if icon_choice is None: return kodi_utils.notification('Cancelled', 1500)
 		menu_item.update({'name': menu_name, 'iconImage': icon_choice})
 		position = self._menu_select(list_items, list_name, multi_line='true', position_list=True)
 		if position == None: return kodi_utils.notification('Cancelled', 1500)
@@ -270,8 +272,10 @@ class MenuEditor:
 		menu_item = self._get_menu_item(browsed_result['file'])
 		if menu_item.get('mode', '').startswith('random.'): menu_item['random'] = 'true'
 		name, icon = browsed_result['label'], self._get_icon_var(browsed_result['thumbnail'])
-		menu_name = self._get_external_name_input(name) or name
+		menu_name = self._prompt_add_name(name)
+		if not menu_name: return
 		icon_choice = self._icon_select(default_icon=icon)
+		if icon_choice is None: return kodi_utils.notification('Cancelled', 1500)
 		menu_item.update({'name': menu_name, 'iconImage': icon_choice, 'full_list': 'false'})
 		if list_items:
 			position = self._menu_select(list_items, menu_name, multi_line='true', position_list=True)
@@ -283,21 +287,24 @@ class MenuEditor:
 	def shortcut_folder_add_known(self):
 		file = self.url
 		menu_item = self._get_menu_item(file)
-		name, icon = menu_item['name'], menu_item['iconImage']
-		menu_name = self._get_external_name_input(name) or name
+		name = menu_item.get('name') or menu_item.get('list_name') or menu_item.get('category_name') or 'List'
+		icon = menu_item.get('iconImage') or 'folder'
+		menu_name = self._prompt_add_name(name)
+		if not menu_name: return
 		icon_choice = self._icon_select(default_icon=icon)
+		if icon_choice is None: return kodi_utils.notification('Cancelled', 1500)
 		menu_item.update({'name': menu_name, 'iconImage': icon_choice, 'full_list': 'false'})
 		folders = navigator_cache.get_shortcut_folders()
 		if folders:
 			items = [{'line1': i[0]} for i in folders]
 			kwargs = {'heading': 'Select Shortcut Folder', 'items': json.dumps(items), 'narrow_window': 'true'}
 			choice = kodi_utils.select_dialog(folders, **kwargs)
-			if choice == None: return
+			if choice == None: return kodi_utils.notification('Cancelled', 1500)
 			choice_name, list_items = choice
 		else:
 			kodi_utils.ok_dialog(heading='Shortcut Folders', text='Please make a Shortcut Folder first')
 			choice_name = kodi_utils.kodi_dialog().input('')
-			if not choice_name: return
+			if not choice_name: return kodi_utils.notification('Cancelled', 1500)
 			self._db_execute('make_new_shortcut_folder', choice_name, list_type='shortcut_folder')
 			list_items = []
 		if list_items:
@@ -325,6 +332,7 @@ class MenuEditor:
 	def _icon_select(self, default_icon=''):
 		if default_icon.startswith('http') or 'plugin.video.redlight' in default_icon: return default_icon
 		all_icons = kodi_utils.get_all_icons()
+		if not all_icons: return default_icon or 'folder'
 		if default_icon:
 			try:
 				all_icons.remove(default_icon)
@@ -333,8 +341,15 @@ class MenuEditor:
 			list_items = [{'line1': i if i != default_icon else '%s (default)' % default_icon, 'icon': kodi_utils.get_icon(i)} for i in all_icons]
 		else: list_items = [{'line1': i, 'icon': kodi_utils.get_icon(i)} for i in all_icons]
 		kwargs = {'items': json.dumps(list_items), 'heading': 'Choose Icon'}
-		icon_choice = kodi_utils.select_dialog(all_icons, **kwargs) or default_icon or 'folder'
-		return icon_choice
+		return kodi_utils.select_dialog(all_icons, **kwargs)
+
+	def _prompt_add_name(self, current_name):
+		"""Name step when adding a menu/shortcut item. Empty/cancel aborts the add."""
+		new_name = kodi_utils.kodi_dialog().input('', defaultt=current_name or '')
+		if not new_name:
+			kodi_utils.notification('Cancelled', 1500)
+			return None
+		return new_name
 
 	def _get_removed_items(self):
 		default_list_items, edited = navigator_cache.get_main_lists(self.active_list)

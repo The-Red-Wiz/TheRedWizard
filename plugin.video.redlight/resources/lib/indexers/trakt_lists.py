@@ -11,8 +11,50 @@ from indexers.seasons import single_seasons
 from indexers.episodes import build_single_episode
 from modules import kodi_utils
 from modules.utils import paginate_list, gen_md5, get_datetime, get_current_timestamp
-from modules.settings import paginate, page_limit, widget_hide_next_page, tmdb_api_key, mpaa_region, jump_to_enabled
+from modules.settings import paginate, page_limit, widget_hide_next_page, tmdb_api_key, mpaa_region, jump_to_enabled, trakt_user_active
 # logger = kodi_utils.logger
+
+def _trakt_list_id(value):
+	if value in (None, '', 0, '0', 'None'): return None
+	return value
+
+def _trakt_can_like(user, list_id):
+	# Official lists have no real username; like/unlike must use /lists/{id}/like.
+	return _trakt_list_id(list_id) is not None or (user and user != 'Trakt Official')
+
+def _trakt_like_params(user, slug, list_id, mode):
+	params = {'mode': mode, 'user': user, 'list_slug': slug}
+	list_id = _trakt_list_id(list_id)
+	if list_id is not None: params['list_id'] = list_id
+	return params
+
+def _trakt_liked_lookup():
+	liked_ids, liked_pairs = set(), set()
+	try:
+		if not trakt_user_active(): return liked_ids, liked_pairs
+		for i in trakt_get_lists('liked_lists') or []:
+			lst = (i.get('list') if isinstance(i, dict) else None) or {}
+			if not lst: continue
+			ids = lst.get('ids') or {}
+			tid = ids.get('trakt')
+			if tid not in (None, '', 0, '0'): liked_ids.add(str(tid))
+			user_s = ((lst.get('user') or {}).get('ids') or {}).get('slug') or ''
+			if lst.get('type') == 'official': user_s = 'Trakt Official'
+			liked_pairs.add((ids.get('slug'), user_s))
+	except: pass
+	return liked_ids, liked_pairs
+
+def _trakt_list_is_liked(list_id, slug, user, liked_ids, liked_pairs):
+	tid = _trakt_list_id(list_id)
+	if tid is not None and str(tid) in liked_ids: return True
+	return (slug, user) in liked_pairs
+
+def _append_like_unlike_cm(cm, build_url, user, slug, list_id, liked_ids, liked_pairs):
+	if not trakt_user_active() or not _trakt_can_like(user, list_id): return
+	liked = _trakt_list_is_liked(list_id, slug, user, liked_ids, liked_pairs)
+	mode = 'trakt.trakt_unlike_a_list' if liked else 'trakt.trakt_like_a_list'
+	label = '[B]Unlike List[/B]' if liked else '[B]Like List[/B]'
+	cm.append((label, 'RunPlugin(%s)' % build_url(_trakt_like_params(user, slug, list_id, mode))))
 
 def search_trakt_lists(params):
 	def _builder():
@@ -23,26 +65,29 @@ def search_trakt_lists(params):
 					list_key = item.get('type')
 					if list_key: list_info = item.get(list_key)
 				if not list_info: continue
-				if list_info.get('type') == 'official': continue
+				id_lookup = bool(item.get('id_lookup'))
+				if list_info.get('type') == 'official' and not id_lookup: continue
 				item_count = list_info.get('item_count', 0)
-				if list_info.get('privacy') == 'private' or item_count == 0: continue
+				if list_info.get('privacy') == 'private': continue
+				if item_count == 0 and not id_lookup: continue
 				list_name = list_info['name']
 				list_ids = list_info.get('ids') or {}
 				list_id, slug = list_ids.get('trakt'), list_ids.get('slug')
 				user_info = list_info.get('user') or {}
 				user = (user_info.get('ids') or {}).get('slug') or user_info.get('username') or list_info.get('username')
+				if list_info.get('type') == 'official': user = 'Trakt Official'
 				if not list_id or not user: continue
 				display = '%s | [I]%s (x%s)[/I]' % (list_name, user, str(item_count))
 				url = build_url({'mode': 'trakt.list.build_trakt_list', 'list_id': list_id, 'list_type': 'user_lists', 'list_name': list_name,
 								'user': user, 'slug': slug, 'iconImage': 'trakt', 'name': list_name})
-				cm = [('[B]Like List[/B]', 'RunPlugin(%s)' % build_url({'mode': 'trakt.trakt_like_a_list', 'user': user, 'list_slug': slug, 'list_id': list_id})),
-				('[B]Unlike List[/B]', 'RunPlugin(%s)' % build_url({'mode': 'trakt.trakt_unlike_a_list', 'user': user, 'list_slug': slug, 'list_id': list_id})),
-				('[B]Add to Shortcut Folder[/B]', 'RunPlugin(%s)' % build_url({'mode': 'menu_editor.shortcut_folder_add_known', 'url': url}))]
+				cm = []
+				_append_like_unlike_cm(cm, build_url, user, slug, list_id, liked_ids, liked_pairs)
+				cm.append(('[B]Add to Shortcut Folder[/B]', 'RunPlugin(%s)' % build_url({'mode': 'menu_editor.shortcut_folder_add_known', 'url': url})))
 				listitem = make_listitem()
 				listitem.setLabel(display)
 				listitem.setArt({'icon': trakt_icon, 'poster': trakt_icon, 'thumb': trakt_icon, 'fanart': fanart, 'banner': fanart})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(kodi_utils.list_folder_plot(list_info.get('description'), user, item_count, list_info.get('likes')))
 				listitem.addContextMenuItems(cm)
 				yield (url, listitem, True)
 			except: pass
@@ -51,16 +96,19 @@ def search_trakt_lists(params):
 	try:
 		mode = params.get('mode')
 		page = params.get('new_page', '1')
-		search_title = params.get('key_id') or params.get('query')
-		lists, pages = trakt_search_lists(search_title, page)
+		try: page_no = int(page)
+		except: page_no = 1
+		search_title = params.get('key_id') or params.get('query') or ''
+		lists, pages = trakt_search_lists(search_title, page_no)
+		liked_ids, liked_pairs = _trakt_liked_lookup()
 		kodi_utils.add_items(handle, list(_builder()))
-		if pages > page:
-			new_page = str(int(page) + 1)
+		if pages > page_no:
+			new_page = str(page_no + 1)
 			kodi_utils.add_dir(handle, {'mode': mode, 'key_id': search_title, 'new_page': new_page}, 'Next Page (%s) >>' % new_page,
 								'nextpage', kodi_utils.get_icon('nextpage_landscape'))
 	except: pass
 	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
-	kodi_utils.set_category(handle, search_title.capitalize())
+	kodi_utils.set_category(handle, search_title.capitalize() if search_title else 'Search User Lists')
 	kodi_utils.end_directory(handle)
 	kodi_utils.set_view_mode('view.main', kodi_utils.MENU_FOLDER_CONTENT)
 
@@ -100,7 +148,7 @@ def search_trakt_my_lists(params):
 				listitem.setLabel(display)
 				listitem.setArt({'icon': poster, 'poster': poster, 'thumb': poster, 'fanart': background, 'banner': background})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(kodi_utils.list_folder_plot(item.get('description'), user, item_count, item.get('likes')))
 				listitem.addContextMenuItems(cm)
 				yield (url, listitem, True)
 			except: pass
@@ -119,7 +167,7 @@ def search_trakt_my_lists(params):
 		else:
 			data = trakt_get_lists(list_type) or []
 			if query: data = [i for i in data if query in (i.get('name') or '').lower()]
-			data.sort(key=lambda k: k['name'])
+			data.sort(key=lambda k: (k.get('name') or '').lower())
 		kodi_utils.add_items(handle, list(_builder()))
 	except: pass
 	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)
@@ -139,7 +187,9 @@ def get_trakt_lists(params):
 			try:
 				cm = []
 				cm_append = cm.append
-				list_name, list_id, user, slug, item_count = item['name'], item['ids']['trakt'], item['user']['ids']['slug'], item['ids']['slug'], item['item_count']
+				list_name, list_id, slug, item_count = item['name'], item['ids']['trakt'], item['ids']['slug'], item['item_count']
+				user = ((item.get('user') or {}).get('ids') or {}).get('slug')
+				if item.get('type') == 'official': user = 'Trakt Official'
 				if user in (None, 'None'): continue
 				# See search_trakt_my_lists: Trakt's declared order, not the legacy store.
 				sort_by, sort_how = item['sort_by'], item['sort_how']
@@ -163,7 +213,8 @@ def get_trakt_lists(params):
 				url = kodi_utils.build_folder_url(url_params)
 				if list_type == 'liked_lists':
 					display = '%s | [I]%s (x%s)[/I]' % (list_name, user, str(item_count))
-					cm_append(('[B]Unlike List[/B]', 'RunPlugin(%s)' % build_url({'mode': 'trakt.trakt_unlike_a_list', 'user': user, 'list_slug': slug})))
+					if trakt_user_active() and _trakt_can_like(user, list_id):
+						cm_append(('[B]Unlike List[/B]', 'RunPlugin(%s)' % build_url(_trakt_like_params(user, slug, list_id, 'trakt.trakt_unlike_a_list'))))
 				else:
 					display = '%s [I](x%s)[/I]' % (list_name, str(item_count))
 					cm_append(('[B]Make New List[/B]', 'RunPlugin(%s)' % build_url({'mode': 'trakt.make_new_trakt_list'})))
@@ -181,7 +232,7 @@ def get_trakt_lists(params):
 				listitem.setLabel(display)
 				listitem.setArt({'icon': poster, 'poster': poster, 'thumb': poster, 'fanart': background, 'banner': background})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(kodi_utils.list_folder_plot(item.get('description'), user, item_count, item.get('likes')))
 				listitem.addContextMenuItems(cm)
 				yield (url, listitem, True)
 			except: pass
@@ -219,7 +270,7 @@ def get_trakt_lists(params):
 					kodi_utils.set_property(order_prop, json.dumps(data))
 			else:
 				kodi_utils.clear_property(order_prop)
-				data.sort(key=lambda k: k['name'])
+				data.sort(key=lambda k: (k.get('name') or '').lower())
 			result = list(_process())
 		else:
 			if list_type == 'liked_lists':
@@ -242,9 +293,13 @@ def get_trakt_user_lists(params):
 				item = _list['list']
 				item_count = item.get('item_count', 0)
 				if item_count == 0: continue
-				list_name, list_id, user, slug = item['name'], item['ids']['trakt'], item['user']['ids']['slug'], item['ids']['slug']
+				list_name, list_id = item['name'], item['ids']['trakt']
+				slug = (item.get('ids') or {}).get('slug')
+				user = ((item.get('user') or {}).get('ids') or {}).get('slug')
+				if item.get('type') == 'official':
+					user = 'Trakt Official'
+					if not slug: slug = str(list_id or '')
 				if not slug: continue
-				if item['type'] == 'official': user = 'Trakt Official'
 				if not user: continue
 				display = '%s | [I]%s (x%s)[/I]' % (list_name, user, str(item_count))
 				# Parent folder URLs drop random= (build_folder_url skip); shuffle= survives — same pattern as My Lists.
@@ -254,15 +309,13 @@ def get_trakt_user_lists(params):
 				if random_contents: url_params['random'] = 'true'
 				url = kodi_utils.build_folder_url(url_params)
 				listitem = make_listitem()
-				if user != 'Trakt Official':
-					cm_append(('[B]Like List[/B]', 'RunPlugin(%s)' % build_url({'mode': 'trakt.trakt_like_a_list', 'user': user, 'list_slug': slug})))
-					cm_append(('[B]Unlike List[/B]', 'RunPlugin(%s)' % build_url({'mode': 'trakt.trakt_unlike_a_list', 'user': user, 'list_slug': slug})))
+				_append_like_unlike_cm(cm, build_url, user, slug, list_id, liked_ids, liked_pairs)
 				cm_append(('[B]Add to Shortcut Folder[/B]', 'RunPlugin(%s)' % build_url({'mode': 'menu_editor.shortcut_folder_add_known', 'url': url})))
 				listitem.addContextMenuItems(cm)
 				listitem.setLabel(display)
 				listitem.setArt({'icon': trakt_icon, 'poster': trakt_icon, 'thumb': trakt_icon, 'fanart': fanart, 'banner': fanart})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(kodi_utils.list_folder_plot(item.get('description'), user, item_count, item.get('likes')))
 				yield (url, listitem, True)
 			except: pass
 	handle, trakt_icon, fanart = int(sys.argv[1]), kodi_utils.get_icon('trakt'), kodi_utils.get_addon_fanart()
@@ -276,6 +329,7 @@ def get_trakt_user_lists(params):
 		new_page = str(int(page) + 1)
 		order_prop = 'redlight.trakt.%s.user_lists.order' % list_type
 		lists = list(trakt_get_lists(list_type, page) or [])
+		liked_ids, liked_pairs = _trakt_liked_lookup()
 		if shuffle_lists and lists:
 			returning_to_list = 'build_trakt_lists_contents' in kodi_utils.folder_path()
 			if returning_to_list:
@@ -306,23 +360,36 @@ def in_trakt_lists(params):
 				cm = []
 				cm_append = cm.append
 				item_count = item.get('item_count', 0)
-				list_name, user, slug = item['name'], item['user']['ids']['slug'], item['ids']['slug']
+				ids = item.get('ids') or {}
+				list_name = item['name']
+				slug = ids.get('slug')
+				list_id = ids.get('trakt')
+				user = ((item.get('user') or {}).get('ids') or {}).get('slug') or item.get('username')
+				is_official = item.get('type') == 'official' or user == 'Trakt Official'
+				if is_official:
+					user = 'Trakt Official'
+					if not slug: slug = str(list_id or '')
+				if not user: continue
+				if not slug and list_id in (None, '', 0, '0'): continue
 				display = '%s | [I]%s (x%s)[/I]' % (list_name, user, str(item_count))
-				url = kodi_utils.build_url({'mode': 'trakt.list.build_trakt_list', 'user': user, 'slug': slug, 'list_type': 'user_lists', 'list_name': list_name})
+				url_params = {'mode': 'trakt.list.build_trakt_list', 'user': user, 'slug': slug, 'list_type': 'user_lists',
+					'list_name': list_name, 'name': list_name}
+				if list_id not in (None, '', 0, '0'): url_params['list_id'] = list_id
+				url = kodi_utils.build_url(url_params)
 				listitem = kodi_utils.make_listitem()
-				if not user == 'Trakt Official':
-					cm_append(('[B]Like List[/B]', 'RunPlugin(%s)' % kodi_utils.build_url({'mode': 'trakt.trakt_like_a_list', 'user': user, 'list_slug': slug})))
-					cm_append(('[B]Unlike List[/B]', 'RunPlugin(%s)' % kodi_utils.build_url({'mode': 'trakt.trakt_unlike_a_list', 'user': user, 'list_slug': slug})))
+				_append_like_unlike_cm(cm, kodi_utils.build_url, user, slug, list_id, liked_ids, liked_pairs)
+				cm_append(('[B]Add to Shortcut Folder[/B]', 'RunPlugin(%s)' % kodi_utils.build_url({'mode': 'menu_editor.shortcut_folder_add_known', 'url': url})))
 				listitem.addContextMenuItems(cm)
 				listitem.setLabel(display)
 				listitem.setArt({'icon': trakt_icon, 'poster': trakt_icon, 'thumb': trakt_icon, 'fanart': fanart, 'banner': fanart})
 				info_tag = listitem.getVideoInfoTag(True)
-				info_tag.setPlot(' ')
+				info_tag.setPlot(kodi_utils.list_folder_plot(item.get('description'), user, item_count, item.get('likes')))
 				yield (url, listitem, True)
 			except: pass
 	handle, trakt_icon, fanart = int(sys.argv[1]), kodi_utils.get_icon('trakt'), kodi_utils.get_addon_fanart()
 	try:
 		lists = trakt_lists_with_media(params['media_type'], params['imdb_id'])
+		liked_ids, liked_pairs = _trakt_liked_lookup()
 		kodi_utils.add_items(handle, list(_process()))
 	except: pass
 	kodi_utils.set_content(handle, kodi_utils.MENU_FOLDER_CONTENT)

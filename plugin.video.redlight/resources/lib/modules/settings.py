@@ -496,7 +496,7 @@ def nextep_pipeline_headroom(play_type, scraper_time, still_watching_due=False):
 def auto_nextep_settings(play_type):
 	play_type = 'autoplay' if play_type == 'autoplay_nextep' else 'autoscrape'
 	window_percentage = 100 - int(get_setting('redlight.%s_next_window_percentage' % play_type, '95'))
-	alert_timing = _alert_timing_mode('%s_alert_timing' % play_type, '1')
+	alert_timing = _alert_timing_mode('%s_alert_timing' % play_type, '3')
 	watching_check = int(get_setting('redlight.autoplay_watching_check', '3'))
 	scraper_time = int(get_setting('redlight.results.timeout', '60')) + NEXTEP_SCRAPE_MARGIN_SEC
 	if play_type == 'autoplay':

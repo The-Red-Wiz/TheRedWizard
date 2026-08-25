@@ -1,0 +1,43 @@
+List search lives under [B]My Lists[/B]. Each service is different — some search list titles, some a username, some only an ID. A username that exists is that user's public lists, not lists with that word in the title.
+
+[B]Row labels[/B]
+- [COLOR magenta][I]Magenta italic[/I][/COLOR] — dynamic / AI list (MDBList and PunchPlay). Opens the same as a normal list.
+- [COLOR cyan][I]Cyan italic[/I][/COLOR] — MDBList external list (imported onto My Lists).
+- [B]Trakt Official[/B] — Trakt's own editorial lists (e.g. IMDb Top 250). Owner shows as Trakt Official. Like / Unlike (signed in) work via the list id. Name search hides them; paste a numeric ID or [I]trakt.tv/lists/{id}[/I] to open one.
+- Other Trakt rows — a user's public (unofficial) list. Owner is their username. Like / Unlike when signed in.
+
+[B]My Lists > Trakt Public Lists[/B] (no Trakt login)
+- [B]Search User Lists[/B]
+  - List name (official lists stay hidden)
+  - Numeric list ID
+  - Username (that user's public lists)
+  - [I]trakt.tv/users/{user}/lists/{slug}[/I] or [I]user/lists/slug[/I]
+  - [I]trakt.tv/users/{user}[/I] (same as username)
+  - [I]trakt.tv/lists/{id}[/I] (official lists included)
+- Trending / Popular User Lists are catalogues, not search.
+
+[B]My Lists > Trakt Lists[/B] (signed in)
+- [B]Search My Trakt Lists[/B] — filters your own list names. Not a public search.
+
+[B]My Lists > MDBList Lists[/B] (signed in)
+- [B]Search MDBLists[/B]
+  - List title
+  - Username (that user's public lists)
+  - Numeric list ID
+  - [I]user/slug[/I]
+  - [I]mdblist.com/lists/{user}/{slug}[/I] or [I]mdblist.com/lists/{user}[/I]
+- [B]Search My MDBLists[/B] — filters your own list names (static, dynamic, external).
+
+[B]My Lists > PunchPlay Lists[/B] (signed in)
+- [B]Search PunchPlay Lists[/B] — numeric ID or [I]punchplay.tv/lists/{id}[/I] only. No name or username search (PunchPlay has no public list search API). Private lists stay hidden unless you own them.
+- [B]Search My PunchPlay Lists[/B] — titles on your status shelves (Watchlist, Watching, and so on), not custom list names.
+
+[B]My Lists > Simkl Lists[/B] (signed in)
+- [B]Search My Simkl Lists[/B] — titles on your status shelves. Simkl has no public custom-list API.
+
+[B]My Lists > TMDb Lists / Personal Lists / Discover[/B]
+- No public list search by username. TMDb lists are numeric IDs you already own. Personal and Discover lists are local.
+
+[B]Also[/B]
+- Tools > Search has [B]Search Trakt User Lists[/B] (same as Trakt Public Lists).
+- Extras > [B]In Trakt Lists[/B] on a title includes official and personal public lists that contain it.

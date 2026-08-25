@@ -462,6 +462,42 @@ _browse_subnav_exit_params = {
 	'tmdb_tv_discover': {'mode': 'navigator.discover_contents', 'media_type': 'tvshow'},
 }
 
+_LIST_FOLDER_PLOT_DESC_MAX = 500
+
+def list_folder_plot(description='', user='', item_count=None, likes=None):
+	"""Folder-row plot. Row labels already show user and item count.
+
+	With a description: N likes (if Trakt sent a number) then the clipped text.
+	Without: user · N items · N likes.
+	"""
+	try: desc = (description or '').strip()
+	except: desc = ''
+	if desc:
+		desc = desc.replace('\r\n', '\n').replace('\r', '\n').replace('\n', '[CR]')
+		while '[CR][CR][CR]' in desc:
+			desc = desc.replace('[CR][CR][CR]', '[CR][CR]')
+		if len(desc) > _LIST_FOLDER_PLOT_DESC_MAX:
+			cut = desc[:_LIST_FOLDER_PLOT_DESC_MAX]
+			cr = cut.rfind('[CR]')
+			sp = cut.rfind(' ')
+			if cr > _LIST_FOLDER_PLOT_DESC_MAX // 2: cut = cut[:cr]
+			elif sp > _LIST_FOLDER_PLOT_DESC_MAX // 2: cut = cut[:sp]
+			desc = cut.rstrip(' .;:') + '…'
+	likes_bit = ''
+	if likes not in (None, ''):
+		try: likes_bit = '%s likes' % int(likes)
+		except: likes_bit = '%s likes' % likes
+	if desc:
+		if likes_bit: return '%s[CR][CR]%s' % (likes_bit, desc)
+		return desc
+	bits = []
+	if user not in (None, '', 'None'): bits.append(str(user))
+	if item_count not in (None, '', '?'):
+		try: bits.append('%s items' % int(item_count))
+		except: bits.append('%s items' % item_count)
+	if likes_bit: bits.append(likes_bit)
+	return ' · '.join(bits) if bits else ' '
+
 def add_dir(handle, url_params, list_name, icon_image='folder', fanart_image=None, isFolder=True):
 	fanart = fanart_image or get_addon_fanart()
 	icon = get_icon(icon_image)

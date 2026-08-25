@@ -2,10 +2,12 @@
 """PunchPlay Platform API v1 — watched provider, lists, and native scrobble."""
 import json
 import os
+import re
 import time
 import uuid
 import requests
 from threading import Lock
+from urllib.parse import unquote
 from caches.settings_cache import get_setting, set_setting
 from caches import punchplay_cache as pp_cache
 from modules import kodi_utils, settings
@@ -608,6 +610,34 @@ def punchplay_watchlist(media_kind, page_no=None):
 
 def punchplay_get_lists():
 	return _library_items(call_punchplay('/me/lists', method='get'))
+
+_PP_LIST_ID_URL = re.compile(r'(?:https?://)?(?:www\.)?punchplay\.tv/lists/(\d+)', re.I)
+
+def punchplay_get_list(list_id):
+	if list_id in (None, '', 0, '0'): return None
+	detail = call_punchplay('/lists/%s' % list_id, method='get')
+	if _api_ok(detail) and detail.get('id') not in (None, '', 0, '0'): return detail
+	return None
+
+def punchplay_resolve_list_query(query):
+	"""Parse a PunchPlay list ID or punchplay.tv/lists/{id} URL. Returns (is_lookup, list_dict_or_None)."""
+	query = (query or '').strip()
+	if not query: return False, None
+	list_id = None
+	match = _PP_LIST_ID_URL.search(query)
+	if match:
+		list_id = match.group(1)
+	elif query.isdigit():
+		list_id = query
+	else:
+		return False, None
+	return True, punchplay_get_list(unquote(str(list_id)).split('?')[0].split('#')[0])
+
+def punchplay_search_lists(query):
+	"""ID / URL lookup only — PunchPlay has no public list name search."""
+	is_lookup, resolved = punchplay_resolve_list_query(query)
+	if is_lookup and resolved: return [resolved]
+	return []
 
 def _punchplay_list_items_paginated(list_id):
 	"""Paginated GET /lists/{id}/items — documented for dynamic lists."""

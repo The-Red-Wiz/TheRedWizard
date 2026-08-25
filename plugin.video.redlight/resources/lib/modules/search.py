@@ -45,10 +45,14 @@ def get_key_id(params):
 		url_params, string = {'mode': 'trakt.list.search_trakt_my_lists'}, 'trakt_my_list_queries'
 	elif search_type == 'mdblist_my_lists':
 		url_params, string = {'mode': 'mdblist.search_mdbl_my_lists'}, 'mdblist_my_list_queries'
+	elif search_type == 'mdblist_lists':
+		url_params, string = {'mode': 'mdblist.search_mdbl_lists'}, 'mdblist_list_queries'
 	elif search_type == 'simkl_lists':
 		url_params, string = {'mode': 'simkl.list.search_simkl_lists'}, 'simkl_list_queries'
 	elif search_type == 'punchplay_lists':
 		url_params, string = {'mode': 'punchplay.list.search_punchplay_lists'}, 'punchplay_list_queries'
+	elif search_type == 'punchplay_public_lists':
+		url_params, string = {'mode': 'punchplay.list.search_punchplay_public_lists'}, 'punchplay_public_list_queries'
 	if string: history_changed = add_to_search(key_id, string)
 	else: history_changed = False
 	if search_type == 'people':
@@ -99,8 +103,10 @@ def clear_search():
 	('Clear Trakt User Lists Search History', 'trakt_list_queries'),
 	('Clear Trakt My Lists Search History', 'trakt_my_list_queries'),
 	('Clear MDBList My Lists Search History', 'mdblist_my_list_queries'),
+	('Clear MDBList Search History', 'mdblist_list_queries'),
 	('Clear Simkl List Search History', 'simkl_list_queries'),
-	('Clear PunchPlay List Search History', 'punchplay_list_queries')]
+	('Clear PunchPlay List Search History', 'punchplay_list_queries'),
+	('Clear PunchPlay Lists Search History', 'punchplay_public_list_queries')]
 	try:
 		list_items = [{'line1': item[0]} for item in clear_history_list]
 		kwargs = {'items': json.dumps(list_items), 'narrow_window': 'true'}

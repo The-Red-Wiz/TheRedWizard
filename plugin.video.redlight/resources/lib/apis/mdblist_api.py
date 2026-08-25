@@ -3,6 +3,7 @@ import json
 import re
 import time
 import requests
+from urllib.parse import quote, unquote, urlencode
 from caches import mdblist_cache
 from caches.settings_cache import get_setting, set_setting
 from modules import kodi_utils, settings, list_sort
@@ -76,7 +77,8 @@ def _get_mdbl_playback_items():
 	return result.get('items', [])
 
 def _tmdb_id_from_ids(ids):
-	for key in ('tmdb', 'tmdbid'):
+	if not isinstance(ids, dict): return None
+	for key in ('tmdb', 'tmdbid', 'tmdb_id'):
 		try:
 			if ids.get(key): return str(int(ids[key]))
 		except: pass
@@ -122,27 +124,29 @@ def _normalize_mdbl_personal_item(item, media_kind):
 	block = item.get(nested_key)
 	if isinstance(block, dict):
 		ids = block.get('ids') or {}
-		tmdb_id = _resolve_movie_id(ids) if is_movie else _resolve_tvshow_id(ids)
-		title = block.get('title', '')
-		year = block.get('year') or block.get('release_year', '')
-		imdb_id = ids.get('imdb', '')
-		tvdb_id = ids.get('tvdb', '')
-	else:
-		block = item if isinstance(item, dict) else {}
-		ids = block.get('ids') or {}
-		tmdb_id = None
-		if block.get('tmdb') is not None:
-			try: tmdb_id = str(int(block['tmdb']))
-			except: pass
+		merged_ids = dict(ids)
+		imdb_id = _imdb_from_ids(merged_ids, block)
+		tvdb_id = _tvdb_from_ids(merged_ids, block)
+		if imdb_id: merged_ids['imdb'] = imdb_id
+		if tvdb_id: merged_ids['tvdb'] = tvdb_id
+		tmdb_id = _tmdb_id_from_ids(merged_ids) or _tmdb_id_from_ids(block)
 		if not tmdb_id:
-			merged_ids = dict(ids)
-			if block.get('imdb_id'): merged_ids['imdb'] = block['imdb_id']
-			if block.get('tvdb_id'): merged_ids['tvdb'] = block['tvdb_id']
 			tmdb_id = _resolve_movie_id(merged_ids) if is_movie else _resolve_tvshow_id(merged_ids)
 		title = block.get('title', '')
 		year = block.get('year') or block.get('release_year', '')
-		imdb_id = block.get('imdb_id') or ids.get('imdb', '')
-		tvdb_id = block.get('tvdb_id') or ids.get('tvdb', '')
+	else:
+		block = item if isinstance(item, dict) else {}
+		ids = block.get('ids') or {}
+		merged_ids = dict(ids)
+		imdb_id = _imdb_from_ids(merged_ids, block)
+		tvdb_id = _tvdb_from_ids(merged_ids, block)
+		if imdb_id: merged_ids['imdb'] = imdb_id
+		if tvdb_id: merged_ids['tvdb'] = tvdb_id
+		tmdb_id = _tmdb_id_from_ids(merged_ids) or _tmdb_id_from_ids(block)
+		if not tmdb_id:
+			tmdb_id = _resolve_movie_id(merged_ids) if is_movie else _resolve_tvshow_id(merged_ids)
+		title = block.get('title', '')
+		year = block.get('year') or block.get('release_year', '')
 	if not tmdb_id: return None
 	return {'id': tmdb_id, 'title': title, 'year': year, 'imdb_id': imdb_id or '', 'tvdb_id': tvdb_id or '',
 		'watchlist_at': item.get('watchlist_at', ''), 'collected_at': item.get('collected_at', ''), 'release_date': item.get('release_date', '')}
@@ -272,10 +276,43 @@ def mdbl_collect_list_media(payload):
 		else: movies.append(item)
 	return movies, shows, episodes
 
+def _mdbl_item_media_ids(item):
+	"""Pack tmdb/imdb/tvdb from a list item so Movies/TVShows can fall back past TMDb."""
+	if not isinstance(item, dict): return {}
+	nested = item.get('movie') if isinstance(item.get('movie'), dict) else None
+	if nested is None:
+		nested = item.get('show') if isinstance(item.get('show'), dict) else None
+	blocks = [b for b in (item, nested) if isinstance(b, dict)]
+	merged = {}
+	for block in blocks:
+		ids = block.get('ids')
+		if isinstance(ids, dict): merged.update(ids)
+		for key in ('tmdb', 'tmdbid', 'tmdb_id', 'imdb', 'imdb_id', 'imdbid', 'tvdb', 'tvdb_id', 'tvdbid'):
+			value = block.get(key)
+			if value not in (None, '', 0, '0'): merged.setdefault(key, value)
+	media_ids = {}
+	tmdb = _tmdb_id_from_ids(merged)
+	if tmdb:
+		try: media_ids['tmdb'] = int(tmdb)
+		except: media_ids['tmdb'] = tmdb
+	imdb = _imdb_from_ids(merged, item)
+	if nested: imdb = imdb or _imdb_from_ids(merged, nested)
+	if imdb and imdb not in ('None', '0', None): media_ids['imdb'] = imdb
+	tvdb = _tvdb_from_ids(merged, item)
+	if nested: tvdb = tvdb or _tvdb_from_ids(merged, nested)
+	if tvdb and tvdb not in ('None', '0', None):
+		try: media_ids['tvdb'] = int(tvdb)
+		except: media_ids['tvdb'] = tvdb
+	if not media_ids:
+		try:
+			if item.get('id') not in (None, '', 0, '0'): media_ids['tmdb'] = int(item['id'])
+		except: pass
+	return media_ids
+
 def _mdbl_movie_show_row(item, media_type, order):
-	tmdb_id = mdbl_unified_item_tmdb_id(item)
-	if not tmdb_id: return None
-	return {'type': media_type, 'media_ids': {'tmdb': tmdb_id}, 'order': order, 'custom_order': order}
+	media_ids = _mdbl_item_media_ids(item)
+	if not media_ids: return None
+	return {'type': media_type, 'media_ids': media_ids, 'order': order, 'custom_order': order}
 
 def mdbl_ordered_list_rows(payload):
 	"""Ordered typed rows for mixed list open (movie | show | episode), preserving unified order."""
@@ -319,11 +356,8 @@ def mdbl_ordered_list_rows(payload):
 def _mdbl_item_to_list_entry(item, media_kind):
 	if not isinstance(item, dict): return None
 	ids = item.get('ids') or {}
-	tmdb_id = _tmdb_id_from_ids(ids)
-	if not tmdb_id and item.get('tmdb') is not None:
-		try: tmdb_id = str(int(item['tmdb']))
-		except: pass
-	if not tmdb_id and item.get('mediatype') and item.get('id') is not None:
+	tmdb_id = _tmdb_id_from_ids(ids) or _tmdb_id_from_ids(item)
+	if not tmdb_id and item.get('mediatype') and item.get('id') is not None and not _imdb_from_ids(ids, item) and not _tvdb_from_ids(ids, item):
 		try: tmdb_id = str(int(item['id']))
 		except: pass
 	if tmdb_id:
@@ -332,7 +366,7 @@ def _mdbl_item_to_list_entry(item, media_kind):
 			'watchlist_at': item.get('watchlist_at', ''), 'collected_at': item.get('collected_at', ''), 'release_date': item.get('release_date', '')}
 	entry = _normalize_mdbl_personal_item(item, media_kind)
 	if entry: return entry
-	if item.get('id') is not None:
+	if item.get('id') is not None and not _imdb_from_ids(ids, item) and not _tvdb_from_ids(ids, item):
 		try:
 			tmdb_id = str(int(item['id']))
 			return {'id': tmdb_id, 'title': item.get('title', ''), 'year': item.get('year') or item.get('release_year', ''),
@@ -938,6 +972,81 @@ def mdbl_top_lists():
 		lists = result.get('items') or []
 	return _mdbl_expand_list_entries(lists)
 
+_MDBL_LIST_SLUG_URL = re.compile(r'(?:https?://)?(?:www\.)?mdblist\.com/lists/([^/?#]+)/([^/?#]+)', re.I)
+_MDBL_LIST_ID_URL = re.compile(r'(?:https?://)?(?:www\.)?mdblist\.com/lists/(\d+)\b', re.I)
+_MDBL_LIST_USER_URL = re.compile(r'(?:https?://)?(?:www\.)?mdblist\.com/lists/([^/?#]+)/?(?:[?#]|$)', re.I)
+_MDBL_USER_SLUG_SHORT = re.compile(r'^([^/\s]+)/([^/\s]+)$')
+_MDBL_USERNAME_ONLY = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_-]{0,62}$')
+
+def _mdbl_first_list(result):
+	lists = _mdbl_expand_list_entries(_mdbl_normalize_list_response(result))
+	if lists: return lists
+	if isinstance(result, dict) and result.get('id'): return [result]
+	return []
+
+def _mdbl_clean_list_part(value):
+	value = unquote((value or '').strip())
+	return value.split('?')[0].split('#')[0].rstrip('/')
+
+def _mdbl_prep_list_query(query):
+	query = unquote((query or '').strip()).strip().strip('/')
+	query = re.sub(r'(?i)/json$', '', query).rstrip('/')
+	return query
+
+def _mdbl_path_user_slug(user, slug):
+	return 'lists/%s/%s' % (quote(_mdbl_clean_list_part(user), safe='-._~'), quote(_mdbl_clean_list_part(slug), safe='-._~'))
+
+def _mdbl_lists_for_user(username):
+	username = _mdbl_clean_list_part(username)
+	if not username or username.isdigit() or username.lower() in ('json', 'user', 'liked', 'top', 'search'):
+		return []
+	return _mdbl_first_list(call_mdblist('lists/user/%s' % quote(username, safe='-._~')))
+
+def mdbl_resolve_list_query(query):
+	"""Parse an MDBList ID, URL, user/slug, or username. Returns (is_lookup, list_of_dicts)."""
+	query = _mdbl_prep_list_query(query)
+	if not query: return False, []
+	match = _MDBL_LIST_SLUG_URL.search(query)
+	if match:
+		slug = _mdbl_clean_list_part(match.group(2))
+		if slug.lower() != 'json':
+			return True, _mdbl_first_list(call_mdblist(_mdbl_path_user_slug(match.group(1), slug)))
+	match = _MDBL_LIST_ID_URL.search(query)
+	if match:
+		return True, _mdbl_first_list(call_mdblist('lists/%s' % match.group(1)))
+	match = _MDBL_LIST_USER_URL.search(query)
+	if match:
+		user = _mdbl_clean_list_part(match.group(1))
+		if user and not user.isdigit():
+			return True, _mdbl_lists_for_user(user)
+	if query.isdigit():
+		return True, _mdbl_first_list(call_mdblist('lists/%s' % query))
+	match = _MDBL_USER_SLUG_SHORT.match(query)
+	if match and match.group(1).lower() not in ('http:', 'https:') and '.' not in match.group(1):
+		return True, _mdbl_first_list(call_mdblist(_mdbl_path_user_slug(match.group(1), match.group(2))))
+	if _MDBL_USERNAME_ONLY.match(query) and '.' not in query:
+		found = _mdbl_lists_for_user(query)
+		if found: return True, found
+	return False, []
+
+def mdbl_search_lists(query):
+	query = _mdbl_prep_list_query(query)
+	is_lookup, resolved = mdbl_resolve_list_query(query)
+	if is_lookup:
+		if resolved:
+			rows = []
+			for item in resolved:
+				row = dict(item)
+				row['_id_lookup'] = True
+				rows.append(row)
+			return rows
+		if not (query or '').strip().isdigit():
+			return []
+	string = 'mdblist_search_lists_%s' % (query or '').strip().lower()
+	path = 'lists/search?%s' % urlencode({'query': query})
+	result = mdblist_cache.cache_mdblist_object(call_mdblist, string, path)
+	return _mdbl_expand_list_entries(_mdbl_normalize_list_response(result))
+
 def get_mdbl_list_payload(list_type, list_id):
 	string = 'mdblist_list_contents_%s_%s' % (list_type, list_id)
 	if list_type == 'external': url = 'external/lists/%s/items?unified=true' % list_id
@@ -1412,6 +1521,10 @@ def build_mdbl_list(params):
 def search_mdbl_my_lists(params):
 	from indexers import mdblist_lists
 	return mdblist_lists.search_mdbl_my_lists(params)
+
+def search_mdbl_lists(params):
+	from indexers import mdblist_lists
+	return mdblist_lists.search_mdbl_lists(params)
 
 def build_mdbl_watchlist(params):
 	from indexers import mdblist_lists

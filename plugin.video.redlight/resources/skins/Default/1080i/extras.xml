@@ -426,15 +426,6 @@
                     <visible>String.IsEqual(Window.Property(plot_enabled),true)</visible>
                     <height>760</height>
                     <control type="group">
-                        <control type="label">
-                            <width max="1160">auto</width>
-                            <height>20</height>
-                            <font>font14</font> <!-- REDLIGHT_33 -->
-                            <textcolor>FFCCCCCC</textcolor>
-                            <align>left</align>
-                            <aligny>bottom</aligny>
-                            <label>[B]Plot[/B]</label>
-                        </control>
                         <control type="button" id="2050">
                             <top>50</top>
                             <width>1180</width>

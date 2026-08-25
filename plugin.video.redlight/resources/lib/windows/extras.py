@@ -77,15 +77,25 @@ class Extras(BaseDialog):
 				person_name = self.get_listitem(focus_id).getProperty(self.item_action_dict[focus_id])
 				return people.person_search(person_name)
 			elif focus_id == self.in_lists_id:
+				if not settings.trakt_user_active(): return self.notification('Trakt account not authorised')
 				kodi_utils.show_busy_dialog()
 				try:
 					list_item, position = self.get_listitem(focus_id), self.get_position(focus_id)
 					chosen = self.get_attribute(self, list_item.getProperty(self.item_action_dict[focus_id]))[self.get_position(focus_id)]
 					user, list_slug = chosen['user']['ids']['slug'], chosen['ids']['slug']
+					list_id = (chosen.get('ids') or {}).get('trakt')
+					if chosen.get('type') == 'official' or user == 'Trakt Official': user = 'Trakt Official'
+					payload = {'user': user, 'list_slug': list_slug, 'refresh': 'false'}
+					if list_id not in (None, '', 0, '0'): payload['list_id'] = list_id
+					elif user == 'Trakt Official':
+						kodi_utils.hide_busy_dialog()
+						return self.notification('Error with Trakt List')
 					function, new_value = (trakt_api.trakt_like_a_list, 'true') if list_item.getProperty('liked_status') == 'false' else (trakt_api.trakt_unlike_a_list, 'false')
 					new_value = 'true' if list_item.getProperty('liked_status') == 'false' else 'false'
-					if function({'user': user, 'list_slug': list_slug, 'refresh': 'false'}): list_item.setProperty('liked_status', new_value)
-				except: return self.notification('Error with Trakt List')
+					if function(payload): list_item.setProperty('liked_status', new_value)
+				except:
+					kodi_utils.hide_busy_dialog()
+					return self.notification('Error with Trakt List')
 				kodi_utils.hide_busy_dialog()
 			else: return
 		if not self.control_id: return
@@ -116,8 +126,15 @@ class Extras(BaseDialog):
 				try:
 					self.close_all()
 					chosen = self.get_attribute(self, chosen_var)[position]
-					list_name, user, slug = chosen['name'], chosen['user']['ids']['slug'], chosen['ids']['slug']
-					self.selected = self.folder_runner({'mode': 'trakt.list.build_trakt_list', 'user': user, 'slug': slug, 'list_type': 'user_lists', 'list_name': list_name})
+					list_name = chosen['name']
+					user = ((chosen.get('user') or {}).get('ids') or {}).get('slug')
+					slug = (chosen.get('ids') or {}).get('slug')
+					list_id = (chosen.get('ids') or {}).get('trakt')
+					if chosen.get('type') == 'official' or user == 'Trakt Official':
+						user = 'Trakt Official'
+					url_params = {'mode': 'trakt.list.build_trakt_list', 'user': user, 'slug': slug, 'list_type': 'user_lists', 'list_name': list_name}
+					if list_id not in (None, '', 0, '0'): url_params['list_id'] = list_id
+					self.selected = self.folder_runner(url_params)
 					self.close()
 				except: return
 			else: return
@@ -335,23 +352,35 @@ class Extras(BaseDialog):
 			for count, item in enumerate(self.all_in_lists, 1):
 				try:
 					listitem = self.make_listitem()
-					compare = (item['ids']['slug'], item['user']['ids']['slug'])
-					if compare in liked_lists: liked = 'true'
+					user_slug = ((item.get('user') or {}).get('ids') or {}).get('slug') or ''
+					if item.get('type') == 'official': user_slug = 'Trakt Official'
+					compare = ((item.get('ids') or {}).get('slug'), user_slug)
+					tid = (item.get('ids') or {}).get('trakt')
+					if (tid not in (None, '', 0, '0') and str(tid) in liked_ids) or compare in liked_pairs: liked = 'true'
 					else: liked = 'false'
 					likes = item.get('likes', '')
 					likes_insert = '[CR]%s %s' % (likes, 'Likes' if likes > 1 else 'Like') if likes else '' 
-					listitem.setProperty('name', template % (count, batch_replace(item['name'].upper(), replacements), likes_insert, item['user']['ids']['slug'], item['item_count']))
+					listitem.setProperty('name', template % (count, batch_replace(item['name'].upper(), replacements), likes_insert, user_slug, item['item_count']))
 					listitem.setProperty('content_list', 'all_in_lists')
 					listitem.setProperty('thumbnail', icon)
 					listitem.setProperty('liked_status', liked)
-					listitem.setProperty('info_alert', self.list_alert)
+					listitem.setProperty('info_alert', self.list_alert if settings.trakt_user_active() else '')
 					yield listitem
 				except: pass
 		try:
 			icon = kodi_utils.get_icon('trakt')
-			liked_lists = trakt_api.trakt_get_lists('liked_lists')
-			try: liked_lists = [(i['list']['ids']['slug'], i['list']['user']['ids']['slug']) for i in liked_lists]
-			except: liked_lists = []
+			liked_pairs, liked_ids = [], set()
+			if settings.trakt_user_active():
+				try:
+					for i in trakt_api.trakt_get_lists('liked_lists') or []:
+						lst = i.get('list') or {}
+						ids = lst.get('ids') or {}
+						tid = ids.get('trakt')
+						if tid not in (None, '', 0, '0'): liked_ids.add(str(tid))
+						user_s = ((lst.get('user') or {}).get('ids') or {}).get('slug') or ''
+						if lst.get('type') == 'official': user_s = 'Trakt Official'
+						liked_pairs.append((ids.get('slug'), user_s))
+				except: liked_pairs, liked_ids = [], set()
 			template, replacements = '%02d.[CR][B]%s[/B]%s[CR][CR]by %s[CR](x%02d)', (('-', ' '), ('_', ' '), ('.', ' '))
 			self.all_in_lists = trakt_api.trakt_lists_with_media(self.media_type, self.imdb_id)
 			item_list = list(builder())

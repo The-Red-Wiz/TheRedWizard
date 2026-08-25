@@ -246,7 +246,7 @@ class Navigator:
 		return link
 
 	def simkl_lists(self):
-		"""Grouped status shelves — Plan to Watch → Watching → On Hold → Completed → Dropped → Calendar.
+		"""Grouped status shelves — Plan to Watch → Watching → On Hold → Completed → Dropped → Calendar → Search.
 
 		Personal shelves / personal Calendar / Search need auth. Public Calendar is always shown
 		(CDN feed, same idea as My Lists > Trakt Public Lists).
@@ -320,6 +320,7 @@ class Navigator:
 		self._safe_add({'mode': 'mdblist.get_mdbl_top_lists', 'name': 'Popular MDBLists'}, 'Popular MDBLists', 'popular')
 		self._safe_add({'mode': 'build_mdbl_next_up'}, 'Next Up', 'next_episodes')
 		self._safe_add({'mode': 'build_mdbl_calendar'}, 'Calendar', 'calender')
+		self._safe_add({'mode': 'navigator.search_history', 'action': 'mdblist_lists'}, 'Search MDBLists', 'search')
 		self._safe_add({'mode': 'navigator.search_history', 'action': 'mdblist_my_lists'}, 'Search My MDBLists', 'search')
 		self._set_exit_params({'mode': 'navigator.my_lists'})
 		self.end_directory()
@@ -347,7 +348,7 @@ class Navigator:
 		if list_id is not None: params['list_id'] = list_id
 		return params
 
-	def _punchplay_media_folder(self, action, category_name, exit_mode='punchplay_lists', list_id=None):
+	def _punchplay_media_folder(self, action, category_name, exit_mode='punchplay_lists', list_id=None, exit_params=None):
 		self.category_name = category_name
 		movie_params = {'mode': 'build_movie_list', 'action': action, 'category_name': 'Movies %s' % category_name}
 		tv_params = {'mode': 'build_tvshow_list', 'action': action, 'category_name': 'TV Shows %s' % category_name}
@@ -357,7 +358,7 @@ class Navigator:
 		self._safe_add(movie_params, 'Movies', 'movies')
 		self._safe_add(tv_params, 'TV Shows', 'tv')
 		self._safe_add(self._punchplay_anime_link(action, 'Anime %s' % category_name, list_id), 'Anime', 'anime')
-		self._set_exit_params({'mode': 'navigator.%s' % exit_mode})
+		self._set_exit_params(exit_params or {'mode': 'navigator.%s' % exit_mode})
 		self.end_directory()
 
 	def punchplay_lists(self):
@@ -376,6 +377,7 @@ class Navigator:
 			self._safe_add({'mode': 'navigator.%s' % mode}, label, icon)
 		self._safe_add({'mode': 'navigator.punchplay_my_lists'}, 'My Lists', 'lists')
 		self._safe_add({'mode': 'build_punchplay_calendar'}, 'Calendar', 'calender')
+		self._safe_add({'mode': 'navigator.search_history', 'action': 'punchplay_public_lists'}, 'Search PunchPlay Lists', 'search')
 		self._safe_add({'mode': 'navigator.search_history', 'action': 'punchplay_lists'}, 'Search My PunchPlay Lists', 'search')
 		self._set_exit_params({'mode': 'navigator.my_lists'})
 		self.end_directory()
@@ -408,10 +410,10 @@ class Navigator:
 		self.category_name = 'My Lists'
 		try:
 			from apis.punchplay_api import punchplay_get_lists
-			for entry in punchplay_get_lists() or []:
-				if entry.get('isWatchlist'): continue
+			entries = [e for e in (punchplay_get_lists() or []) if e and not e.get('isWatchlist') and e.get('id')]
+			entries.sort(key=lambda k: (k.get('name') or '').lower())
+			for entry in entries:
 				list_id, name = entry.get('id'), entry.get('name') or 'List'
-				if not list_id: continue
 				self._safe_add({'mode': 'navigator.punchplay_user_list', 'list_id': list_id, 'list_name': name}, name, 'lists')
 		except: pass
 		self._set_exit_params({'mode': 'navigator.punchplay_lists'})
@@ -420,7 +422,11 @@ class Navigator:
 	def punchplay_user_list(self):
 		list_id = self.params.get('list_id')
 		list_name = self.params.get('list_name') or 'List'
-		self._punchplay_media_folder('punchplay_user_list', list_name, exit_mode='punchplay_my_lists', list_id=list_id)
+		exit_params = None
+		if (self.params.get('from_search') or '').lower() == 'true':
+			q = self.params.get('key_id') or self.params.get('query') or ''
+			exit_params = {'mode': 'punchplay.list.search_punchplay_public_lists', 'key_id': q, 'query': q}
+		self._punchplay_media_folder('punchplay_user_list', list_name, exit_mode='punchplay_my_lists', list_id=list_id, exit_params=exit_params)
 
 	def trakt_collections(self):
 		self.category_name = 'Library'
@@ -679,8 +685,10 @@ class Navigator:
 		'trakt_lists': ('trakt_list_queries', {'mode': 'search.get_key_id', 'search_type': 'trakt_lists', 'isFolder': 'false'}),
 		'trakt_my_lists': ('trakt_my_list_queries', {'mode': 'search.get_key_id', 'search_type': 'trakt_my_lists', 'isFolder': 'false'}),
 		'mdblist_my_lists': ('mdblist_my_list_queries', {'mode': 'search.get_key_id', 'search_type': 'mdblist_my_lists', 'isFolder': 'false'}),
+		'mdblist_lists': ('mdblist_list_queries', {'mode': 'search.get_key_id', 'search_type': 'mdblist_lists', 'isFolder': 'false'}),
 		'simkl_lists': ('simkl_list_queries', {'mode': 'search.get_key_id', 'search_type': 'simkl_lists', 'isFolder': 'false'}),
-		'punchplay_lists': ('punchplay_list_queries', {'mode': 'search.get_key_id', 'search_type': 'punchplay_lists', 'isFolder': 'false'})}
+		'punchplay_lists': ('punchplay_list_queries', {'mode': 'search.get_key_id', 'search_type': 'punchplay_lists', 'isFolder': 'false'}),
+		'punchplay_public_lists': ('punchplay_public_list_queries', {'mode': 'search.get_key_id', 'search_type': 'punchplay_public_lists', 'isFolder': 'false'})}
 		setting_id, action_dict = search_mode_dict[self.list_name]
 		url_params = dict(action_dict)
 		data = main_cache.get(setting_id) or []
