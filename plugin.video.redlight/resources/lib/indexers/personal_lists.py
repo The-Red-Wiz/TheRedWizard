@@ -167,6 +167,17 @@ def get_all_personal_lists(sort_order=None):
 		contents = unseen + seen
 	return contents
 
+def personal_lists_split_by_membership(lists, tmdb_id):
+	tmdb_id = str(tmdb_id)
+	in_lists, out_lists = [], []
+	for item in lists or []:
+		contents = personal_lists_cache.get_list(item['name'], item.get('author', 'Unknown'), update_seen=False)
+		if any(str(i.get('media_id')) == tmdb_id for i in contents):
+			in_lists.append(item)
+		else:
+			out_lists.append(item)
+	return in_lists, out_lists
+
 def delete_personal_list(params):
 	list_name, author, poster, fanart = params.get('list_name', ''), params.get('author', 'Unknown'), params.get('poster', ''), params.get('fanart', '')
 	if not kodi_utils.confirm_dialog(heading='Personal Lists', text='Delete [B]%s[/B] Personal List?' % list_name): return

@@ -92,8 +92,8 @@ class OffcloudAPI:
 			return ok_dialog(text='Invalid Offcloud authorisation response')
 		qr_code = make_qrcode(verify_url) or ''
 		copy2clip(verify_url)
-		p_dialog_insert = '[CR]Full link copied to clipboard[CR]OR visit: [B]offcloud.com/activate[/B][CR]AND Enter this Code: [B]%s[/B]' % user_code
-		content = 'Please Scan the QR Code%s[CR]' % p_dialog_insert
+		p_dialog_insert = '[CR]OR visit [B]offcloud.com/activate[/B][CR]AND Enter this Code: [B]%s[/B]' % user_code
+		content = 'Scan the [B]QR Code[/B]%s' % p_dialog_insert
 		progress = progress_dialog('Offcloud Authorise', qr_code)
 		progress.update(content, 0)
 		expires_in = int(payload.get('expires_in') or 600)

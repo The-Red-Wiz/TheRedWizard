@@ -914,8 +914,8 @@ class TorBoxAPI:
 		auth_url = _device_auth_url(app_name, user_code)
 		qr_code = make_qrcode(auth_url) or ''
 		copy2clip(auth_url)
-		p_dialog_insert = '[CR]Full link copied to clipboard[CR]OR visit: [B]torbox.app/oauth/device[/B][CR]AND Enter this Code: [B]%s[/B]' % user_code
-		content = 'Please Scan the QR Code%s[CR]' % p_dialog_insert
+		p_dialog_insert = '[CR]OR visit [B]torbox.app/oauth/device[/B][CR]AND Enter this Code: [B]%s[/B]' % user_code
+		content = 'Scan the [B]QR Code[/B]%s' % p_dialog_insert
 		progressDialog = progress_dialog('TorBox Authorise', qr_code)
 		progressDialog.update(content, 0)
 		sleep_interval = int(data.get('interval') or 5)

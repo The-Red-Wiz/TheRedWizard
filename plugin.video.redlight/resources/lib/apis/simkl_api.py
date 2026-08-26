@@ -11,7 +11,7 @@ from caches import simkl_cache
 from caches.settings_cache import get_setting, set_setting
 from modules import kodi_utils, settings, list_sort
 from modules.http_defaults import META_API_TIMEOUT
-from modules.utils import copy2clip, make_qrcode
+from modules.utils import copy2clip, make_qrcode, make_tinyurl
 
 BASE_URL = 'https://api.simkl.com'
 OAUTH_PIN_URL = 'https://api.simkl.com/oauth/pin'
@@ -166,7 +166,9 @@ def simkl_poll_pin(pin):
 	auth_url = _simkl_pin_auth_url(pin)
 	qr_code = make_qrcode(auth_url) or ''
 	copy2clip(auth_url)
-	content = 'Enter [B]%s[/B] at [B]simkl.com/pin[/B][CR]OR scan the [B]QR Code[/B][CR]Link copied to clipboard[CR][CR]Waiting for authorisation...' % user_code
+	short_url = make_tinyurl(auth_url)
+	p_dialog_insert = '[CR]OR visit [B]%s[/B]' % short_url if short_url else ''
+	content = 'Enter [B]%s[/B] at [B]simkl.com/pin[/B][CR]OR scan the [B]QR Code[/B]%s[CR][CR]Waiting for authorisation...' % (user_code, p_dialog_insert)
 	progress = kodi_utils.progress_dialog('Simkl Authorise', qr_code)
 	progress.update(content, 0)
 	expires = time.time() + expires_in

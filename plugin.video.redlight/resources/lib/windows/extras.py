@@ -190,6 +190,8 @@ class Extras(BaseDialog):
 					listitem = self.make_listitem()
 					name, role = item['name'], item['role']
 					listitem.setProperty('name', '%s%s' % (name, ' as %s' % role if role else ''))
+					listitem.setProperty('cast_name', name)
+					listitem.setProperty('cast_role', role or '')
 					listitem.setProperty('name_lookup', name)
 					listitem.setProperty('thumbnail', item['thumbnail'] or icon)
 					listitem.setProperty('info_alert', self.actor_alert)

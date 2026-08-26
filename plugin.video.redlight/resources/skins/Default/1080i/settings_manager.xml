@@ -996,6 +996,14 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(30)</visible>
+                          <property name="setting_label">Premieres &amp; Latest Releases Sort</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.tmdb.premieres_sort_name)]</property>
+                          <property name="setting_description">Choose how Movies Premieres, Movies Latest Releases, TV Premieres, and Anime Premieres are ordered. Popularity is TMDb's default. Newest First uses release / first-air date so page 1 is the most recent titles in the window.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=tmdb.premieres_sort)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(30)</visible>
                           <property name="setting_label">Watched (Still Airing) TV Shows Location</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.tv_progress_location_name)]</property>
@@ -1592,7 +1600,7 @@
                           <property name="setting_label">Provider</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.watched_indicators_name)]</property>
-                          <property name="setting_description">Watched ticks, resume bars, Next Episodes, and In Progress lists. Choose MDBList, PunchPlay, Red Light, Simkl, or Trakt. Authorise a service below to use it. Red Light stores that data on this device. WeTrakr is separate (scrobble only) and is not a watched provider.</property>
+                          <property name="setting_description">Watched ticks, resume bars, Next Episodes, and In Progress lists. Choose MDBList, PunchPlay, Red Light, Simkl, or Trakt. Authorise a service below to use it. Red Light stores that data on this device. Playback marks watched at 80% for Trakt or Simkl, 90% for Red Light, MDBList, or PunchPlay. WeTrakr is separate (scrobble only) and is not a watched provider.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=watched_indicators)</onclick>
                       </item>
         <!-- MDBList -->
@@ -2007,7 +2015,7 @@
                           <property name="setting_label">    - Scrobble at % Watched</property>
                           <property name="setting_type">numeric</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.wetrakr.scrobble_threshold)]</property>
-                          <property name="setting_description">Mark the title watched on WeTrakr when playback reaches this percent (default 90, same as Red Light's watched mark). Red Light ticks still follow Watched Status Provider.</property>
+                          <property name="setting_description">Mark the title watched on WeTrakr when playback reaches this percent (default 90). Red Light ticks still follow Watched Status Provider (80% for Trakt/Simkl, 90% otherwise) and this slider does not change them.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_numeric&amp;setting_id=wetrakr.scrobble_threshold)</onclick>
                       </item>
                       <item>

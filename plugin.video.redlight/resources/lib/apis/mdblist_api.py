@@ -444,8 +444,8 @@ def mdblist_poll_device(device_data):
 	copy2clip(auth_url)
 	short_url = make_tinyurl(auth_url)
 	p_dialog_insert = '[CR]OR visit [B]%s[/B]' % short_url if short_url else ''
-	verify_display = (device_data.get('verification_uri') or device_data.get('verification_url') or 'mdblist.com/oauth/device').replace('https://', '')
-	content = ('Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B][CR]Link copied to clipboard%s[CR][CR]'
+	verify_display = (device_data.get('verification_uri') or device_data.get('verification_url') or 'mdblist.com/oauth/device').replace('https://', '').replace('http://', '')
+	content = ('Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B]%s[CR][CR]'
 		'Waiting for authorisation...' % (user_code, verify_display, p_dialog_insert))
 	progress = kodi_utils.progress_dialog('MDBList Authorise', qr_code)
 	progress.update(content, 0)

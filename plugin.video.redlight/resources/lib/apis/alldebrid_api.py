@@ -31,10 +31,10 @@ class AllDebridAPI:
 		qr_code = make_qrcode(auth_url) or ''
 		short_url = make_tinyurl(auth_url)
 		copy2clip(auth_url)
-		if short_url: p_dialog_insert = '[CR]Full link copied to clipboard[CR]OR visit: [B]%s[/B][CR]OR Enter this Code: [B]%s[/B]' % (short_url, user_code)
-		else: p_dialog_insert = '[CR]Full link copied to clipboard[CR]OR Enter this Code: [B]%s[/B]' % user_code
+		if short_url: p_dialog_insert = '[CR]OR visit [B]%s[/B][CR]OR Enter this Code: [B]%s[/B]' % (short_url, user_code)
+		else: p_dialog_insert = '[CR]OR Enter this Code: [B]%s[/B]' % user_code
 		sleep_interval = 5
-		content = 'Please Scan the QR Code%s[CR]' % p_dialog_insert
+		content = 'Scan the [B]QR Code[/B]%s' % p_dialog_insert
 		progressDialog = progress_dialog('All Debrid Authorise', qr_code)
 		progressDialog.update(content, 0)
 		start, time_passed = time.time(), 0

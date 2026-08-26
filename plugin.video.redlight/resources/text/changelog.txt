@@ -1,4 +1,5 @@
 [COLOR red][B]Version 2.3.6[/B][/COLOR]
+- [B]Premieres / Latest Releases[/B]: [B]Premieres & Latest Releases Sort[/B] (Content > General) can order Movies Premieres, Movies Latest Releases, TV Premieres, and Anime Premieres by newest release / first-air date instead of TMDb popularity.
 - [B]Trakt Public Lists[/B]: [B]Search User Lists[/B] accepts a numeric list ID, a username (that user's public lists), a [I]trakt.tv/users/...[/I] or [I].../lists/...[/I] URL, or [I]trakt.tv/lists/{id}[/I] (official lists included on ID/URL lookup). Name search is unchanged.
 - [B]Trakt Official lists[/B]: Like / Unlike now uses the numeric list id (same [I]/lists/{id}/like[/I] path as user lists). Search User Lists (ID/URL), Trending / Popular, In Trakt Lists, Extras, and Unlike on Liked Lists.
 - [B]Trakt Like / Unlike[/B]: only when signed in. Context menu shows [B]Like List[/B] or [B]Unlike List[/B] (not both). Public catalogues still browse without a login.
@@ -6,11 +7,19 @@
 - [B]MDBList[/B]: [B]Search MDBLists[/B] (needs an MDBList account). Title search, username (that user's public lists), numeric ID, [I]user/slug[/I], or [I]mdblist.com/lists/...[/I] URL. Dynamic lists open the same as My Lists (magenta in search results).
 - [B]MDBList contents[/B]: titles with IMDb (or TVDb) but no TMDb are no longer dropped — same TMDb-then-IMDb lookup as Trakt lists. Helps dynamic and public lists.
 - [B]PunchPlay[/B]: [B]Search PunchPlay Lists[/B] opens a list by numeric ID or [I]punchplay.tv/lists/{id}[/I] (signed in). No name search — PunchPlay has no public list search API. Private lists stay hidden. Dynamic lists magenta.
+- [B]PunchPlay[/B]: drop [B]Add to Watched[/B] and [B]My Lists → PunchPlay → Watched[/B]. PunchPlay has no Watched shelf ([B]Mark as watched[/B] is history). Use [B]Mark as Watched[/B] (and TV Shows → Watched when PunchPlay is the provider).
+- [B]PunchPlay[/B]: Mark Show as Watched writes episode history (same season POSTs as Mark Season) so Force Sync no longer brings the show back unwatched. History sync uses one pull; a 429 / failed page leaves local watched unchanged and is not reported as Sync OK.
+- [B]PunchPlay Manager[/B]: [B]Add to Collection[/B] / [B]Remove from Collection[/B] like Planning and Favourites. Remove works from My Lists → PunchPlay → Collection.
+- [B]Watched[/B]: playback writes the local tick at 80% when Watched Status Provider is Trakt or Simkl, 90% for Red Light, MDBList, or PunchPlay (matching the providers). WeTrakr scrobble % is unchanged.
+- [B]Personal Lists Manager[/B]: [B]Add To Personal List[/B] / [B]Remove From Personal List[/B] only for lists the title is (or is not) on. [B]Add To NEW[/B] is unchanged.
 - [B]List folders[/B]: plot is the description plus [I]N likes[/I] when Trakt/MDBList sent a count (row already has user and item count). No description: [I]user · N items · N likes[/I]. Long descriptions are clipped — most skins do not scroll folder plots.
 - [B]Shortcut Folders[/B]: Cancel on the name or Choose Icon step aborts Add to Shortcut Folder (and Add Content) instead of continuing the rest of the wizard. You stay on the list you were browsing.
 - [B]My Lists menus[/B]: Calendar then Search on MDBList, PunchPlay, Trakt, and Simkl (catalogues first). Username / My / Liked list folders sort A–Z. Popular, Trending, and title search stay ranked by relevance.
 - [B]Tips[/B]: [B]Meta List Search[/B] covers each My Lists search (title, username, ID / URL), magenta dynamic rows, and Trakt Official vs a user's public lists.
-- [B]Extras[/B]: drop the Plot heading above the synopsis.
+- [B]Authorise[/B]: QR dialogs no longer claim the link was copied to the clipboard (that only works on some desktops). Pin, QR, and short URL where the service has them are unchanged. Debrid still uses OR Enter code when the QR includes the pin, AND Enter code when the site needs it typed.
+- [B]EasyNews / NZB[/B]: with title filter on, episode files that use a bare or absolute number (`e164`, `Show - 001`) are kept when they match the show or an alias and there is no conflicting Sxx. Search is still title + SxxExx.
+- [B]Extras[/B]: Cast tiles show actor name and character under the photo. A long name or role marquees on unfocused tiles; the focused person stays still because [I]Name as Role[/I] is already in the Cast heading. Recommended / Related are unchanged.
+- [B]Extras[/B]: a long Plot autoscrolls after a short pause (same timing as collection overview). OK / Enter on the plot still opens the full text viewer.
 
 [COLOR red][B]Version 2.3.5[/B][/COLOR]
 - [B]Icons[/B]: online menu media (icons, flags, networks, themes) now loads from [I]repo.redwizard.xyz[/I] instead of GitHub. Existing shortcut folders that still point at the old GitHub URLs are remapped. Change Icon lists names from [I]icons.json[/I] on that host.

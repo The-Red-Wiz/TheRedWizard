@@ -12,7 +12,7 @@ from caches.settings_cache import get_setting, set_setting
 from caches import punchplay_cache as pp_cache
 from modules import kodi_utils, settings
 from modules.http_defaults import META_API_TIMEOUT
-from modules.utils import copy2clip, make_qrcode
+from modules.utils import copy2clip, make_qrcode, make_tinyurl
 
 BASE_URL = 'https://punchplay.tv'
 API_PREFIX = '/api/platform/v1'
@@ -284,13 +284,26 @@ def _library_items(payload):
 def _api_ok(payload):
 	return isinstance(payload, dict) and not payload.get('error')
 
+def _punchplay_payload_failed(data):
+	"""True when a PunchPlay response is an error/rate-limit, not an empty success."""
+	if data is None: return True
+	if data is True: return False
+	if not isinstance(data, dict): return True
+	if data.get('error'): return True
+	msg = str(data.get('message') or '').lower()
+	return 'too many' in msg or 'rate limit' in msg
+
 def _paginate_history(limit=100, max_pages=50):
+	"""Newest-first watch history. None = pull failed (do not replace local watched)."""
 	items, cursor, pages = [], None, 0
 	while pages < max_pages:
 		pages += 1
 		query = {'limit': limit}
 		if cursor: query['cursor'] = cursor
-		data = call_punchplay('/me/history', method='get', query=query) or {}
+		data = call_punchplay('/me/history', method='get', query=query)
+		if _punchplay_payload_failed(data):
+			kodi_utils.logger('PunchPlay', 'history pull aborted; local watched left unchanged')
+			return None
 		batch = _library_items(data)
 		if not batch: break
 		items.extend(batch)
@@ -314,13 +327,38 @@ def _paginate_interaction_library(path, max_pages=50):
 
 _PP_WATCH_STATUS_CACHE_KEY = 'punchplay_watch_status_raw'
 _PP_FAVOURITES_CACHE_KEY = 'punchplay_favourites_raw'
+_PP_COLLECTION_CACHE_KEY = 'punchplay_collection_raw'
 
 def clear_punchplay_list_caches():
 	try:
 		pp_cache.punchplay_cache.delete(_PP_WATCH_STATUS_CACHE_KEY)
 		pp_cache.punchplay_cache.delete(_PP_FAVOURITES_CACHE_KEY)
+		pp_cache.punchplay_cache.delete(_PP_COLLECTION_CACHE_KEY)
 		pp_cache.punchplay_cache.delete('dropped_items')
 	except: pass
+
+def _paginate_collection(max_pages=50):
+	items, cursor, pages = [], None, 0
+	while pages < max_pages:
+		pages += 1
+		query = {'limit': 200}
+		if cursor: query['cursor'] = cursor
+		data = call_punchplay('/me/collection', method='get', query=query) or {}
+		batch = _library_items(data)
+		if not batch: break
+		items.extend(batch)
+		cursor = data.get('nextCursor') if isinstance(data, dict) else None
+		if not cursor: break
+	return items
+
+def _punchplay_collection_items(force=False):
+	if not force:
+		cached = pp_cache.punchplay_cache.get(_PP_COLLECTION_CACHE_KEY)
+		if cached is not None: return cached
+	items = _paginate_collection()
+	try: pp_cache.punchplay_cache.set(_PP_COLLECTION_CACHE_KEY, items)
+	except: pass
+	return items
 
 def _punchplay_watch_status_items(force=False):
 	if not force:
@@ -416,10 +454,11 @@ def punchplay_authenticate(dummy=''):
 	qr_code = make_qrcode(auth_url) or icon
 	try: copy2clip(auth_url)
 	except: pass
+	short_url = make_tinyurl(auth_url)
+	p_dialog_insert = '[CR]OR visit [B]%s[/B]' % short_url if short_url else ''
 	content = (
-		'Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B][CR]'
-		'Link copied to clipboard[CR][CR]Waiting for authorisation...'
-		% (user_code, verification_url.replace('https://', '').replace('http://', '')))
+		'Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B]%s[CR][CR]Waiting for authorisation...'
+		% (user_code, verification_url.replace('https://', '').replace('http://', ''), p_dialog_insert))
 	progress = kodi_utils.progress_dialog('PunchPlay Authorise', qr_code)
 	progress.update(content, 0)
 	expires = time.time() + expires_in
@@ -567,7 +606,7 @@ def punchplay_collection(media_kind, page_no=None):
 	want = _normalize_media_kind(media_kind)
 	# OpenAPI: type is optional. Add-to-collection kind is only movie|show (no anime),
 	# so anime often lands as type=show. Fetch all, then classify client-side.
-	raw = list(_library_items(call_punchplay('/me/collection', method='get')))
+	raw = list(_punchplay_collection_items())
 	if not raw:
 		qtypes = ('movie',) if want == 'movie' else (('anime', 'show') if want == 'anime' else ('show',))
 		seen_raw = set()
@@ -683,7 +722,6 @@ def punchplay_search_my_lists(query):
 		(STATUS_PLANNING, 'Planning'),
 		(STATUS_WATCHING, 'Watching'),
 		(STATUS_ON_HOLD, 'On Hold'),
-		(STATUS_WATCHED, 'Watched'),
 		(STATUS_DROPPED, 'Dropped'),
 	)
 	for status, label in shelves:
@@ -834,6 +872,43 @@ def _season_episode_inputs(tmdb_id, season, episode_numbers=None, watched_at=Non
 	except Exception:
 		return []
 
+def _log_season_watch(kind, tid, season, show_title, show_year, watched_at, ep_rows):
+	payload = {
+		'episodes': ep_rows,
+		'title': show_title,
+		'year': show_year,
+		'watchedAt': watched_at,
+	}
+	result = call_punchplay(
+		'/title/%s/%s/season/%s/watch' % (kind, tid, int(season)), method='post', data=payload)
+	if not _punchplay_payload_failed(result): return result
+	time.sleep(1.5)
+	return call_punchplay(
+		'/title/%s/%s/season/%s/watch' % (kind, tid, int(season)), method='post', data=payload)
+
+def _log_show_watched(kind, tid, show_title, show_year, watched_at):
+	"""POST each regular season into PunchPlay history (same path as Mark Season)."""
+	try:
+		from modules import metadata, settings
+		from modules.utils import get_datetime
+		meta = metadata.tvshow_meta('tmdb_id', tid, settings.tmdb_api_key(), settings.mpaa_region(), get_datetime())
+	except Exception:
+		meta = None
+	if not meta: return False
+	posted, failed = 0, False
+	for item in meta.get('season_data') or []:
+		try: season_number = int(item.get('season_number'))
+		except Exception: continue
+		if season_number < 1: continue
+		ep_rows = _season_episode_inputs(tid, season_number, watched_at=watched_at)
+		if not ep_rows: continue
+		result = _log_season_watch(kind, tid, season_number, show_title, show_year, watched_at, ep_rows)
+		if _punchplay_payload_failed(result) or (isinstance(result, dict) and result.get('error')):
+			failed = True
+			continue
+		posted += 1
+	return posted > 0 and not failed
+
 def punchplay_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season=None, episode=None, title=None, year=None):
 	if not punchplay_user_active(): return False
 	kind = _title_kind(media_type)
@@ -866,18 +941,10 @@ def punchplay_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season
 		elif media_type == 'season' and season is not None:
 			ep_rows = _season_episode_inputs(tid, season, watched_at=watched_at)
 			if not ep_rows: return False
-			result = call_punchplay(
-				'/title/%s/%s/season/%s/watch' % (kind, tid, int(season)),
-				method='post',
-				data={
-					'episodes': ep_rows,
-					'title': show_title,
-					'year': show_year,
-					'watchedAt': watched_at,
-				})
+			result = _log_season_watch(kind, tid, season, show_title, show_year, watched_at, ep_rows)
 		else:
-			result = punchplay_interact(media_type, tid, {'showStatus': STATUS_WATCHED})
-		ok = bool(result) and not (isinstance(result, dict) and result.get('error'))
+			result = True if _log_show_watched(kind, tid, show_title, show_year, watched_at) else None
+		ok = not _punchplay_payload_failed(result)
 	else:
 		result = None
 		if media_type == 'movie':
@@ -1014,6 +1081,16 @@ def _item_is_favourite(media_type, tmdb_id, entries=None):
 		return True
 	return False
 
+def _collection_entry(media_type, tmdb_id, entries=None):
+	kind = 'movie' if media_type == 'movie' else 'show'
+	for entry in (entries if entries is not None else _punchplay_collection_items()):
+		if str(entry.get('tmdbId') or entry.get('sourceId') or '') != str(tmdb_id): continue
+		entry_kind = (entry.get('kind') or entry.get('type') or '').lower()
+		if kind == 'movie' and entry_kind not in ('movie', 'movies', ''): continue
+		if kind == 'show' and entry_kind in ('movie', 'movies'): continue
+		return entry
+	return None
+
 def punchplay_manager_choice(params):
 	if not punchplay_user_active(): return kodi_utils.notification('No Active PunchPlay Account', 3500)
 	media_type = params.get('media_type') or params.get('content') or 'movie'
@@ -1023,14 +1100,14 @@ def punchplay_manager_choice(params):
 	title = params.get('title') or ''
 	status_map = [
 		(STATUS_PLANNING, 'Add to [B]Planning[/B]', 'Remove from [B]Planning[/B]'),
-		(STATUS_WATCHED, 'Add to [B]Watched[/B]', 'Remove from [B]Watched[/B]'),
 		(STATUS_DROPPED, 'Add to [B]Dropped[/B]', 'Remove from [B]Dropped[/B]'),
 	]
 	if media_type != 'movie':
 		status_map.insert(1, (STATUS_WATCHING, 'Add to [B]Watching[/B]', 'Remove from [B]Watching[/B]'))
-		status_map.insert(3, (STATUS_ON_HOLD, 'Add to [B]On Hold[/B]', 'Remove from [B]On Hold[/B]'))
+		status_map.insert(2, (STATUS_ON_HOLD, 'Add to [B]On Hold[/B]', 'Remove from [B]On Hold[/B]'))
 	status_entries = _punchplay_watch_status_items()
 	favourite_entries = _punchplay_favourites_items()
+	collection_entries = _punchplay_collection_items()
 	choices = []
 	for status, add_label, remove_label in status_map:
 		if _item_has_status(list_media, status, tmdb_id, status_entries):
@@ -1042,7 +1119,10 @@ def punchplay_manager_choice(params):
 	else:
 		choices.append(('Add to [B]Favourites[/B]', 'add_favourite'))
 	from indexers.dialogs import _manager_mark_watched_choices
-	choices.append(('Add to [B]Collection[/B]', 'add_library'))
+	if _collection_entry(list_media, tmdb_id, collection_entries):
+		choices.append(('Remove from [B]Collection[/B]', 'remove_library'))
+	else:
+		choices.append(('Add to [B]Collection[/B]', 'add_library'))
 	choices.extend(_manager_mark_watched_choices(params))
 	choices.extend([
 		('Reset [B]Scrobble[/B]', 'reset_scrobble'),
@@ -1088,12 +1168,27 @@ def punchplay_manager_choice(params):
 		ok = call_punchplay('/collection', method='post', data={
 			'kind': kind, 'sourceId': int(tmdb_id), 'title': title or str(tmdb_id), 'format': 'digital'
 		})
-		return kodi_utils.notification('Success' if ok and not (isinstance(ok, dict) and ok.get('error')) else 'Error', 3000)
+		ok = bool(ok) and not _punchplay_payload_failed(ok)
+		if ok:
+			clear_punchplay_list_caches()
+			kodi_utils.kodi_refresh()
+		return kodi_utils.notification('Success' if ok else 'Error', 3000)
+	if choice == 'remove_library':
+		entry = _collection_entry(list_media, tmdb_id, collection_entries)
+		cid = entry.get('id') if entry else None
+		if not cid:
+			return kodi_utils.notification('Error', 3000)
+		ok = call_punchplay('/collection/%s' % cid, method='delete')
+		ok = not _punchplay_payload_failed(ok)
+		if ok:
+			clear_punchplay_list_caches()
+			kodi_utils.kodi_refresh()
+		return kodi_utils.notification('Success' if ok else 'Error', 3000)
 	if choice.startswith('remove_'):
 		status = choice.replace('remove_', '')
 		ok = punchplay_interact(list_media, tmdb_id, {'showStatus': None, 'wantToWatch': False} if status == STATUS_PLANNING else {'showStatus': None})
 		return kodi_utils.notification('Success' if ok else 'Error', 3000)
-	if choice in (STATUS_PLANNING, STATUS_WATCHING, STATUS_ON_HOLD, STATUS_DROPPED, STATUS_WATCHED):
+	if choice in (STATUS_PLANNING, STATUS_WATCHING, STATUS_ON_HOLD, STATUS_DROPPED):
 		payload = {'showStatus': choice}
 		if choice == STATUS_PLANNING: payload['wantToWatch'] = True
 		ok = punchplay_interact(list_media, tmdb_id, payload)
@@ -1101,26 +1196,32 @@ def punchplay_manager_choice(params):
 
 # ---------- Sync ----------
 
-def punchplay_indicators_movies():
+def punchplay_indicators_movies(history=None):
+	if history is None:
+		history = _paginate_history()
+		if history is None: return False
 	insert_list, seen = [], set()
-	for item in _paginate_history():
+	for item in history:
 		if item.get('type') != 'movie': continue
 		tmdb_id = item.get('tmdbId') or item.get('tmdb_id')
 		if not tmdb_id or tmdb_id in seen: continue
 		seen.add(tmdb_id)
 		watched_at = item.get('watchedAt') or time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime())
 		insert_list.append(('movie', str(tmdb_id), '', '', watched_at, item.get('title') or ''))
-	# Also treat WATCHED status movies as watched
 	for item in punchplay_completed('movies'):
 		tmdb_id = (item.get('media_ids') or {}).get('tmdb')
 		if not tmdb_id or tmdb_id in seen: continue
 		seen.add(tmdb_id)
 		insert_list.append(('movie', str(tmdb_id), '', '', item.get('collected_at') or '', item.get('title') or ''))
 	pp_cache.punchplay_watched_cache.set_bulk_movie_watched(insert_list)
+	return True
 
-def punchplay_indicators_tv():
+def punchplay_indicators_tv(history=None):
+	if history is None:
+		history = _paginate_history()
+		if history is None: return False
 	insert_list, seen = [], set()
-	for item in _paginate_history():
+	for item in history:
 		if item.get('type') != 'episode': continue
 		show_id = item.get('showTmdbId') or item.get('tmdbId')
 		season, episode = item.get('season'), item.get('episode')
@@ -1131,6 +1232,14 @@ def punchplay_indicators_tv():
 		watched_at = item.get('watchedAt') or time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime())
 		insert_list.append(('episode', str(show_id), int(season), int(episode), watched_at, item.get('title') or ''))
 	pp_cache.punchplay_watched_cache.set_bulk_tvshow_watched(insert_list)
+	return True
+
+def punchplay_refresh_watched_indicators():
+	history = _paginate_history()
+	if history is None: return False
+	punchplay_indicators_movies(history)
+	punchplay_indicators_tv(history)
+	return True
 
 def punchplay_sync_playback():
 	data = call_punchplay('/playback/in-progress', method='get') or {}
@@ -1266,8 +1375,8 @@ def punchplay_sync_activities(params=None, force_update=False):
 			# Progress-only tip after stop/seek — do not rebuild watched history.
 			punchplay_sync_playback()
 		else:
-			punchplay_indicators_movies()
-			punchplay_indicators_tv()
+			if not punchplay_refresh_watched_indicators():
+				return _done('failed')
 			punchplay_sync_playback()
 			clear_punchplay_list_caches()
 			pp_cache.punchplay_cache.delete('watchlist_list_id')

@@ -416,7 +416,7 @@ class RedLightPlayer(xbmc.Player):
 							self.random_continual_triggered = True
 							self.run_random_continual()
 							break
-					elif self.current_point >= 90:
+					elif self.current_point >= self.watched_tick_percent:
 						if not self.media_marked: self.media_watched_marker()
 					if self.media_type == 'episode':
 						if self.autoplay_nextep or self.autoscrape_nextep:
@@ -726,7 +726,9 @@ class RedLightPlayer(xbmc.Player):
 					float(current_point), float(getattr(self, 'curr_time', 0) or 0), float(getattr(self, 'total_time', 0) or 0)))
 			except Exception:
 				pass
-			if current_point >= 90 or force_watched:
+			tick_at = getattr(self, 'watched_tick_percent', None)
+			if tick_at is None: tick_at = st.playback_watched_percent()
+			if current_point >= tick_at or force_watched:
 				self._trakt_scrobble_stop(100)
 				self._simkl_scrobble_stop(100)
 				self._punchplay_scrobble_stop(100)
@@ -1536,6 +1538,7 @@ class RedLightPlayer(xbmc.Player):
 			self.meta_get, self.playback_percent = self.meta.get, self.sources_object.playback_percent or 0.0
 			self.playing_filename = self.sources_object.playing_filename
 			self.media_marked, self.nextep_info_gathered, self.movie_stingers_run = False, False, False
+			self.watched_tick_percent = st.playback_watched_percent()
 			self.current_point = 0
 			self.subs_searched = False
 			self._subtitle_end_remaining_cached = '__unset__'

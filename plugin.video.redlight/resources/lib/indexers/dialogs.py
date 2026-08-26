@@ -194,14 +194,18 @@ def context_menu_order_choice(params):
 	return context_menu_order_choice(params)
 
 def personallists_manager_choice(params):
-	from indexers.personal_lists import get_all_personal_lists, make_new_personal_list, new_list_check
+	from indexers.personal_lists import get_all_personal_lists, make_new_personal_list, new_list_check, personal_lists_split_by_membership
 	icon = params.get('icon', None) or kodi_utils.get_icon('lists')
 	list_type = params['list_type']
 	all_lists = get_all_personal_lists(get_setting('redlight.personal_list.list_sort', '0'))
-	choices = []
+	in_lists, out_lists = [], []
 	if not all_lists: action = 'add_new'
 	else:
-		choices = [('Add To Personal List...', 'add'), ('Remove From Personal List...', 'remove'), ('Add To [B]NEW[/B] Personal List...', 'add_new')]
+		in_lists, out_lists = personal_lists_split_by_membership(all_lists, params['tmdb_id'])
+		choices = []
+		if out_lists: choices.append(('Add To Personal List...', 'add'))
+		if in_lists: choices.append(('Remove From Personal List...', 'remove'))
+		choices.append(('Add To [B]NEW[/B] Personal List...', 'add_new'))
 		list_items = [{'line1': item[0], 'icon': icon} for item in choices]
 		kwargs = {'items': json.dumps(list_items), 'heading': 'Personal Lists Manager'}
 		action = kodi_utils.select_dialog([i[1] for i in choices], **kwargs)
@@ -211,11 +215,12 @@ def personallists_manager_choice(params):
 		if not list_name: return kodi_utils.notification('Error Creating List', 3000)
 		action = 'add'
 	else:
+		picker = out_lists if action == 'add' else in_lists
 		new_template, normal_template = '[COLOR FF008EB2]%s [I](x%02d)[/I][/COLOR]', '%s [I](x%02d)[/I]'
-		choices = [((new_template if new_list_check(i['seen']) else normal_template) % (i['name'], i['total']), (i['name'], i['author'])) for i in all_lists]
+		choices = [((new_template if new_list_check(i['seen']) else normal_template) % (i['name'], i['total']), (i['name'], i['author'])) for i in picker]
 		list_items = [{'line1': i[0]} for i in choices]
 		kwargs = {'items': json.dumps(list_items), 'narrow_window': 'true'}
-		try:list_name, author = kodi_utils.select_dialog([i[1] for i in choices], **kwargs)
+		try: list_name, author = kodi_utils.select_dialog([i[1] for i in choices], **kwargs)
 		except: return
 	if action == 'add': new_contents = {'media_id': params['tmdb_id'], 'title': params['title'], 'type': list_type,
 										'release_date': params['premiered'], 'date_added': params['current_time']}

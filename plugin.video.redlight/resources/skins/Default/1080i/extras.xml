@@ -424,10 +424,9 @@
 
                 <control type="group">
                     <visible>String.IsEqual(Window.Property(plot_enabled),true)</visible>
-                    <height>760</height>
+                    <height>730</height>
                     <control type="group">
                         <control type="button" id="2050">
-                            <top>50</top>
                             <width>1180</width>
                             <height>390</height>
                             <onup>14</onup>
@@ -436,7 +435,7 @@
                             <texturenofocus colordiffuse="$INFO[Window(10000).Property(redlight.window_theme.extras)]" border="30">redlight_common/circle.png</texturenofocus>
                         </control>
                         <control type="textbox">
-                            <top>65</top>
+                            <top>15</top>
                             <left>15</left>
                             <width>1150</width>
                             <height>340</height>
@@ -445,11 +444,11 @@
                             <aligny>center</aligny>
                             <textcolor>FFCCCCCC</textcolor>
                             <label>$INFO[Window.Property(plot)]</label>
-                            <autoscroll>false</autoscroll>
+                            <autoscroll time="1500" delay="6000" repeat="3000">true</autoscroll>
                             <visible>!Control.HasFocus(2050)</visible>
                         </control>
                         <control type="textbox">
-                            <top>65</top>
+                            <top>15</top>
                             <left>15</left>
                             <width>1150</width>
                             <height>340</height>
@@ -500,10 +499,34 @@
 				                <control type="image">
 				                    <left>8</left>
 				                    <top>8</top>
-				                    <height max="344">auto</height>
+				                    <height max="268">auto</height>
 				                    <width max="220">auto</width>
 				                    <aspectratio>keep</aspectratio>
 				                    <texture diffuse="redlight_diffuse/poster-50.png" background="true">$INFO[ListItem.Property(thumbnail)]</texture>
+				                </control>
+				                <control type="label">
+				                    <left>8</left>
+				                    <top>282</top>
+				                    <width>220</width>
+				                    <height>22</height>
+				                    <font>font10</font> <!-- REDLIGHT_21 -->
+				                    <textcolor>FFCCCCCC</textcolor>
+				                    <align>center</align>
+				                    <aligny>center</aligny>
+				                    <scroll>true</scroll>
+				                    <label>$INFO[ListItem.Property(cast_name)]</label>
+				                </control>
+				                <control type="label">
+				                    <left>8</left>
+				                    <top>304</top>
+				                    <width>220</width>
+				                    <height>22</height>
+				                    <font>font10</font> <!-- REDLIGHT_21 -->
+				                    <textcolor>FF999999</textcolor>
+				                    <align>center</align>
+				                    <aligny>center</aligny>
+				                    <scroll>true</scroll>
+				                    <label>$INFO[ListItem.Property(cast_role)]</label>
 				                </control>
 				            </itemlayout>
 				            <focusedlayout height="360" width="236">
@@ -515,7 +538,7 @@
 				                    </animation>
 				                    <left>0</left>
 				                    <top>5</top>
-				                    <height>350</height>
+				                    <height>278</height>
 				                    <width>236</width>
 				                    <texture colordiffuse="FFCCCCCC">redlight_diffuse/poster-50.png</texture>
 				                    <visible>Control.HasFocus(2051) | Control.HasFocus(4051)</visible>
@@ -523,10 +546,34 @@
 				                <control type="image">
 				                    <left>8</left>
 				                    <top>8</top>
-				                    <height max="344">auto</height>
+				                    <height max="268">auto</height>
 				                    <width max="220">auto</width>
 				                    <aspectratio>keep</aspectratio>
 				                    <texture diffuse="redlight_diffuse/poster-50.png" background="true">$INFO[ListItem.Property(thumbnail)]</texture>
+				                </control>
+				                <control type="label">
+				                    <left>8</left>
+				                    <top>282</top>
+				                    <width>220</width>
+				                    <height>22</height>
+				                    <font>font10</font> <!-- REDLIGHT_21 -->
+				                    <textcolor>FFCCCCCC</textcolor>
+				                    <align>center</align>
+				                    <aligny>center</aligny>
+				                    <scroll>false</scroll>
+				                    <label>$INFO[ListItem.Property(cast_name)]</label>
+				                </control>
+				                <control type="label">
+				                    <left>8</left>
+				                    <top>304</top>
+				                    <width>220</width>
+				                    <height>22</height>
+				                    <font>font10</font> <!-- REDLIGHT_21 -->
+				                    <textcolor>FF999999</textcolor>
+				                    <align>center</align>
+				                    <aligny>center</aligny>
+				                    <scroll>false</scroll>
+				                    <label>$INFO[ListItem.Property(cast_role)]</label>
 				                </control>
 				            </focusedlayout>
 				        </control>
@@ -545,7 +592,7 @@
 				            <visible>String.IsEqual(Window.Property(enable_scrollbars),true) + [Control.HasFocus(2051) | Control.HasFocus(4051)]</visible>
 				        </control>
 				        <control type="image">
-				            <top>215</top>
+				            <top>140</top>
 				            <left>20</left>
 				            <width>25</width>
 				            <height>25</height>
@@ -553,7 +600,7 @@
 				            <visible>[Control.HasFocus(2051) | Control.HasFocus(4051)] + Container(2051).HasPrevious</visible>
 				        </control>
 				        <control type="image">
-				            <top>215</top>
+				            <top>140</top>
 				            <left>1135</left>
 				            <width>25</width>
 				            <height>25</height>

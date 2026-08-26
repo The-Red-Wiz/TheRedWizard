@@ -16,6 +16,13 @@ def no_api_key():
 	notification('Please set a valid TMDb API Key')
 	return []
 
+def _premieres_sort(media, movie_field='primary_release_date'):
+	"""Discover sort_by and cache-key suffix. Popularity keeps the existing cache key."""
+	from modules.settings import premieres_newest_first
+	if not premieres_newest_first(): return '', ''
+	if media == 'movie': return '&sort_by=%s.desc' % movie_field, '_newest'
+	return '&sort_by=first_air_date.desc', '_newest'
+
 def movie_details(tmdb_id, api_key):
 	try:
 		url = 'https://api.themoviedb.org/3/movie/%s?api_key=%s&language=en&append_to_response=external_ids,videos,credits,release_dates,alternative_titles,translations,' \
@@ -218,18 +225,20 @@ def tmdb_movies_latest_releases(page_no):
 	api_key = tmdb_api_key()
 	if api_key in (None, 'empty_setting', ''): return no_api_key()
 	current_date, previous_date = get_dates(31, reverse=True)
-	string = 'tmdb_movies_latest_releases_%s' % page_no
+	sort_q, sort_key = _premieres_sort('movie', 'release_date')
+	string = 'tmdb_movies_latest_releases%s_%s' % (sort_key, page_no)
 	url = 'https://api.themoviedb.org/3/discover/movie?api_key=%s&language=en-US&region=US&with_original_language=en&release_date.gte=%s&release_date.lte=%s' \
-	'&with_release_type=4|5|6&page=%s' % (api_key, previous_date, current_date, page_no)
+	'&with_release_type=4|5|6%s&page=%s' % (api_key, previous_date, current_date, sort_q, page_no)
 	return lists_cache_object(get_data, string, url)
 
 def tmdb_movies_premieres(page_no):
 	api_key = tmdb_api_key()
 	if api_key in (None, 'empty_setting', ''): return no_api_key()
 	current_date, previous_date = get_dates(31, reverse=True)
-	string = 'tmdb_movies_premieres_%s' % page_no
+	sort_q, sort_key = _premieres_sort('movie')
+	string = 'tmdb_movies_premieres%s_%s' % (sort_key, page_no)
 	url = 'https://api.themoviedb.org/3/discover/movie?api_key=%s&language=en-US&region=US&with_original_language=en&release_date.gte=%s&release_date.lte=%s' \
-	'&with_release_type=1|3|2&page=%s' % (api_key, previous_date, current_date, page_no)
+	'&with_release_type=1|3|2%s&page=%s' % (api_key, previous_date, current_date, sort_q, page_no)
 	return lists_cache_object(get_data, string, url)
 
 def tmdb_movies_genres(genre_id, page_no):
@@ -340,9 +349,10 @@ def tmdb_tv_premieres(page_no):
 	api_key = tmdb_api_key()
 	if api_key in (None, 'empty_setting', ''): return no_api_key()
 	current_date, previous_date = get_dates(31, reverse=True)
-	string = 'tmdb_tv_premieres_%s' % page_no
+	sort_q, sort_key = _premieres_sort('tv')
+	string = 'tmdb_tv_premieres%s_%s' % (sort_key, page_no)
 	url = 'https://api.themoviedb.org/3/discover/tv?api_key=%s&language=en-US&region=US&with_original_language=en&include_null_first_air_dates=false' \
-	'&first_air_date.gte=%s&first_air_date.lte=%s&without_keywords=210024&page=%s' % (api_key, previous_date, current_date, page_no)
+	'&first_air_date.gte=%s&first_air_date.lte=%s&without_keywords=210024%s&page=%s' % (api_key, previous_date, current_date, sort_q, page_no)
 	return lists_cache_object(get_data, string, url)
 
 def tmdb_tv_airing_today(page_no):
@@ -462,9 +472,10 @@ def tmdb_anime_premieres(page_no):
 	api_key = tmdb_api_key()
 	if api_key in (None, 'empty_setting', ''): return no_api_key()
 	current_date, previous_date = get_dates(93, reverse=True)
-	string = 'tmdb_anime_premieres_%s' % page_no
-	url = 'https://api.themoviedb.org/3/discover/tv?api_key=%s&with_keywords=210024&include_null_first_air_dates=false&first_air_date.gte=%s&first_air_date.lte=%s&page=%s' \
-							% (api_key, previous_date, current_date, page_no)
+	sort_q, sort_key = _premieres_sort('tv')
+	string = 'tmdb_anime_premieres%s_%s' % (sort_key, page_no)
+	url = 'https://api.themoviedb.org/3/discover/tv?api_key=%s&with_keywords=210024&include_null_first_air_dates=false&first_air_date.gte=%s&first_air_date.lte=%s%s&page=%s' \
+							% (api_key, previous_date, current_date, sort_q, page_no)
 	return lists_cache_object(get_data, string, url)
 
 def tmdb_anime_upcoming(page_no):

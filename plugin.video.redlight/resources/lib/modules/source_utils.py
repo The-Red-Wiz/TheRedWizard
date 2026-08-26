@@ -409,6 +409,24 @@ def check_title(title, release_title, aliases, year, season, episode):
 		return True
 	except: return True
 
+def check_title_or_absolute(title, release_title, aliases, year, season, episode, absolute_episode=None):
+	"""Keep SxxExx hits via check_title, plus Sxx-less files whose bare/absolute episode matches.
+
+	Same title/alias rules as cloud scrapers (pack-style substring) on the absolute path.
+	"""
+	if check_title(title, release_title, aliases, year, season, episode):
+		return True
+	if not season or season == 'pack':
+		return False
+	try:
+		int(season)
+		int(episode)
+	except Exception:
+		return False
+	if not cloud_episode_matches(season, episode, release_title, absolute_episode):
+		return False
+	return check_title(title, release_title, aliases, year, 'pack', episode)
+
 def strip_non_ascii_and_unprintable(text):
 	"""Accent-fold first so Filter-by-Name keeps Pokémon→Pokemon / Léon→Leon."""
 	try:

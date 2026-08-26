@@ -371,7 +371,6 @@ class Navigator:
 			('punchplay_watching_menu', 'Watching', 'player'),
 			('punchplay_planning', 'Planning', 'lists'),
 			('punchplay_on_hold', 'On Hold', 'ontheair'),
-			('punchplay_watched', 'Watched', 'watched_1'),
 			('punchplay_dropped_menu', 'Dropped', 'lists'),
 		):
 			self._safe_add({'mode': 'navigator.%s' % mode}, label, icon)
@@ -401,7 +400,9 @@ class Navigator:
 		self._punchplay_media_folder('punchplay_hold', 'On Hold')
 
 	def punchplay_watched(self):
-		self._punchplay_media_folder('punchplay_completed', 'Watched')
+		# Old shortcuts / Random Lists still call this. PunchPlay has no Watched shelf.
+		k.notification('PunchPlay has no Watched list. Use Mark as Watched.', 3500)
+		return self.punchplay_lists()
 
 	def punchplay_dropped_menu(self):
 		self._punchplay_media_folder('punchplay_dropped', 'Dropped')

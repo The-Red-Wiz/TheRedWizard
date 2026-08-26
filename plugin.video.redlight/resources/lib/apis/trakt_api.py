@@ -203,9 +203,10 @@ def trakt_get_device_token(device_codes):
 		qr_code = make_qrcode(auth_url) or ''
 		short_url = make_tinyurl(auth_url)
 		copy2clip(auth_url)
-		if short_url: p_dialog_insert = '[CR]OR....[CR]visit [B]%s[/B]' % short_url
+		if short_url: p_dialog_insert = '[CR]OR visit [B]%s[/B]' % short_url
 		else: p_dialog_insert = ''
-		content = 'Enter [B]%s[/B] at [B]%s[/B][CR]OR....[CR]Scan the [B]QR Code[/B]%s' % (user_code, device_codes['verification_url'], p_dialog_insert)
+		verify_display = str(device_codes.get('verification_url') or 'trakt.tv/activate').replace('https://', '').replace('http://', '')
+		content = 'Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B]%s[CR][CR]Waiting for authorisation...' % (user_code, verify_display, p_dialog_insert)
 		progressDialog = kodi_utils.progress_dialog('Trakt Authorise', qr_code)
 		progressDialog.update(content, 0)
 		try:

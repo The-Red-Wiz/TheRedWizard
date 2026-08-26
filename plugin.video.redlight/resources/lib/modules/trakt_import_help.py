@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Open a service's official Trakt import web page (QR / copied link).
+"""Open a service's official Trakt import web page (QR / URL).
 
 Red Light does not run the import — users finish it on the service website.
 """
@@ -18,7 +18,7 @@ def open_official_trakt_import_page(service_name, url, icon=None, close_hint='to
 	hint = (' %s' % close_hint) if close_hint else ''
 	content = (
 		'Official %s Trakt import page:[CR][CR][B]%s[/B][CR][CR]'
-		'Scan the QR code with your phone, or paste the copied link into a browser.'
+		'Scan the QR code with your phone, or open the URL in a browser.'
 		% (service_name, url))
 	if extra_line:
 		content = '%s[CR][CR]%s' % (content, extra_line)
@@ -28,8 +28,7 @@ def open_official_trakt_import_page(service_name, url, icon=None, close_hint='to
 		fallback_hint = (
 			'When finished, use Force Sync under Meta Accounts > %s if available.' % service_name)
 	fallback = (
-		'Open this official %s page in a browser:[CR][CR][B]%s[/B][CR][CR]'
-		'The link has been copied where supported.[CR][CR]%s'
+		'Open this official %s page in a browser:[CR][CR][B]%s[/B][CR][CR]%s'
 		% (service_name, url, fallback_hint))
 	try:
 		progress = kodi_utils.progress_dialog(heading, qr_code)

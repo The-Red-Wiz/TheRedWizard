@@ -7,7 +7,7 @@ from threading import Thread
 from urllib.parse import urlencode, urlparse
 from caches.main_cache import cache_object
 from caches.settings_cache import get_setting, set_setting
-from modules.utils import copy2clip, make_qrcode
+from modules.utils import copy2clip, make_qrcode, make_tinyurl
 from modules.source_utils import supported_video_extensions, seas_ep_filter, extras
 from modules.kodi_utils import sleep, ok_dialog, progress_dialog, notification
 # logger = kodi_utils.logger
@@ -26,7 +26,9 @@ class PremiumizeAPI:
 		auth_url = response.get('verification_uri')
 		qr_code = make_qrcode(auth_url) or ''
 		copy2clip(auth_url)
-		content = 'Please Scan the QR Code[CR]Full link copied to clipboard[CR]OR visit: [B]%s[/B][CR]AND Enter this Code: [B]%s[/B]' % (auth_url, user_code)
+		short_url = make_tinyurl(auth_url)
+		visit = short_url or auth_url
+		content = 'Scan the [B]QR Code[/B][CR]OR visit [B]%s[/B][CR]AND Enter this Code: [B]%s[/B]' % (visit, user_code)
 		progressDialog = progress_dialog('Premiumize Authorise', qr_code)
 		progressDialog.update(content, 0)
 		device_code = response['device_code']

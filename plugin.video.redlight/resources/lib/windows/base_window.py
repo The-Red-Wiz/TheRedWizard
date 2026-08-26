@@ -350,7 +350,7 @@ class ExtrasUtils:
 								'template': self.single_text_template()},
 		2051: {'insert_values': {'heading_label': self.media_heading.format(label='Cast', label_lookup='cast'),
 								'highlight_label': self.media_highlight.format(label='Cast')},
-								'template': self.thumb_media_template()},
+								'template': self.cast_thumb_template()},
 		2052: {'insert_values': {'heading_label': self.media_heading.format(label='Recommended', label_lookup='recommended'),
 								'highlight_label': self.media_highlight.format(label='Recommended')},
 								'template': self.thumb_media_template()},
@@ -524,6 +524,158 @@ class ExtrasUtils:
 				</control>
 '''
 
+	def cast_thumb_template(self):
+		"""Cast tiles: name + role under the photo, clipped to the thumb width. Full text stays in the Cast heading on focus."""
+		return  '''\
+				<control type="group">
+				    <visible>Integer.IsGreater(Container({container_no}).NumItems,0)</visible>
+				    <height>760</height>
+				    <control type="group">
+				        <control type="label">
+				            <width min="30" max="1160">auto</width>
+				            <height>20</height>
+				            <font>font14</font> <!-- REDLIGHT_33 -->
+				            <textcolor>FFCCCCCC</textcolor>
+				            <label>{heading_label}</label>
+				            <visible>!Control.HasFocus({container_no})</visible>
+				        </control>
+				        <control type="label">
+				            <width min="30" max="1160">auto</width>
+				            <height>20</height>
+				            <font>font14</font> <!-- REDLIGHT_33 -->
+				            <textcolor>FFCCCCCC</textcolor>
+				            <label>{highlight_label}</label>
+				            <visible>Control.HasFocus({container_no})</visible>
+				        </control>
+				        <control type="fixedlist" id="{container_no}">
+				            <animation effect="slide" end="-472,0" time="0" condition="Integer.IsEqual(Container({container_no}).NumItems,1) | Integer.IsEqual(Container({container_no}).NumItems,2)">Conditional</animation>
+				            <animation effect="slide" end="-236,0" time="0" condition="Integer.IsEqual(Container({container_no}).NumItems,3) | Integer.IsEqual(Container({container_no}).NumItems,4)">Conditional</animation>
+				            <pagecontrol>{scrollbar_no}</pagecontrol>
+				            <top>60</top>
+				            <width>1180</width>
+				            <height>360</height>
+				            <onup>{p_container_no}</onup>
+				            <ondown>{scrollbar_no}</ondown>
+				            <orientation>horizontal</orientation>
+				            <scrolltime tween="sine">500</scrolltime>
+				            <focusposition>2</focusposition>
+				            <movement>2</movement>
+				            <itemlayout height="360" width="236">
+				                <control type="image">
+				                    <left>8</left>
+				                    <top>8</top>
+				                    <height max="268">auto</height>
+				                    <width max="220">auto</width>
+				                    <aspectratio>keep</aspectratio>
+				                    <texture diffuse="redlight_diffuse/poster-50.png" background="true">$INFO[ListItem.Property(thumbnail)]</texture>
+				                </control>
+				                <control type="label">
+				                    <left>8</left>
+				                    <top>282</top>
+				                    <width>220</width>
+				                    <height>22</height>
+				                    <font>font10</font> <!-- REDLIGHT_21 -->
+				                    <textcolor>FFCCCCCC</textcolor>
+				                    <align>center</align>
+				                    <aligny>center</aligny>
+				                    <scroll>true</scroll>
+				                    <label>$INFO[ListItem.Property(cast_name)]</label>
+				                </control>
+				                <control type="label">
+				                    <left>8</left>
+				                    <top>304</top>
+				                    <width>220</width>
+				                    <height>22</height>
+				                    <font>font10</font> <!-- REDLIGHT_21 -->
+				                    <textcolor>FF999999</textcolor>
+				                    <align>center</align>
+				                    <aligny>center</aligny>
+				                    <scroll>true</scroll>
+				                    <label>$INFO[ListItem.Property(cast_role)]</label>
+				                </control>
+				            </itemlayout>
+				            <focusedlayout height="360" width="236">
+				                <control type="image">
+				                    <animation effect="fade" start="100" end="60" condition="Control.HasFocus({scrollbar_no})">Conditional</animation>
+				                    <animation type="Focus" reversible="false">
+				                        <effect type="zoom" end="105" time="75" tween="sine" easing="out" center="auto" />
+				                        <effect type="zoom" end="95" time="225" tween="sine" delay="100" easing="out" center="auto" />
+				                    </animation>
+				                    <left>0</left>
+				                    <top>5</top>
+				                    <height>278</height>
+				                    <width>236</width>
+				                    <texture colordiffuse="FFCCCCCC">redlight_diffuse/poster-50.png</texture>
+				                    <visible>Control.HasFocus({container_no}) | Control.HasFocus({scrollbar_no})</visible>
+				                </control>
+				                <control type="image">
+				                    <left>8</left>
+				                    <top>8</top>
+				                    <height max="268">auto</height>
+				                    <width max="220">auto</width>
+				                    <aspectratio>keep</aspectratio>
+				                    <texture diffuse="redlight_diffuse/poster-50.png" background="true">$INFO[ListItem.Property(thumbnail)]</texture>
+				                </control>
+				                <control type="label">
+				                    <left>8</left>
+				                    <top>282</top>
+				                    <width>220</width>
+				                    <height>22</height>
+				                    <font>font10</font> <!-- REDLIGHT_21 -->
+				                    <textcolor>FFCCCCCC</textcolor>
+				                    <align>center</align>
+				                    <aligny>center</aligny>
+				                    <scroll>false</scroll>
+				                    <label>$INFO[ListItem.Property(cast_name)]</label>
+				                </control>
+				                <control type="label">
+				                    <left>8</left>
+				                    <top>304</top>
+				                    <width>220</width>
+				                    <height>22</height>
+				                    <font>font10</font> <!-- REDLIGHT_21 -->
+				                    <textcolor>FF999999</textcolor>
+				                    <align>center</align>
+				                    <aligny>center</aligny>
+				                    <scroll>false</scroll>
+				                    <label>$INFO[ListItem.Property(cast_role)]</label>
+				                </control>
+				            </focusedlayout>
+				        </control>
+				        <control type="scrollbar" id="{scrollbar_no}">
+				            <left>5</left>
+				            <top>432</top>
+				            <width>1170</width>
+				            <height>15</height>
+				            <onup>{container_no}</onup>
+				            <ondown>{n_container_no}</ondown>
+				            <texturesliderbackground colordiffuse="FF1F2020">redlight_common/white.png</texturesliderbackground>
+				            <texturesliderbar colordiffuse="FF555556">redlight_common/white.png</texturesliderbar>
+				            <texturesliderbarfocus colordiffuse="FFCCCCCC">redlight_common/white.png</texturesliderbarfocus>
+				            <showonepage>false</showonepage>
+				            <orientation>Horizontal</orientation>
+				            <visible>String.IsEqual(Window.Property(enable_scrollbars),true) + [Control.HasFocus({container_no}) | Control.HasFocus({scrollbar_no})]</visible>
+				        </control>
+				        <control type="image">
+				            <top>140</top>
+				            <left>20</left>
+				            <width>25</width>
+				            <height>25</height>
+				            <texture colordiffuse="CCCCCCCC" background="true">redlight_common/arrow_left.png</texture>
+				            <visible>[Control.HasFocus({container_no}) | Control.HasFocus({scrollbar_no})] + Container({container_no}).HasPrevious</visible>
+				        </control>
+				        <control type="image">
+				            <top>140</top>
+				            <left>1135</left>
+				            <width>25</width>
+				            <height>25</height>
+				            <texture colordiffuse="CCCCCCCC" background="true" flipx="true">redlight_common/arrow_left.png</texture>
+				            <visible>[Control.HasFocus({container_no}) | Control.HasFocus({scrollbar_no})] + Container({container_no}).HasNext</visible>
+				        </control>
+				    </control>
+				</control>
+'''
+
 	def text_media_template(self):
 		return '''\
 				<control type="group">
@@ -624,10 +776,9 @@ class ExtrasUtils:
 		return '''\
                 <control type="group">
                     <visible>String.IsEqual(Window.Property({active_lookup}),true)</visible>
-                    <height>760</height>
+                    <height>730</height>
                     <control type="group">
                         <control type="button" id="{container_no}">
-                            <top>50</top>
                             <width>1180</width>
                             <height>390</height>
                             <onup>{p_container_no}</onup>
@@ -636,7 +787,7 @@ class ExtrasUtils:
                             <texturenofocus colordiffuse="$INFO[Window(10000).Property(redlight.window_theme.extras)]" border="30">redlight_common/circle.png</texturenofocus>
                         </control>
                         <control type="textbox">
-                            <top>65</top>
+                            <top>15</top>
                             <left>15</left>
                             <width>1150</width>
                             <height>340</height>
@@ -645,11 +796,11 @@ class ExtrasUtils:
                             <aligny>center</aligny>
                             <textcolor>FFCCCCCC</textcolor>
                             <label>$INFO[Window.Property({content_lookup})]</label>
-                            <autoscroll>false</autoscroll>
+                            <autoscroll time="1500" delay="6000" repeat="3000">true</autoscroll>
                             <visible>!Control.HasFocus({container_no})</visible>
                         </control>
                         <control type="textbox">
-                            <top>65</top>
+                            <top>15</top>
                             <left>15</left>
                             <width>1150</width>
                             <height>340</height>

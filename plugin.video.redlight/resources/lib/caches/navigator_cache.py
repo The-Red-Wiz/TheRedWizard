@@ -332,9 +332,6 @@ class NavigatorCache:
 			{'mode': 'random.build_tvshow_list', 'action': 'punchplay_collection', 'is_anime_list': 'true', 'name': 'Random PunchPlay Anime Collection', 'iconImage': 'anime', 'random': 'true'},
 			{'mode': 'random.build_tvshow_list', 'action': 'punchplay_watching', 'name': 'Random PunchPlay TV Watching', 'iconImage': 'punchplay', 'random': 'true'},
 			{'mode': 'random.build_tvshow_list', 'action': 'punchplay_watching', 'is_anime_list': 'true', 'name': 'Random PunchPlay Anime Watching', 'iconImage': 'anime', 'random': 'true'},
-			{'mode': 'random.build_movie_list', 'action': 'punchplay_completed', 'name': 'Random PunchPlay Movie Watched', 'iconImage': 'punchplay', 'random': 'true'},
-			{'mode': 'random.build_tvshow_list', 'action': 'punchplay_completed', 'name': 'Random PunchPlay TV Watched', 'iconImage': 'punchplay', 'random': 'true'},
-			{'mode': 'random.build_tvshow_list', 'action': 'punchplay_completed', 'is_anime_list': 'true', 'name': 'Random PunchPlay Anime Watched', 'iconImage': 'anime', 'random': 'true'},
 				]
 
 def migrate_my_content_nav_mode():
