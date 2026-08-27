@@ -1,8 +1,9 @@
 
-[B]- 1.3.1 (2026-08-24)[/B] Settings tidy:
+[B]- 1.3.1 (2026-08-26)[/B] Settings tidy:
  * [B]Special Settings[/B]: [I]Optional: a4kSubtitles can be used instead[/I] is a section heading like Subtitles, not a disabled info line.
  * [B]Account Settings[/B]: MDBList, Simkl, TMDb, Trakt, Fanart.tv, then FilePursuit. Startup watched / library sync sits under each account (no extra Auto heading); usable while authorised, hidden when revoked. ResolveURL is Tools only — host resolvers, not debrid accounts.
  * [B]Optional Installs[/B]: dialog if the addon is not in any installed repository (a4kSubtitles is the usual miss; Simkl / Trakt / YouTube / MDBList scrobbler are in the official Kodi repo). Install / Open Settings from Special Settings returns to that tab.
+ * QR authorise dialogs (MDBList, Simkl, TMDb, Trakt) no longer say the link was copied to the clipboard. That only works on some desktops. Pin, QR, and short URL where present are unchanged.
 
 [B]- 1.3.0 (2026-08-24)[/B] My Trakt Movies lists + MDBList progress:
  * [B]My Stuff > Trakt > Movies[/B]: Library, Watchlist, Favorites, In Progress, History, and Watched paint again. The shared list render sat one indent too deep (only the last generic Trakt branch ran it) after MDBList handling was added — fetch still ran, then the folder closed empty. Same outer-scope paint as TV Shows. TMDb movie lists and Trakt person / playback routes use that shared paint too.

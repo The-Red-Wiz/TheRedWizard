@@ -375,8 +375,8 @@ def authSimkl(reopen_settings=False):
         short_url = auth_utils.make_tinyurl(auth_url)
         auth_utils.copy2clip(auth_url)
         insert = '[CR]OR visit [B]%s[/B]' % short_url if short_url else ''
-        content = ('Enter [B]%s[/B] at [B]simkl.com/pin[/B][CR]OR scan the [B]QR Code[/B][CR]'
-                   'Link copied to clipboard%s[CR][CR]Waiting for authorisation...' % (user_code, insert))
+        content = ('Enter [B]%s[/B] at [B]simkl.com/pin[/B][CR]OR scan the [B]QR Code[/B]%s[CR][CR]'
+                   'Waiting for authorisation...' % (user_code, insert))
         progress.update(content, qr_path=qr_code)
         token = None
         start = time.time()

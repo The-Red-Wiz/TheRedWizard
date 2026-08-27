@@ -27,11 +27,12 @@
 		<website>https://redwizard.xyz/</website> 
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/The-Red-Wizard</source>
-        <news>2026-08-24
+        <news>2026-08-26
 - Summary of v1.3.1 (see Tools > Changelog for the detail):
  * Special Settings a4kSubtitles heading
  * Account Settings: MDBList, Simkl, TMDb, Trakt, Fanart.tv, FilePursuit
- * Optional Installs warns when the addon is not in a repo</news>
+ * Optional Installs warns when the addon is not in a repo
+ * Authorise QR dialogs no longer claim the link was copied to the clipboard</news>
         <assets>
             <icon>resources/images/icon.png</icon>
             <fanart>resources/images/fanart.jpg</fanart>

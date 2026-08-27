@@ -332,9 +332,8 @@ def authMdblist(reopen_settings=False):
         insert = '[CR]OR visit [B]%s[/B]' % short_url if short_url else ''
         verify_display = (pin.get('verification_uri') or pin.get('verification_url')
                           or 'mdblist.com/oauth/device').replace('https://', '')
-        content = ('Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B][CR]'
-                   'Link copied to clipboard%s[CR][CR]Waiting for authorisation...'
-                   % (user_code, verify_display, insert))
+        content = ('Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B]%s[CR][CR]'
+                   'Waiting for authorisation...' % (user_code, verify_display, insert))
         progress.update(content, qr_path=qr_code)
         token_result = None
         start = time.time()

@@ -106,7 +106,7 @@ def authTMDb(reopen_settings=False):
         short_url = auth_utils.make_tinyurl(auth_url)
         auth_utils.copy2clip(auth_url)
         insert = '[CR]OR visit [B]%s[/B]' % short_url if short_url else ''
-        content = ('Scan the [B]QR Code[/B][CR]Link copied to clipboard%s[CR][CR]'
+        content = ('Scan the [B]QR Code[/B]%s[CR][CR]'
                    'Confirm access at themoviedb.org[CR][CR]Waiting for authorisation...' % insert)
         progress.update(content, qr_path=qr_code)
         expires_in = 180

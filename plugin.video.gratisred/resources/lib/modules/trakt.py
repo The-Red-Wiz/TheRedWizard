@@ -682,7 +682,7 @@ def authTrakt(reopen_settings=False):
         auth_utils.copy2clip(auth_url)
         insert = '[CR]OR visit [B]%s[/B]' % short_url if short_url else ''
         verify_display = (result.get('verification_url') or 'trakt.tv/activate').replace('https://', '')
-        content = ('Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B][CR]Link copied to clipboard%s[CR][CR]'
+        content = ('Enter [B]%s[/B] at [B]%s[/B][CR]OR scan the [B]QR Code[/B]%s[CR][CR]'
                    'Waiting for authorisation...' % (user_code, verify_display, insert))
         progress.update(content, qr_path=qr_code)
         token_result = None
