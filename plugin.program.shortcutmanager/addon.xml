@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.program.shortcutmanager" name="Shortcut Manager" version="1.1.1" provider-name="Bob">
+    <requires>
+        <import addon="script.module.pil" />
+        <import addon="script.module.six" />
+    </requires>
+    
+    <extension point="xbmc.python.pluginsource" library="main.py">
+        <provides>executable</provides>
+    </extension>
+    
+    <extension point="xbmc.service" library="service.py" />
+    
+    <extension point="kodi.context.item">
+        <menu id="kodi.core.main">
+            <item library="context_add.py">
+                <label>$ADDON[plugin.program.shortcutmanager 30003]</label>
+                <visible>String.IsEqual(Window(10000).Property(context.shortcutmanager),true)</visible>
+            </item>
+        </menu>
+    </extension>
+    
+    <extension point="xbmc.addon.metadata">
+        <reuselanguageinvoker>true</reuselanguageinvoker>
+        <summary lang="en_GB">Organize shortcuts to your favourite content</summary>
+        <description lang="en_GB">Create and organize Shortcuts (including nested Shortcut subfolders) to your favourite content for quick access.</description>
+	<summary lang="es_ES">Organiza accesos directos a tu contenido favorito</summary>
+	<description lang="es_ES">Crea y organiza accesos directos (incluyendo subcarpetas) a tu contenido favorito para un acceso rápido.</description>
+	<platform>all</platform>
+        <license>LGPL-3.0</license>
+        <news> - Creating a group now refreshes My Groups immediately
+ - Remove Group is on the group context menu (not Edit Group)
+ - Stop forcing a list view (no label sort methods, no default "files" content, programs-only)
+ - Directory listings are not cached, so new groups and shortcuts show up on refresh
+ - Wipe Add-on Data shows a success dialog when it finishes
+ - Tools includes the Settings actions (icon color, context menu, advanced editing, debug logging, backup / restore)
+ - Tools and Settings use the same backup folder
+
+1.1.0
+ - Fanart re-balanced with a wider left margin so it doesn't compete with the addon browser's overlaid title/description text
+ - Subfolders are now ordered entries within their parent group, alongside regular shortcuts, instead of always being listed separately before them
+ - Shortcuts and subfolders can now be freely reordered relative to each other (previously shortcuts and subfolders could only be reordered within their own separate lists)
+ - New subfolders are appended below existing items by default
+ - Removed the standalone "New Subfolder" menu entry (which also showed up inside home-screen widgets); creating a subfolder is now done via the context menu on any item, matching how everything else is managed
+ - Existing subfolders created by earlier versions are automatically migrated into the new ordering the first time their parent group is opened
+
+1.0.0
+ - First standalone release of Shortcut Manager, forked from AutoWidget
+ - New, independent add-on ID (plugin.program.shortcutmanager) so this installs cleanly with no pre-existing shortcuts
+ - Shortcuts-only: all Widget functionality and widget caching have been removed
+ - Added support for Shortcut subfolders (nested Shortcut Groups)
+ - New icon, fanart, banner, poster, and clearlogo artwork
+ - Restored a minimal background service solely to keep the "Add to Shortcut Manager Group" context menu setting working (no caching or refresh loop)
+ - Fixed a bug (present since the original AutoWidget) where saving a change while editing a Group's properties would lose track of the edit context on redisplay
+ - Removed remaining dead code (several functions with no callers) and fixed invalid unescaped XML in settings.xml
+ - Provider changed to Bob
+ - Icon now has a fully transparent background; fanart redesigned to match the icon and wordmark</news>
+        <assets>
+            <icon>resources/media/icon.png</icon>
+            <fanart>resources/media/fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category label="$ADDON[plugin.program.shortcutmanager 30000]">
+        <setting label="$ADDON[plugin.program.shortcutmanager 30103]" type="action" id="ui.color" default="white" action="RunPlugin(plugin://plugin.program.shortcutmanager/?mode=set_color)" option="close" />
+
+        <!-- Hidden Settings -->
+        <setting type="bool" id="context.warning" default="false" visible="false" />
+    </category>
+
+    <category label="$ADDON[plugin.program.shortcutmanager 30008]">
+        <!-- Shortcuts -->
+        <setting label="$ADDON[plugin.program.shortcutmanager 30002]" type="lsep" />
+        <setting label="$ADDON[plugin.program.shortcutmanager 30042]" type="action" action="RunPlugin(plugin://plugin.program.shortcutmanager/?mode=wipe)" option="close" />
+        <setting label="$ADDON[plugin.program.shortcutmanager 30100]" type="action" action="Skin.ToggleDebug" />
+        <setting label="$ADDON[plugin.program.shortcutmanager 30112]" type="bool" id="logging.debug" default="false" />
+        
+        <!-- Management -->
+        <setting label="$ADDON[plugin.program.shortcutmanager 30036]" type="lsep" />
+        <setting label="$ADDON[plugin.program.shortcutmanager 30004]" type="bool" id="context.shortcutmanager" default="true" />
+        <setting label="$ADDON[plugin.program.shortcutmanager 30037]" type="bool" id="context.advanced" default="false" />
+        
+        <!-- Backup/Restore -->
+        <setting label="$ADDON[plugin.program.shortcutmanager 30066]" type="lsep" />
+        <setting label="$ADDON[plugin.program.shortcutmanager 30067]" type="action" id="backup.location" action="RunPlugin(plugin://plugin.program.shortcutmanager/?mode=backup&amp;action=location)" default="special://profile/plugin.program.shortcutmanager/backups/" />
+        <setting label="$ADDON[plugin.program.shortcutmanager 30068]" type="action" action="RunPlugin(plugin://plugin.program.shortcutmanager/?mode=backup&amp;action=backup)" option="close" />
+        <setting label="$ADDON[plugin.program.shortcutmanager 30069]" type="action" action="RunPlugin(plugin://plugin.program.shortcutmanager/?mode=backup&amp;action=restore)" option="close" />
+    </category>
+</settings>
