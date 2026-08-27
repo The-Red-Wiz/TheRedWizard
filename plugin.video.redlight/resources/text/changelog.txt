@@ -1,5 +1,6 @@
 [COLOR red][B]Version 2.3.6[/B][/COLOR]
 - [B]Premieres / Latest Releases[/B]: [B]Premieres & Latest Releases Sort[/B] (Content > General) can order Movies Premieres, Movies Latest Releases, TV Premieres, and Anime Premieres by newest release / first-air date instead of TMDb popularity.
+- [B]Widgets[/B]: optional [B]Fill From Later Pages[/B] (under Hide Watched Items in Widgets). When Hide Watched is on, catalogue widgets (Trending, Latest Releases, Blockbusters, Oscar Winners, and similar) pull later pages so the row stays full. Random catalogue widgets oversample instead. Off by default.
 - [B]Trakt Public Lists[/B]: [B]Search User Lists[/B] accepts a numeric list ID, a username (that user's public lists), a [I]trakt.tv/users/...[/I] or [I].../lists/...[/I] URL, or [I]trakt.tv/lists/{id}[/I] (official lists included on ID/URL lookup). Name search is unchanged.
 - [B]Trakt Official lists[/B]: Like / Unlike now uses the numeric list id (same [I]/lists/{id}/like[/I] path as user lists). Search User Lists (ID/URL), Trending / Popular, In Trakt Lists, Extras, and Unlike on Liked Lists.
 - [B]Trakt Like / Unlike[/B]: only when signed in. Context menu shows [B]Like List[/B] or [B]Unlike List[/B] (not both). Public catalogues still browse without a login.
@@ -10,7 +11,7 @@
 - [B]PunchPlay[/B]: drop [B]Add to Watched[/B] and [B]My Lists → PunchPlay → Watched[/B]. PunchPlay has no Watched shelf ([B]Mark as watched[/B] is history). Use [B]Mark as Watched[/B] (and TV Shows → Watched when PunchPlay is the provider).
 - [B]PunchPlay[/B]: Mark Show as Watched writes episode history (same season POSTs as Mark Season) so Force Sync no longer brings the show back unwatched. History sync uses one pull; a 429 / failed page leaves local watched unchanged and is not reported as Sync OK.
 - [B]PunchPlay Manager[/B]: [B]Add to Collection[/B] / [B]Remove from Collection[/B] like Planning and Favourites. Remove works from My Lists → PunchPlay → Collection.
-- [B]Watched[/B]: playback writes the local tick at 80% when Watched Status Provider is Trakt or Simkl, 90% for Red Light, MDBList, or PunchPlay (matching the providers). WeTrakr scrobble % is unchanged.
+- [B]Watched[/B]: playback writes aligned with the providers: local tick at 80% when Watched Status Provider is Trakt or Simkl, 90% for MDBList or PunchPlay. Red Light remains 90%, WeTrakr scrobble % is unchanged.
 - [B]Personal Lists Manager[/B]: [B]Add To Personal List[/B] / [B]Remove From Personal List[/B] only for lists the title is (or is not) on. [B]Add To NEW[/B] is unchanged.
 - [B]List folders[/B]: plot is the description plus [I]N likes[/I] when Trakt/MDBList sent a count (row already has user and item count). No description: [I]user · N items · N likes[/I]. Long descriptions are clipped — most skins do not scroll folder plots.
 - [B]Shortcut Folders[/B]: Cancel on the name or Choose Icon step aborts Add to Shortcut Folder (and Add Content) instead of continuing the rest of the wizard. You stay on the list you were browsing.

@@ -48,6 +48,7 @@ class Movies:
 				from modules.most_watched import normalize_most_watched_action
 				var_module, import_function = 'modules.most_watched', normalize_most_watched_action(self.action)
 			else: var_module, import_function = 'apis.%s_api' % self.action.split('_')[0], self.action
+			function = None
 			try: function = manual_function_import(var_module, import_function)
 			except: pass
 			if page_no == 1 and not self.is_external and self.action != 'mdblist_user_list':
@@ -180,6 +181,7 @@ class Movies:
 			items = self.worker()
 			if self.action == 'mdblist_watchlist' and self.list and not items:
 				kodi_utils.logger('MDBList Watchlist', 'Failed to build list items from %s ids' % len(self.list))
+			items = self._fill_widget_unwatched(items, function, page_no)
 			kodi_utils.add_items(handle, items)
 			if self.total_pages and self.total_pages > 2 and settings.jump_to_enabled() and not self.is_external:
 				url_params = json.dumps({**self.new_page, **{'mode': 'build_movie_list', 'action': self.action, 'category_name': self.category_name}})
@@ -395,3 +397,95 @@ class Movies:
 			if self.is_external: self.paginate_start = limit
 		else: total_pages = 1
 		return data, total_pages
+
+	def _reset_worker_items(self):
+		self.items = []
+		self.append = self.items.append
+
+	def _list_id_key(self, _id):
+		if isinstance(_id, dict): return str(_id.get('tmdb') or _id.get('id') or '')
+		return str(_id)
+
+	def _movie_id_is_watched(self, _id):
+		tid = self._list_id_key(_id)
+		if not tid: return False
+		return bool(watched_status.get_watched_status_movie(getattr(self, 'watched_info', None) or {}, tid))
+
+	def _fill_widget_unwatched(self, items, function, page_no):
+		if not function or not settings.widget_hide_watched_fill(): return items
+		if not self.is_external or not self.widget_hide_watched: return items
+		if self.params_get('random', 'false') == 'true': return items
+		try:
+			if int(page_no) != 1: return items
+		except Exception:
+			return items
+		if items is None: items = []
+		target = settings.page_limit(True)
+		needed = target - len(items)
+		if needed <= 0: return items
+		seen = set(self._list_id_key(i) for i in (self.list or []) if self._list_id_key(i))
+		collected, extra, start_n = [], 0, len(items)
+		original_new_page = dict(self.new_page) if self.new_page else None
+		fill_page = original_new_page
+		while len(collected) < needed + 4 and extra < 8:
+			if not fill_page: break
+			try: next_page = int(fill_page.get('new_page'))
+			except Exception: break
+			ids, fill_page = self._fetch_paged_ids(function, next_page)
+			extra += 1
+			if not ids: break
+			for _id in ids:
+				key = self._list_id_key(_id)
+				if not key or key in seen: continue
+				seen.add(key)
+				if self._movie_id_is_watched(_id): continue
+				collected.append(_id)
+		if collected:
+			self.list = collected[:needed + 4]
+			self._reset_worker_items()
+			items.extend(self.worker() or [])
+		self.new_page = original_new_page
+		if len(items) > target: items = items[:target]
+		if extra: kodi_utils.logger('WidgetFill', '%s %s→%s pages=%s' % (self.action, start_n, len(items), extra))
+		return items
+
+	def _fetch_paged_ids(self, function, page_no):
+		try:
+			if self.action in self.main:
+				data = function(page_no)
+				ids = [i['id'] for i in data['results']]
+				new_page = {'new_page': str(data['page'] + 1)} if data['total_pages'] > page_no else None
+				return ids, new_page
+			if self.action in self.special:
+				key_id = self.params_get('key_id') or self.params_get('query')
+				if not key_id: return [], None
+				data = function(key_id, page_no)
+				ids = [i['id'] for i in data['results']]
+				new_page = {'new_page': str(data['page'] + 1), 'key_id': key_id} if data['total_pages'] > page_no else None
+				return ids, new_page
+			if self.action in self.most_watched:
+				from modules.most_watched import simkl_most_watched_has_next, most_watched_provider, normalize_most_watched_action
+				data = function(page_no) or []
+				try: ids = [i['movie']['ids'] for i in data]
+				except: ids = [i['ids'] for i in data]
+				new_page = None
+				if most_watched_provider() == 'simkl' and data and simkl_most_watched_has_next(normalize_most_watched_action(self.action), page_no):
+					new_page = {'new_page': str(page_no + 1)}
+				elif data: new_page = {'new_page': str(page_no + 1)}
+				return ids, new_page
+			if self.action in self.trakt_main:
+				data = function(page_no)
+				try: ids = [i['movie']['ids'] for i in data]
+				except: ids = [i['ids'] for i in data]
+				new_page = None
+				if data and self.action not in ('trakt_movies_top10_boxoffice', 'trakt_recommendations'):
+					new_page = {'new_page': str(page_no + 1)}
+				return ids, new_page
+			if self.action == 'tmdb_movies_discover':
+				url = self.params_get('url')
+				data = function(url, page_no)
+				ids = [i['id'] for i in data['results']]
+				new_page = {'url': url, 'new_page': str(data['page'] + 1)} if data['total_pages'] > page_no else None
+				return ids, new_page
+		except: pass
+		return [], None

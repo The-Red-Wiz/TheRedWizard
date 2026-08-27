@@ -1079,6 +1079,9 @@ def widget_hide_next_page():
 def widget_hide_watched():
 	return get_setting('redlight.widget_hide_watched', 'false') == 'true'
 
+def widget_hide_watched_fill():
+	return widget_hide_watched() and get_setting('redlight.widget_hide_watched_fill', 'false') == 'true'
+
 def calendar_sort_order():
 	return int(get_setting('redlight.trakt.calendar_sort_order', '0'))
 

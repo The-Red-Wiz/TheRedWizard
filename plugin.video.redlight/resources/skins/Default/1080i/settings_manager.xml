@@ -1308,8 +1308,17 @@
                           <property name="setting_label">Hide Watched Items in Widgets</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.widget_hide_watched)]</property>
-                          <property name="setting_description">Enable this and watched items will be hidden in Red Light widgets.</property>
+                          <property name="setting_description">Enable this and watched items will be hidden in Red Light widgets. Movies that are watched, and TV shows you have finished (watched count at least the aired episode count), are omitted. Watched / Recently Watched / In Progress widgets are unchanged.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=widget_hide_watched)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(30)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.widget_hide_watched),true)</visible>
+                          <property name="setting_label">    - Fill From Later Pages</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.widget_hide_watched_fill)]</property>
+                          <property name="setting_description">When Hide Watched removes titles, fetch later pages of that list (up to 8) so the widget stays full (widget page size). Catalogue lists only (Trending, Latest Releases, Popular, Blockbusters, Oscar Winners, and similar), including Random versions of those widgets. Off by default — extra pages add a little Home load time.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=widget_hide_watched_fill)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(30)</visible>

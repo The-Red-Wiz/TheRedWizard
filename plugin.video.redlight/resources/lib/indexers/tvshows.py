@@ -202,7 +202,7 @@ class TVShows:
 				if self.params_get('get_imdb'):
 					key_id = tvshow_meta('tmdb_id', key_id, self.tmdb_api_key, settings.mpaa_region(), get_datetime(), get_current_timestamp())['imdb_id']
 				self.list = imdb_more_like_this(key_id)
-			kodi_utils.add_items(handle, self.worker())
+			kodi_utils.add_items(handle, self._fill_widget_unwatched(self.worker(), function, page_no))
 			if self.total_pages and self.total_pages > 2 and settings.jump_to_enabled() and not self.is_external:
 				url_params = json.dumps({**self.new_page, **{'mode': 'build_tvshow_list', 'action': self.action, 'category_name': self.category_name}})
 				kodi_utils.add_dir(handle, {'mode': 'navigate_to_page_choice', 'current_page': page_no, 'total_pages': self.total_pages, 'url_params': url_params},
@@ -416,3 +416,96 @@ class TVShows:
 			if self.is_external: self.paginate_start = limit
 		else: total_pages = 1
 		return data, total_pages
+
+	def _reset_worker_items(self):
+		self.items = []
+		self.append = self.items.append
+
+	def _list_id_key(self, _id):
+		if isinstance(_id, dict): return str(_id.get('tmdb') or _id.get('id') or '')
+		return str(_id)
+
+	def _fill_widget_unwatched(self, items, function, page_no):
+		if not function or not settings.widget_hide_watched_fill(): return items
+		if not self.is_external or not self.widget_hide_watched: return items
+		if self.params_get('random', 'false') == 'true': return items
+		try:
+			if int(page_no) != 1: return items
+		except Exception:
+			return items
+		if items is None: items = []
+		target = settings.page_limit(True)
+		if len(items) >= target: return items
+		seen = set(self._list_id_key(i) for i in (self.list or []) if self._list_id_key(i))
+		extra, start_n = 0, len(items)
+		original_new_page = dict(self.new_page) if self.new_page else None
+		fill_page = original_new_page
+		while len(items) < target and extra < 8:
+			if not fill_page: break
+			try: next_page = int(fill_page.get('new_page'))
+			except Exception: break
+			ids, fill_page = self._fetch_paged_ids(function, next_page)
+			extra += 1
+			if not ids: break
+			fresh = []
+			for _id in ids:
+				key = self._list_id_key(_id)
+				if not key or key in seen: continue
+				seen.add(key)
+				fresh.append(_id)
+			if not fresh: continue
+			self.list = fresh
+			self._reset_worker_items()
+			items.extend(self.worker() or [])
+		self.new_page = original_new_page
+		if len(items) > target: items = items[:target]
+		if extra: kodi_utils.logger('WidgetFill', '%s %s→%s pages=%s' % (self.action, start_n, len(items), extra))
+		return items
+
+	def _fetch_paged_ids(self, function, page_no):
+		try:
+			if self.action in self.main:
+				data = function(page_no)
+				ids = [i['id'] for i in data['results']]
+				new_page = {'new_page': str(data['page'] + 1)} if data['total_pages'] > page_no else None
+				return ids, new_page
+			if self.action in self.special:
+				key_id = self.params_get('key_id') or self.params_get('query')
+				if not key_id: return [], None
+				data = function(key_id, page_no)
+				ids = [i['id'] for i in data['results']]
+				new_page = {'new_page': str(data['page'] + 1), 'key_id': key_id} if data['total_pages'] > page_no else None
+				return ids, new_page
+			if self.action in self.most_watched:
+				from modules.most_watched import simkl_most_watched_has_next, most_watched_provider, normalize_most_watched_action
+				data = function(page_no) or []
+				try: ids = [i['show']['ids'] for i in data]
+				except: ids = [i['ids'] for i in data]
+				new_page = None
+				if most_watched_provider() == 'simkl' and data and simkl_most_watched_has_next(normalize_most_watched_action(self.action), page_no):
+					new_page = {'new_page': str(page_no + 1)}
+				elif data: new_page = {'new_page': str(page_no + 1)}
+				return ids, new_page
+			if self.action in self.trakt_main:
+				data = function(page_no)
+				try: ids = [i['show']['ids'] for i in data]
+				except: ids = [i['ids'] for i in data]
+				new_page = None
+				if data and self.action != 'trakt_recommendations':
+					new_page = {'new_page': str(page_no + 1)}
+				return ids, new_page
+			if self.action in self.trakt_special:
+				key_id = self.params_get('key_id', None) or self.params_get('query')
+				if not key_id: return [], None
+				data = function(key_id, page_no)
+				ids = [i['show']['ids'] for i in data]
+				new_page = {'new_page': str(page_no + 1), 'key_id': key_id} if data else None
+				return ids, new_page
+			if self.action == 'tmdb_tv_discover':
+				url = self.params_get('url')
+				data = function(url, page_no)
+				ids = [i['id'] for i in data['results']]
+				new_page = {'url': url, 'new_page': str(data['page'] + 1)} if data['total_pages'] > page_no else None
+				return ids, new_page
+		except: pass
+		return [], None
