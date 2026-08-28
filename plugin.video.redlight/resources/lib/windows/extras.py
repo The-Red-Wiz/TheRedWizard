@@ -905,7 +905,7 @@ class Extras(BaseDialog):
 		self.poster = self.meta_get('poster') or self.empty_poster
 		self.fanart = self.meta_get('fanart') or self.addon_fanart
 		self.clearlogo = self.meta_get('clearlogo') or ''
-		self.landscape = self.meta_get('landscape') or ''
+		self.landscape = self.meta_get('landscape') or self.meta_get('fanart') or ''
 		self.rating = str(round(self.meta_get('rating'), 1)) if self.meta_get('rating') not in ('', '%', 0, 0.0, None) else None
 		self.mpaa, self.genre, self.network = self.meta_get('mpaa'), self.meta_get('genre'), self.meta_get('studio') or ''
 		self.status, self.duration_data = self.extra_info_get('status', '').replace(' Series', ''), int(float(self.meta_get('duration'))/60)

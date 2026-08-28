@@ -27,7 +27,7 @@ def _settings_fingerprint(watched_indicators, is_external):
 		settings.lists_sort_order('progress'),
 		1 if settings.ignore_articles() else 0,
 		1 if settings.widget_hide_watched() else 0,
-		1,  # cache schema: no InfoTag resume; live progress on paint
+		2,  # cache schema: episode still on landscape
 	)
 	return '_'.join(str(p) for p in parts)
 

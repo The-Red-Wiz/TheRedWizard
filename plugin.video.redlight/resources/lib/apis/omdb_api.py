@@ -52,4 +52,19 @@ class OMDbAPI:
 	def process_rating(self, rating_name):
 		return self.result_get(rating_name, '').replace('N/A', '')
 
+def test_key(api_key):
+	"""Return (ok, message) for Settings → Test API Key. Fight Club is always on OMDb."""
+	if api_key in (None, '', 'empty_setting', 'None'):
+		return False, 'Enter an OMDb API key first.'
+	try:
+		data = session.get('http://www.omdbapi.com/?apikey=%s&i=tt0137523&r=json' % api_key, timeout=15).json()
+		if not isinstance(data, dict):
+			return False, 'OMDb returned an unexpected response.'
+		if str(data.get('Response', '')).lower() == 'true':
+			return True, 'OMDb API key is valid.'
+		error = data.get('Error') or 'OMDb rejected the key.'
+		return False, error
+	except Exception as e:
+		return False, 'OMDb request failed.[CR]%s' % str(e)
+
 fetch_ratings_info = OMDbAPI().fetch_info

@@ -24,7 +24,7 @@ def _settings_fingerprint(watched_indicators, is_external, short_list=True):
 		1 if settings.avoid_episode_spoilers() else 0,
 		settings.date_offset(),
 		settings.playback_key(),
-		1,  # cache schema: no InfoTag resume; live progress on paint
+		2,  # cache schema: episode still on landscape
 	)
 	return '_'.join(str(p) for p in parts)
 

@@ -108,7 +108,7 @@ def build_season_list(params):
 		except: show_poster = meta_get('poster') or poster_empty
 	else: show_poster = meta_get('poster') or poster_empty
 	show_fanart = meta_get('fanart') or fanart_empty
-	show_clearlogo, show_landscape = meta_get('clearlogo') or '', meta_get('landscape') or ''
+	show_clearlogo, show_landscape = meta_get('clearlogo') or '', meta_get('landscape') or meta_get('fanart') or ''
 	custom_order = params.get('custom_order', None)
 	if settings.show_specials(): season_data.sort(key=lambda i: (i['season_number'] == 0, i['season_number']))
 	elif custom_order is not None: season_data = [i for i in season_data if i['season_number'] == params['season']]

@@ -44,7 +44,7 @@ def _settings_fingerprint(kind, is_external):
 		settings.playback_key(),
 		settings.watched_indicators(),
 		calendar_day,
-		1,  # cache schema
+		2,  # cache schema: episode still on landscape
 	)
 	return '_'.join(str(p) for p in parts)
 

@@ -104,7 +104,7 @@ def _new_setting_value(setting_id, setting_default, currentsettings, had_existin
 		return setting_default
 	return currentsettings.get(old_setting_id, setting_default)
 
-_CREDENTIAL_STRING_SETTINGS = frozenset(('tmdb_api', 'trakt.client', 'trakt.secret', 'tmdb.lists_read_token', 'omdb_api'))
+_CREDENTIAL_STRING_SETTINGS = frozenset(('tmdb_api', 'trakt.client', 'trakt.secret', 'tmdb.lists_read_token', 'fanarttv_api', 'omdb_api'))
 
 def normalize_credential_string(value):
 	if value in (None, 'empty_setting'): return ''
@@ -1068,7 +1068,7 @@ _PRESERVE_SETTING_IDS = frozenset((
 	'wetrakr.user', 'wetrakr.token',
 	'tmdb.token', 'tmdb.username', 'tmdb.account_id', 'tmdb.session_id', 'tmdb.account_session_id', 'tmdb.lists_read_token',
 	# API keys
-	'tmdb_api', 'omdb_api', 'rpdb_api', 'google_api', 'groq_api',
+	'tmdb_api', 'fanarttv_api', 'omdb_api', 'rpdb_api', 'google_api', 'groq_api',
 	# Debrid auth (not enable/priority/cache toggles)
 	'rd.token', 'rd.refresh', 'rd.client_id', 'rd.secret', 'rd.account_id',
 	'pm.token', 'pm.account_id',
@@ -1652,6 +1652,8 @@ def default_settings():
 {'setting_id': 'tmdb.lists_read_token', 'setting_type': 'string', 'setting_default': 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJhMGJmMjA3YzVmZjZjMGNhYWJhYzAzMjdlMzliMWNkMiIsIm5iZiI6MTUwMzk0ODAxMC43NTQsInN1YiI6IjU5YTQ2Y2U4YzNhMzY4MGIxMjAwMjgxYiIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.2pYaMVzWy-TNg2SBlkP_CrYWpaxcU7LZIZLPdgJp9jw'},
 {'setting_id': 'tmdb.token', 'setting_type': 'string', 'setting_default': 'empty_setting'},
 {'setting_id': 'tmdb.username', 'setting_type': 'string', 'setting_default': 'empty_setting'},
+#==================== Fanart.tv
+{'setting_id': 'fanarttv_api', 'setting_type': 'string', 'setting_default': 'empty_setting'},
 #==================== OMDb
 {'setting_id': 'omdb_api', 'setting_type': 'string', 'setting_default': 'empty_setting'},
 #==================== RPDb

@@ -2036,6 +2036,30 @@
                           <property name="setting_description">Open WeTrakr's official Import page (QR code or copied link). Use when moving watch history from Trakt to WeTrakr. Red Light does not run the import, and this does not change watched ticks in Red Light.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=wetrakr.wetrakr_import_trakt)</onclick>
                       </item>
+        <!-- Fanart.tv -->
+                      <item>
+                          <visible>Container(2000).HasFocus(50)</visible>
+                          <property name="setting_label">Fanart.tv</property>
+                          <property name="setting_type">separator</property>
+                          <onclick>noop</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(50)</visible>
+                          <property name="setting_label">API Key</property>
+                          <property name="setting_type">numeric</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.fanarttv_api)]</property>
+                          <property name="setting_description">Personal Fanart.tv API key from fanart.tv/get-an-api-key. When set, empty TMDb landscape, clearlogo, poster, and fanart slots are filled from Fanart.tv. TMDb is used when it already has the image. Does not add episode stills. After adding a key, Tools &gt; Clear Meta Cache so titles already in cache are re-fetched.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=fanarttv_api)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(50)</visible>
+                          <visible>!String.IsEqual(Window(10000).Property(redlight.fanarttv_api),empty_setting)</visible>
+                          <property name="setting_label">Test API Key...</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">...</property>
+                          <property name="setting_description">Check that your Fanart.tv API key is accepted.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=fanarttv_api_check_choice)</onclick>
+                      </item>
         <!-- OMDb -->
                       <item>
                           <visible>Container(2000).HasFocus(50)</visible>
@@ -2050,6 +2074,15 @@
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.omdb_api)]</property>
                           <property name="setting_description">Enter here your OMDb API key. This will allow you to utilize extra ratings information in Red Lights Extras window.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=omdb_api)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(50)</visible>
+                          <visible>!String.IsEqual(Window(10000).Property(redlight.omdb_api),empty_setting)</visible>
+                          <property name="setting_label">Test API Key...</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">...</property>
+                          <property name="setting_description">Check that your OMDb API key is accepted. A failed test may also mean the free daily request limit has been reached.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=omdb_api_check_choice)</onclick>
                       </item>
         <!-- TMDb API -->
                       <item>

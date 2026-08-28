@@ -44,7 +44,7 @@ def _settings_fingerprint(watched_indicators, mdblist_menu_next, is_anime_list, 
 		settings.playback_key(),
 		settings.ignore_articles(),
 		calendar_day,
-		4,  # cache schema: live progress on paint + local day (unaired colour)
+		5,  # cache schema: episode still on landscape (LandscapeInfo widgets)
 	)
 	return '_'.join(str(p) for p in parts)
 

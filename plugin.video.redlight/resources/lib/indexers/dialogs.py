@@ -450,6 +450,16 @@ def preferred_filters_choice(params):
 	_make_settings()
 	return preferred_filters_choice({'choices': choices})
 
+def fanarttv_api_check_choice(params):
+	from apis.fanarttv_api import test_key
+	ok, text = test_key(settings.fanarttv_api_key())
+	return kodi_utils.ok_dialog(heading='Success' if ok else 'Failed', text=text)
+
+def omdb_api_check_choice(params):
+	from apis.omdb_api import test_key
+	ok, text = test_key(settings.omdb_api_key())
+	return kodi_utils.ok_dialog(heading='Success' if ok else 'Failed', text=text)
+
 def tmdb_api_check_choice(params):
 	from apis.tmdb_api import movie_details
 	from caches.settings_cache import looks_like_tmdb_v4_jwt

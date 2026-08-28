@@ -219,7 +219,7 @@ class Movies:
 				except: poster = meta_get('poster') or self.poster_empty
 			else: poster = meta_get('poster') or self.poster_empty
 			fanart = meta_get('fanart') or self.fanart_empty
-			clearlogo, landscape = meta_get('clearlogo') or '', meta_get('landscape') or ''
+			clearlogo, landscape = meta_get('clearlogo') or '', meta_get('landscape') or meta_get('fanart') or ''
 			thumb = poster or landscape or fanart
 			movieset_id, movieset_name = meta_get('extra_info').get('collection_id', None), meta_get('extra_info').get('collection_name', None)
 			first_airdate = jsondate_to_datetime(premiered, '%Y-%m-%d', True)

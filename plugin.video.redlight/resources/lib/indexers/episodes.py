@@ -190,8 +190,9 @@ def build_episode_list(params):
 					ws.apply_listitem_progress(info_tag, set_properties, progress, duration, is_external)
 				listitem.setLabel(display)
 				listitem.addContextMenuItems(cm)
-				listitem.setArt({'poster': show_poster, 'fanart': show_fanart, 'thumb': thumb, 'icon':thumb, 'clearlogo': show_clearlogo, 'landscape': show_landscape,
-								'season.poster': season_poster, 'tvshow.poster': show_poster, 'tvshow.clearlogo': show_clearlogo})
+				listitem.setArt({'poster': show_poster, 'fanart': show_fanart, 'thumb': thumb, 'icon':thumb, 'clearlogo': show_clearlogo, 'landscape': thumb,
+								'season.poster': season_poster, 'tvshow.poster': show_poster, 'tvshow.clearlogo': show_clearlogo,
+								'tvshow.landscape': show_landscape})
 				set_properties({
 					'episode_type': episode_type, 'redlight.extras_params': extras_params, 'redlight.options_params': options_params,
 					'redlight.playback_options_params': playback_options_params
@@ -225,7 +226,7 @@ def build_episode_list(params):
 	else: show_poster = meta_get('poster') or poster_empty
 	show_fanart = meta_get('fanart') or fanart_empty
 	show_clearlogo = meta_get('clearlogo') or ''
-	show_landscape = meta_get('landscape') or ''
+	show_landscape = meta_get('landscape') or meta_get('fanart') or ''
 	watched_db = ws.get_database(watched_indicators)
 	watched_info = ws.watched_info_episode(tmdb_id, watched_db)
 	if season == 'all':
@@ -330,7 +331,7 @@ def build_single_episode(list_type, params={}):
 			else: show_poster = meta_get('poster') or poster_empty
 			show_fanart = meta_get('fanart') or fanart_empty
 			show_clearlogo = meta_get('clearlogo') or ''
-			show_landscape = meta_get('landscape') or ''
+			show_landscape = meta_get('landscape') or meta_get('fanart') or ''
 			try: year = premiered.split('-')[0]
 			except: year = show_year or '2050'
 			try:
@@ -477,8 +478,9 @@ def build_single_episode(list_type, params={}):
 				ws.apply_listitem_progress(info_tag, set_properties, progress, duration, is_external)
 			listitem.setLabel(display)
 			listitem.addContextMenuItems(cm)
-			listitem.setArt({'poster': show_poster, 'fanart': show_fanart, 'thumb': thumb, 'icon':thumb, 'clearlogo': show_clearlogo, 'landscape': show_landscape,
-							'season.poster': season_poster, 'tvshow.poster': show_poster, 'tvshow.clearlogo': show_clearlogo})
+			listitem.setArt({'poster': show_poster, 'fanart': show_fanart, 'thumb': thumb, 'icon':thumb, 'clearlogo': show_clearlogo, 'landscape': thumb,
+							'season.poster': season_poster, 'tvshow.poster': show_poster, 'tvshow.clearlogo': show_clearlogo,
+							'tvshow.landscape': show_landscape})
 			set_properties({
 				'episode_type': episode_type, 'redlight.extras_params': extras_params, 'redlight.options_params': options_params,
 				'redlight.playback_options_params': playback_options_params,
@@ -518,7 +520,8 @@ def build_single_episode(list_type, params={}):
 				_row_packet = {
 					'play_params': play_params, 'display': display, 'display_title': display_title, 'cm': list(cm),
 					'art': {'poster': show_poster, 'fanart': show_fanart, 'thumb': thumb, 'icon': thumb, 'clearlogo': show_clearlogo,
-							'landscape': show_landscape, 'season.poster': season_poster, 'tvshow.poster': show_poster, 'tvshow.clearlogo': show_clearlogo},
+							'landscape': thumb, 'season.poster': season_poster, 'tvshow.poster': show_poster, 'tvshow.clearlogo': show_clearlogo,
+							'tvshow.landscape': show_landscape},
 					'properties': props,
 					'omit_tvshowtitle': bool(is_external and omit_tvshowtitle_widgets),
 					'omit_season_episode': bool(display_format == 2 or omit_season_episode_tags),

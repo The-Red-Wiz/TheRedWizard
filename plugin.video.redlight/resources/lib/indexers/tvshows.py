@@ -238,7 +238,7 @@ class TVShows:
 				except: poster = meta_get('poster') or self.poster_empty
 			else: poster = meta_get('poster') or self.poster_empty
 			fanart = meta_get('fanart') or self.fanart_empty
-			clearlogo, landscape = meta_get('clearlogo') or '', meta_get('landscape') or ''
+			clearlogo, landscape = meta_get('clearlogo') or '', meta_get('landscape') or meta_get('fanart') or ''
 			thumb = poster or landscape or fanart
 			tmdb_id, total_seasons, total_aired_eps = meta_get('tmdb_id'), meta_get('total_seasons'), meta_get('total_aired_eps')
 			progress_aired_eps = watched_status.progress_aired_eps(meta)

@@ -36,6 +36,7 @@ def _settings_fingerprint(feeds, is_external):
 		settings.playback_key(),
 		settings.watched_indicators(),
 		1 if settings.public_calendar_include_anime() else 0,
+		1,  # cache schema: episode still on landscape
 	)
 	return '_'.join(str(p) for p in parts)
 
