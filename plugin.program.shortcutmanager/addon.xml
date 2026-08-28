@@ -28,7 +28,8 @@
 	<description lang="es_ES">Crea y organiza accesos directos (incluyendo subcarpetas) a tu contenido favorito para un acceso rápido.</description>
 	<platform>all</platform>
         <license>LGPL-3.0</license>
-        <news> - Creating a group now refreshes My Groups immediately
+        <news>1.1.1
+ - Creating a group now refreshes My Groups immediately
  - Remove Group is on the group context menu (not Edit Group)
  - Stop forcing a list view (no label sort methods, no default "files" content, programs-only)
  - Directory listings are not cached, so new groups and shortcuts show up on refresh
