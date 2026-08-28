@@ -58,7 +58,7 @@ except ImportError:
         from urllib.parse import urlparse
         from urllib2 import urlopen, Request, HTTPError, URLError
 
-from xbmc import Monitor
+from xbmc import Monitor, log as xbmc_log
 from xbmcgui import ControlButton, ControlImage, ControlLabel, ControlTextBox, WindowXMLDialog
 
 try:  # Kodi v19 or newer
@@ -129,6 +129,25 @@ def get_servers(search=None, server_id=None, https_only=False, limit=20):
             id=str(entry.get('id', '')),
         ))
     return result
+
+
+def upload_urls_for_server(server, prefer_https=True):
+    """Ookla JSON still returns http://…/upload.php; many servers refuse that POST.
+
+    Prefer HTTPS using the Ookla host field, then the advertised URL, then http→https.
+    """
+    urls = []
+    host = server.get('host') or ''
+    url = server.get('url') or ''
+    if prefer_https and host:
+        urls.append('https://%s/speedtest/upload.php' % host)
+    if url and url not in urls:
+        urls.append(url)
+    if prefer_https and url.startswith('http://'):
+        https_same = 'https://' + url[len('http://'):]
+        if https_same not in urls:
+            urls.append(https_same)
+    return urls
 
 
 class SpeedtestCliServerListError(Exception):
@@ -214,7 +233,7 @@ class FilePutter(threading.Thread):
                 self.result = len(self.data)
             else:
                 self.result = 0
-        except IOError:
+        except Exception:
             self.result = 0
 
 
@@ -643,6 +662,8 @@ class SpeedTest(Animation):
             self.ping_textbox.setLabel('')
 
     def show_end_result(self):
+        if not IMAGE_RESULT:
+            return
         self.img_final_results = ControlImage(932, 40, 320, 144, '', aspectRatio=0)
         self.addControl(self.img_final_results)
         self.img_final_results.setVisible(False)
@@ -686,8 +707,9 @@ class SpeedTest(Animation):
             self.display_progress_bar(False)
             self.display_ping_test(False)
             self.display_gauge_test(False)
-            self.display_results(False)
-            self.show_end_result()
+            if IMAGE_RESULT:
+                self.display_results(False)
+                self.show_end_result()
             self.show_end_result_sp()
             self.display_button_close('visible')
         if control == self.button_close_id:
@@ -903,7 +925,13 @@ class SpeedTest(Animation):
 
         start_st.append(localize(30973))  # Testing upload speed...
         self.update_textbox(start_st)
-        ulspeed = self.upload_speed(best['url'], sizes, simple)
+        ulspeed = 0
+        for upload_url in upload_urls_for_server(best, prefer_https=True):
+            xbmc_log('Speedtest upload trying %s' % upload_url, 1)
+            ulspeed = self.upload_speed(upload_url, sizes, simple)
+            xbmc_log('Speedtest upload bytes/s=%s url=%s' % (ulspeed, upload_url), 1)
+            if ulspeed:
+                break
         start_st[-1] = localize(30974, speed=ulspeed * 8 / 1000 / 1000)  # Upload speed
         self.update_textbox(start_st)
         self.ul_textbox.setLabel('%.2f' % float(ulspeed * 8 / 1000 / 1000))
@@ -931,23 +959,21 @@ class SpeedTest(Animation):
             fdesc = catch_request(request)
             if not hasattr(fdesc, 'read'):
                 log(0, 'Could not submit results to speedtest.net')
-                return False
-            response = fdesc.read()
-            code = fdesc.code
-            fdesc.close()
+            else:
+                response = fdesc.read()
+                code = fdesc.code
+                fdesc.close()
 
-            if int(code) != 200:
-                log(0, 'Could not submit results to speedtest.net')
-                return False
-
-            qsargs = parse_qs(response.decode())  # pylint: disable=deprecated-method
-            resultid = qsargs.get('resultid')
-            if not resultid or len(resultid) != 1:
-                log(0, 'Could not submit results to speedtest.net')
-                return False
-
-            global IMAGE_RESULT  # pylint: disable=global-statement
-            IMAGE_RESULT = 'https://www.speedtest.net/result/%s.png' % resultid[0]
+                if int(code) != 200:
+                    log(0, 'Could not submit results to speedtest.net')
+                else:
+                    qsargs = parse_qs(response.decode())  # pylint: disable=deprecated-method
+                    resultid = qsargs.get('resultid')
+                    if not resultid or len(resultid) != 1:
+                        log(0, 'Could not submit results to speedtest.net')
+                    else:
+                        global IMAGE_RESULT  # pylint: disable=global-statement
+                        IMAGE_RESULT = 'https://www.speedtest.net/result/%s.png' % resultid[0]
 
         return True
 

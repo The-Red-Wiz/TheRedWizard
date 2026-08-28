@@ -100,7 +100,10 @@ def get_addon_info(key):
 def log(level=1, message='', **kwargs):
     """Log info messages to Kodi"""
     debug_logging = get_global_setting('debug.showloginfo')  # Returns a boolean
-    max_log_level = get_setting_int('max_log_level', default=0)
+    try:
+        max_log_level = get_setting_int('max_log_level', default=0)
+    except Exception:  # Missing or wrong-type setting in the host add-on
+        max_log_level = 0
     if not debug_logging and not (level <= max_log_level and max_log_level != 0):
         return
     if kwargs:
