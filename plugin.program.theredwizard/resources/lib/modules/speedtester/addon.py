@@ -17,6 +17,7 @@ from __future__ import absolute_import, division, unicode_literals
 
 import os.path
 import sys
+import json
 import math
 import platform
 import socket
@@ -43,7 +44,7 @@ except ImportError:  # Python 2
 
 try:  # Python 3
     from http.client import HTTPConnection, HTTPSConnection
-    from urllib.parse import parse_qs, urlparse
+    from urllib.parse import parse_qs, quote, urlparse
     from urllib.request import urlopen, Request, HTTPError, URLError
 except ImportError:
     try:  # Python 2.6 and newer
@@ -78,6 +79,56 @@ USER_AGENT = 'Mozilla/5.0 ({system}; U; {arch}; en-us) Python/{version} (KHTML, 
     arch=platform.architecture()[0],
     version=platform.python_version(),
 )
+
+SERVERS_API = 'https://www.speedtest.net/api/js/servers'
+
+
+def get_servers(search=None, server_id=None, https_only=False, limit=20):
+    """Fetch servers from Ookla's JSON endpoint (used by the speedtest.net web client).
+
+    Replaces the deprecated speedtest-servers-static.php XML list.
+    - No arguments -> nearest servers based on the requesting IP (automatic mode).
+    - search -> servers matching a city or country query.
+    - server_id -> a single, specific server.
+    """
+    url = '%s?engine=js&limit=%d' % (SERVERS_API, int(limit))
+    if server_id:
+        url += '&serverid=%s' % quote(str(server_id))
+    elif search:
+        url += '&search=%s' % quote(search)
+    if https_only:
+        url += '&https_functional=true'
+
+    try:
+        request = build_request(url, headers={'Accept': 'application/json'})
+        handler = catch_request(request)
+        if not hasattr(handler, 'read'):
+            return []
+        raw = handler.read()
+        handler.close()
+        data = json.loads(raw.decode('utf-8', 'replace'))
+    except (ValueError, HTTPError, URLError, socket.error, AttributeError):
+        return []
+
+    if not isinstance(data, list):
+        return []
+
+    result = []
+    for entry in data:
+        if not entry.get('url'):
+            continue
+        result.append(dict(
+            url=entry['url'],
+            lat=entry.get('lat'),
+            lon=entry.get('lon'),
+            name=entry.get('name', ''),
+            country=entry.get('country', ''),
+            cc=entry.get('cc', ''),
+            sponsor=entry.get('sponsor', ''),
+            host=entry.get('host', ''),
+            id=str(entry.get('id', '')),
+        ))
+    return result
 
 
 class SpeedtestCliServerListError(Exception):
@@ -133,7 +184,7 @@ class FileGetter(threading.Thread):
             if timeit.default_timer() - self.starttime <= 10:
                 request = build_request(self.url)
                 handler = urlopen(request)
-                while not SHUTDOWN_EVENT.isSet():
+                while not SHUTDOWN_EVENT.is_set():
                     self.result.append(len(handler.read(10240)))
                     if not self.result[-1]:
                         break
@@ -155,7 +206,7 @@ class FilePutter(threading.Thread):
 
     def run(self):
         try:
-            if timeit.default_timer() - self.starttime <= 10 and not SHUTDOWN_EVENT.isSet():
+            if timeit.default_timer() - self.starttime <= 10 and not SHUTDOWN_EVENT.is_set():
                 request = build_request(self.url, data=self.data)
                 handler = urlopen(request)
                 handler.read(11)
@@ -175,9 +226,9 @@ def get_attributes_by_tag_name(dom, tag_name):
 def get_config():
     request = build_request('http://www.speedtest.net/speedtest-config.php')
     handler = catch_request(request)
-    if handler is False:
+    if not hasattr(handler, 'read'):
         log(0, 'Could not retrieve speedtest.net configuration')
-        sys.exit(1)
+        return None
     configxml = []
     while True:
         configxml.append(handler.read(10240))
@@ -218,70 +269,46 @@ def get_config():
 
 
 def closest_servers(client, total=False):
+    """Return the closest servers using Ookla's JSON endpoint.
 
-    urls = [
-        'https://www.speedtest.net/speedtest-servers-static.php',
-        'http://c.speedtest.net/speedtest-servers-static.php',
-    ]
-    errors = []
-    servers = {}
-    for url in urls:
-        try:
-            request = build_request(url)
-            handler = catch_request(request)
-            if handler is False:
-                # errors.append('%s' % e)
-                raise SpeedtestCliServerListError
-            serversxml = []
-            while not Monitor().abortRequested():
-                serversxml.append(handler.read(10240))
-                if not serversxml[-1]:
-                    break
-            if int(handler.code) != 200:
-                handler.close()
-                raise SpeedtestCliServerListError
-            handler.close()
+    Optional keys on ``client``: ``search`` (city/country), ``server_id``,
+    ``https_only``. When latitude/longitude are known, servers are sorted by
+    distance; otherwise the JSON order (nearest-by-IP) is kept.
+    """
+    search = client.get('search') if isinstance(client, dict) else None
+    server_id = client.get('server_id') if isinstance(client, dict) else None
+    https_only = bool(client.get('https_only')) if isinstance(client, dict) else False
+
+    raw = get_servers(search=search, server_id=server_id, https_only=https_only)
+
+    if not raw and https_only:
+        raw = get_servers(search=search, server_id=server_id, https_only=False)
+    if not raw and (search or server_id):
+        raw = get_servers()
+
+    if not raw:
+        log(0, 'Failed to retrieve list of speedtest.net servers')
+        return []
+
+    try:
+        client_geo = [float(client['lat']), float(client['lon'])]
+    except (KeyError, TypeError, ValueError):
+        client_geo = None
+
+    if client_geo:
+        for attrib in raw:
             try:
-                if 'minidom' in sys.modules:
-                    root = minidom.parseString(''.join(serversxml))
-                    elements = root.getElementsByTagName('server')
-                else:
-                    root = ElementTree.fromstring(''.encode().join(serversxml))
-                    elements = root.iter(tag='server')
-            except SyntaxError:
-                raise SpeedtestCliServerListError  # pylint: disable=raise-missing-from
-            for server in elements:
-                try:
-                    attrib = server.attrib
-                except AttributeError:
-                    attrib = dict(list(server.attributes.items()))
-                ddd = distance([float(client['lat']), float(client['lon'])], [float(attrib.get('lat')), float(attrib.get('lon'))])
-                attrib['d'] = ddd
-                if ddd not in servers:
-                    servers[ddd] = [attrib]
-                else:
-                    servers[ddd].append(attrib)
-            del root
-            del serversxml
-            del elements
-        except SpeedtestCliServerListError:
-            continue
-        if servers:
-            break
-    if not servers:
-        log(0, 'Failed to retrieve list of speedtest.net servers: {errors}', errors='\n'.join(errors))
-        sys.exit(1)
-    closest = []
-    for ddd in sorted(servers.keys()):
-        for sss in servers[ddd]:
-            closest.append(sss)
-            if len(closest) == 5 and not total:
-                break
-        else:
-            continue
-        break
-    del servers
-    return closest
+                attrib['d'] = distance(client_geo, [float(attrib['lat']), float(attrib['lon'])])
+            except (TypeError, ValueError):
+                attrib['d'] = 99999
+        raw.sort(key=lambda a: a.get('d', 99999))
+    else:
+        for idx, attrib in enumerate(raw):
+            attrib.setdefault('d', float(idx))
+
+    if total:
+        return raw
+    return raw[:5]
 
 
 def get_best_server(servers):
@@ -725,7 +752,7 @@ class SpeedTest(Animation):
                 thread.start()
                 queue.put(thread, True)
 
-                if not quiet and not SHUTDOWN_EVENT.isSet():
+                if not quiet and not SHUTDOWN_EVENT.is_set():
                     sys.stdout.write('.')
                     sys.stdout.flush()
 
@@ -763,7 +790,7 @@ class SpeedTest(Animation):
                 thread = FilePutter(url, start, size)
                 thread.start()
                 queue.put(thread, True)
-                if not quiet and not SHUTDOWN_EVENT.isSet():
+                if not quiet and not SHUTDOWN_EVENT.is_set():
                     sys.stdout.write('.')
                     sys.stdout.flush()
         finished = []
@@ -811,13 +838,19 @@ class SpeedTest(Animation):
         try:
             config = get_config()
         except URLError:
-            return False
+            config = None
+        if not config or not config.get('client'):
+            config = dict(client=dict(ip='', isp='ISP', lat='', lon=''))
+
+        config['client']['https_only'] = True
 
         start_st.append(localize(30962))  # Retrieving speedtest.net server list
         self.update_textbox(start_st)
         self.img_centertext.setImage(self.image_centertext_testingping)
 
         servers = closest_servers(config['client'])
+        if not servers:
+            return False
 
         start_st.append(localize(30963, **config['client']))  # Testing from ISP
         self.update_textbox(start_st)
@@ -896,7 +929,7 @@ class SpeedTest(Animation):
             headers = {'Referer': 'https://c.speedtest.net/flash/speedtest.swf'}
             request = build_request('https://www.speedtest.net/api/api.php', data='&'.join(api_data).encode(), headers=headers)
             fdesc = catch_request(request)
-            if fdesc is False:
+            if not hasattr(fdesc, 'read'):
                 log(0, 'Could not submit results to speedtest.net')
                 return False
             response = fdesc.read()

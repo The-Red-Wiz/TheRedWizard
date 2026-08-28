@@ -1,3 +1,6 @@
+v4.3.4 (2026-08-28)
+ - Speedtest now now uses the same JSON endpoint as the speedtest.net website (api/js/servers?engine=js)
+
 v4.3.3 (2026-08-24)
  - Binary add-on handling only rewrites compiled kodi.binary extensions, not Python context menus or resource add-ons
 

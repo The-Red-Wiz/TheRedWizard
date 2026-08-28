@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.3" provider-name="Slam, Sarge, adamsbuilds, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.4" provider-name="Slam, Sarge, adamsbuilds, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1"/>
 	</requires>
@@ -18,29 +18,8 @@
 		<website>https://redwizard.xyz/</website> 
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/The-Red-Wizard/TheRedWizard</source>
-		<news>2026-08-24
- * Binary add-on handling only rewrites compiled kodi.binary extensions, not Python context menus or resource add-ons
- * Whitelist Add/Remove no longer reports an update if nothing was changed
- * Save Debrid and Meta Account Data list updated
- * Authorise Debrid and Meta Accounts added to Account Manager (installed add-ons only)
- * Authorise accounts are listed debrid A–Z, then meta A–Z; headings are hidden when there is only one group
- * Enable Skin Override Protection hidden again; Disable is only shown if protection is already on
- * Account Manager Lite is only shown when it is installed
- * Refined binary add-on handling so Kodi can update them without deleting the add-on folder
- * Build installs now keep the zip's add-on database; full table wipe is only used on Fresh Start
- * Clear Packages on Startup can be Disabled, Every startup, 10 packages or 20 packages
- * Fresh Start progress dialog now closes before files are deleted
- * Video cache device presets use adaptive read factor (Kodi 21 and 22)
- * Whitelist Add-Ons moved to the Tools menu; Add/Remove lists show the add-on name only, including disabled add-ons
- * Force Update Add-ons now also scans local add-ons, not only repositories
- * Optional Kodi name, full version, release date and OS on the main menu (default on)
- * Build Menu only shows the build count when it is greater than zero
- * Build install shows a finalising notification after extraction
- * Video Cache Settings only shown on Kodi 21 and 22
- * New-build notification ignores list reordering and no longer shows a blank name
- * Upload Kodi Log added; View Logs kept as a fallback, with a plain dark scrollable window
- * ResolveURL OffCloud and TorBox open the ResolveURL settings page to add an account
- * Build rename map prompts even when the version number is unchanged</news>
+		<news>2026-08-28
+ * Speedtest now now uses the same JSON endpoint as the speedtest.net website</news>
 		<assets>
 				<icon>resources/media/icon.png</icon>
 				<fanart>resources/media/fanart.jpg</fanart>
