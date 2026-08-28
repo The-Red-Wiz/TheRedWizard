@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.4" provider-name="Slam, Sarge, adamsbuilds, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.5" provider-name="Slam, Sarge, adamsbuilds, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1"/>
 	</requires>
@@ -19,7 +19,7 @@
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/The-Red-Wizard/TheRedWizard</source>
 		<news>2026-08-28
- * Speedtest now now uses the same JSON endpoint as the speedtest.net website</news>
+ * Speedtest now uses the same JSON endpoint as the speedtest.net website</news>
 		<assets>
 				<icon>resources/media/icon.png</icon>
 				<fanart>resources/media/fanart.jpg</fanart>
