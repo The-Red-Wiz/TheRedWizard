@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<settings>
-	<category label="Modes">
-		<setting id="activate_installer" type="bool" label="Activate Installer (Install Addons on Next Boot) " visible="true" default="true" />
-    </category>
-</settings>
