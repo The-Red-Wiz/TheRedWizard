@@ -458,7 +458,13 @@ def tvshows(tvshowtitle, imdb, tmdb, season, watched):
                         simkl.markEpisodeAsNotWatched(imdb, season, i, tmdb=tmdb)
             else:
                 if int(watched) == 7:
-                    simkl.markTVShowAsWatched(imdb, tmdb=tmdb)
+                    if not simkl.markTVShowAsWatched(imdb, tmdb=tmdb):
+                        try:
+                            control.idle()
+                        except Exception:
+                            pass
+                        control.infoDialog('Error', sound=True)
+                        return
                 else:
                     simkl.markTVShowAsNotWatched(imdb, tmdb=tmdb)
             simkl.cachesyncTVShows(timeout=0)

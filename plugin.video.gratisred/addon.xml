@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<addon id="plugin.video.gratisred" version="1.3.1" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.video.gratisred" version="1.3.2" name="[COLOR red]Gratis Red[/COLOR]" provider-name="[COLOR red]The Red Wizard[/COLOR]">
     <requires>
         <import addon="script.gratisred.artwork" version="1.0.5"/>
         <import addon="script.module.kodi-six"/>
@@ -27,12 +27,9 @@
 		<website>https://redwizard.xyz/</website> 
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/The-Red-Wizard</source>
-        <news>2026-08-28
-- Summary of v1.3.1 (see Tools > Changelog for the detail):
- * Special Settings a4kSubtitles heading
- * Account Settings: MDBList, Simkl, TMDb, Trakt, Fanart.tv, FilePursuit
- * Optional Installs warns when the addon is not in a repo
- * Authorise QR dialogs no longer claim the link was copied to the clipboard</news>
+        <news>2026-08-29
+- Summary of v1.3.2 (see Tools > Changelog for the detail):
+ * Simkl Mark Show as Watched expands episode history when the first POST is shelf-only</news>
         <assets>
             <icon>resources/images/icon.png</icon>
             <fanart>resources/images/fanart.jpg</fanart>

@@ -1398,11 +1398,98 @@ def markEpisodeAsNotWatched(imdb, season, episode, tmdb=None):
     })
 
 
+def _history_added_episodes(result):
+    if not isinstance(result, dict):
+        return 0
+    try:
+        return int((result.get('added') or {}).get('episodes') or 0)
+    except Exception:
+        return 0
+
+
+def _history_counts_ok(result):
+    if not isinstance(result, dict):
+        return False
+    bucket = result.get('added') or {}
+    if _history_added_episodes(result) > 0:
+        return True
+    for key in ('shows', 'anime'):
+        val = bucket.get(key, 0)
+        try:
+            if int(val or 0) > 0:
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _history_not_found(result):
+    if not isinstance(result, dict):
+        return False
+    nf = result.get('not_found') or {}
+    for key in ('shows', 'anime', 'episodes'):
+        val = nf.get(key)
+        if isinstance(val, list) and val:
+            return True
+        try:
+            if int(val or 0) > 0:
+                return True
+        except Exception:
+            pass
+    return False
+
+
+def _regular_season_numbers(tmdb):
+    if not tmdb or str(tmdb) in ('0', '', 'None'):
+        return []
+    try:
+        from resources.lib.modules import tmdb_utils
+        url = '%stv/%s?api_key=%s&language=en-US' % (tmdb_utils.API_URL, int(tmdb), tmdb_utils._tmdb_api_key())
+        data = requests.get(url, timeout=20).json() or {}
+    except Exception:
+        return []
+    nums, seen = [], set()
+    for item in data.get('seasons') or []:
+        try:
+            n = int(item.get('season_number'))
+        except Exception:
+            continue
+        if n > 0 and n not in seen:
+            seen.add(n)
+            nums.append(n)
+    return nums
+
+
 def markTVShowAsWatched(imdb, tmdb=None):
+    """Whole-show history. Simkl can move Completed without episode timestamps; Refresh Simkl Cache then drops ticks.
+    If added.episodes is 0, POST each regular TMDb season number (same as Red Light 2.3.7)."""
     ids = _list_ids(tmdb=tmdb, imdb=imdb)
     if not ids:
-        return None
-    return call_simkl('/sync/history', data={'shows': [{'ids': ids}]})
+        return False
+    result = call_simkl('/sync/history', data={'shows': [{'ids': ids, 'status': 'completed'}]})
+    if result is None:
+        log_utils.log('Simkl history mark_as_watched network failure for tvshow tmdb=%s' % tmdb, 1)
+        return False
+    if _history_added_episodes(result) > 0:
+        return True
+    if _history_counts_ok(result):
+        nums = _regular_season_numbers(tmdb)
+        if nums:
+            log_utils.log('Simkl history mark_as_watched show added.episodes=0 tmdb=%s, expanding seasons' % tmdb, 1)
+            result = call_simkl('/sync/history', data={'shows': [{'ids': ids, 'seasons': [{'number': n} for n in nums]}]})
+            if result is None:
+                log_utils.log('Simkl history season-expand network failure for tvshow tmdb=%s' % tmdb, 1)
+                return False
+            log_utils.log('Simkl history show season-expand tmdb=%s seasons=%s added_episodes=%s' % (
+                tmdb, len(nums), _history_added_episodes(result)), 1)
+            if _history_added_episodes(result) > 0:
+                return True
+        log_utils.log('Simkl history mark_as_watched show no episode expansion tmdb=%s: %s' % (tmdb, result), 1)
+        return False
+    if isinstance(result, dict) and not _history_not_found(result):
+        return True
+    log_utils.log('Simkl history mark_as_watched failed for tvshow tmdb=%s: %s' % (tmdb, result), 1)
+    return False
 
 
 def markTVShowAsNotWatched(imdb, tmdb=None):

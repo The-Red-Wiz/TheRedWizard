@@ -1,4 +1,7 @@
 
+[B]- 1.3.2 (2026-08-29)[/B] Simkl Mark Show as Watched (Red Light 2.3.7):
+ * [B]Simkl[/B]: Mark Show as Watched no longer treats a shelf-only history add ([I]added.shows[/I] with 0 episodes) as success. If Simkl does not expand episode timestamps, Gratis Red POSTs each season number so Force Refresh does not bring the show back unwatched.
+
 [B]- 1.3.1 (2026-08-28)[/B] Settings tidy:
  * [B]Special Settings[/B]: [I]Optional: a4kSubtitles can be used instead[/I] is a section heading like Subtitles, not a disabled info line.
  * [B]Account Settings[/B]: MDBList, Simkl, TMDb, Trakt, Fanart.tv, then FilePursuit. Startup watched / library sync sits under each account (no extra Auto heading); usable while authorised, hidden when revoked. ResolveURL is Tools only — host resolvers, not debrid accounts.
