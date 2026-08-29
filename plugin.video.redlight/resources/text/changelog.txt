@@ -1,3 +1,6 @@
+[COLOR red][B]Version 2.3.7[/B][/COLOR]
+- [B]Simkl[/B] ([I]#238[/I]): Mark Show as Watched no longer treats a shelf-only history add ([I]added.shows[/I] with 0 episodes) as success. If Simkl does not expand episode timestamps, Red Light POSTs each season number (same as Mark Season) so Force Sync does not bring the show back unwatched.
+
 [COLOR red][B]Version 2.3.6[/B][/COLOR]
 - [B]Next Episodes / episode widgets[/B]: landscape art uses the episode still (TMDb) when one exists, so FENtastic+ LandscapeInfo shows the episode rather than the show. Poster stays the show poster. [B]Avoid Episode Spoilers[/B] still hides stills on unwatched episodes.
 - [B]Artwork[/B]: when TMDb has no English landscape, the title's fanart is used in the landscape slot (movies and TV). Optional [B]Fanart.tv[/B] API key (Meta Accounts, above OMDb) then fills remaining empty landscape, clearlogo, poster, and fanart. TMDb wins when it already has the image. Does not add episode stills. Clear Meta Cache after adding a key so cached titles are re-fetched.

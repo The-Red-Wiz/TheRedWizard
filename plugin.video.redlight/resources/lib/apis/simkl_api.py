@@ -679,6 +679,29 @@ def _simkl_history_not_found(result):
 			pass
 	return False
 
+def _simkl_added_episodes(result, action='mark_as_watched'):
+	if not isinstance(result, dict): return 0
+	key = 'added' if action == 'mark_as_watched' else 'deleted'
+	try: return int((result.get(key) or {}).get('episodes') or 0)
+	except Exception:
+		return 0
+
+def _simkl_regular_season_numbers(tmdb_id):
+	try:
+		from modules import metadata
+		from modules.utils import get_datetime
+		meta = metadata.tvshow_meta('tmdb_id', tmdb_id, settings.tmdb_api_key(), settings.mpaa_region(), get_datetime())
+	except Exception:
+		meta = None
+	nums, seen = [], set()
+	for item in (meta or {}).get('season_data') or []:
+		try: n = int(item.get('season_number'))
+		except Exception: continue
+		if n > 0 and n not in seen:
+			seen.add(n)
+			nums.append(n)
+	return nums
+
 def _simkl_tmdb_is_anime(tmdb_id):
 	"""TMDb anime keyword — used to choose Simkl anime[] history vs shows[]."""
 	try:
@@ -699,6 +722,18 @@ def _simkl_history_tv_entry(tmdb_id, tvdb_id=0, season=None, episode=None, watch
 	elif season is not None:
 		entry['seasons'] = [{'number': int(season)}]
 	return entry
+
+def _simkl_history_expand_seasons(url, tmdb_id, tvdb_id, bucket, use_tvdb):
+	"""Whole-show history can move Completed without episode timestamps (Force Sync then undoes local ticks).
+	Season-number POSTs are Simkl's documented 'mark every episode in this season'."""
+	nums = _simkl_regular_season_numbers(tmdb_id)
+	if not nums: return False, None
+	entry = _simkl_history_tv_entry(tmdb_id, tvdb_id, None, None, None, use_tvdb)
+	entry['seasons'] = [{'number': n} for n in nums]
+	result = call_simkl(url, data={bucket: [entry]})
+	kodi_utils.logger('Simkl', 'history show season-expand tmdb=%s seasons=%s added_episodes=%s' % (
+		tmdb_id, len(nums), _simkl_added_episodes(result)))
+	return True, result
 
 def simkl_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season=None, episode=None):
 	if action == 'mark_as_watched':
@@ -739,16 +774,33 @@ def simkl_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season=Non
 		attempts = (('shows', False), ('anime', True), ('shows', True))
 	last_result = None
 	saw_not_found = False
+	shelf_only = False
 	for bucket, use_tvdb in attempts:
 		entry = _simkl_history_tv_entry(tmdb_id, tvdb_id, s_num, e_num, watched_at, use_tvdb)
+		# Documented whole-show expand: no seasons/episodes + status=completed.
+		if action == 'mark_as_watched' and item_type == 'tvshow':
+			entry['status'] = 'completed'
 		last_result = call_simkl(url, data={bucket: [entry]})
 		# Network/HTTP failure (None) — do not stack more long timeouts on other buckets.
 		if last_result is None:
 			kodi_utils.logger('Simkl', 'history %s network failure for %s tmdb=%s tvdb=%s' % (action, item_type, tmdb_id, tvdb_id))
 			return False
 		if _simkl_history_counts_ok(last_result, action, 'shows'):
-			# Same as Trakt / Mark Watched: local simkl_db + background activities cover cache refresh.
-			return True
+			if action != 'mark_as_watched' or item_type != 'tvshow' or _simkl_added_episodes(last_result) > 0:
+				return True
+			# added.shows>0 with 0 episodes: shelf-only. Expand via season numbers (#238).
+			shelf_only = True
+			kodi_utils.logger('Simkl', 'history mark_as_watched show added.episodes=0 tmdb=%s, expanding seasons' % tmdb_id)
+			posted, expanded = _simkl_history_expand_seasons(url, tmdb_id, tvdb_id, bucket, use_tvdb)
+			if not posted:
+				continue
+			if expanded is None:
+				kodi_utils.logger('Simkl', 'history season-expand network failure for tvshow tmdb=%s tvdb=%s' % (tmdb_id, tvdb_id))
+				return False
+			last_result = expanded
+			if _simkl_added_episodes(expanded) > 0:
+				return True
+			continue
 		if action == 'mark_as_unwatched' and _simkl_history_not_found(last_result):
 			saw_not_found = True
 	if action == 'mark_as_unwatched' and item_type == 'tvshow' and tvdb_id and int(tvdb_id) > 0:
@@ -766,6 +818,10 @@ def simkl_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season=Non
 		kodi_utils.logger('Simkl', 'history mark_as_unwatched already clear for %s tmdb=%s tvdb=%s' % (item_type, tmdb_id, tvdb_id))
 		return True
 	# Add with 0 added across buckets = already watched — not a failure unless not_found.
+	# Show-level added.shows with 0 episodes is not already-watched: shelf moved, ticks did not.
+	if action == 'mark_as_watched' and item_type == 'tvshow' and shelf_only:
+		kodi_utils.logger('Simkl', 'history mark_as_watched show no episode expansion tmdb=%s tvdb=%s: %s' % (tmdb_id, tvdb_id, last_result))
+		return False
 	if action == 'mark_as_watched' and isinstance(last_result, dict) and not _simkl_history_not_found(last_result):
 		return True
 	kodi_utils.logger('Simkl', 'history %s failed for %s tmdb=%s tvdb=%s: %s' % (action, item_type, tmdb_id, tvdb_id, last_result))
