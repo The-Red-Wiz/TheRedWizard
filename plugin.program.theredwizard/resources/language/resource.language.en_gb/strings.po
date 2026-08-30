@@ -327,6 +327,10 @@ msgctxt "#30951"
 msgid "[B]Close[/B]"
 msgstr ""
 
+msgctxt "#30953"
+msgid "Speed test failed. Check your connection and try again."
+msgstr ""
+
 msgctxt "#30960"
 msgid "[B]Running Speed Test add-on[/B]"
 msgstr ""

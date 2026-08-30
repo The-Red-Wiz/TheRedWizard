@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.5" provider-name="Slam, Sarge, adamsbuilds, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
+<addon id="plugin.program.theredwizard" name="[COLOR red]The Red Wizard[/COLOR]" version="4.3.6" provider-name="Slam, Sarge, adamsbuilds, Funsterbe, BYB, Zaxxon709, [COLOR red]The Red Wizard[/COLOR]">
 	<requires>
 		<import addon="xbmc.python" version="3.0.1"/>
 	</requires>
@@ -18,7 +18,11 @@
 		<website>https://redwizard.xyz/</website> 
 		<email>info@redwizard.xyz</email>
 		<source>https://github.com/The-Red-Wizard/TheRedWizard</source>
-		<news>2026-08-28
+		<news>2026-08-30
+ * Speedtest keeps local results if there is no speedtest.net image, tries HTTPS for upload, and shows a toast if the test fails
+ * Speedtest ping uses a 10 second timeout and averages the probes that actually ran
+ * Restore from backup skips natives that do not belong on this OS and prepares binary add-ons the same way as a build install
+ * Video Cache Settings can auto-detect size from free RAM
  * Speedtest now uses the same JSON endpoint as the speedtest.net website</news>
 		<assets>
 				<icon>resources/media/icon.png</icon>

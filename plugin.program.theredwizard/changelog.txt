@@ -1,3 +1,9 @@
+v4.3.6 (2026-08-30)
+ - Speedtest keeps local results if there is no speedtest.net image, tries HTTPS for upload, and shows a toast if the test fails
+ - Speedtest ping uses a 10 second timeout and averages the probes that actually ran
+ - Restore from backup skips natives that do not belong on this OS and prepares binary add-ons the same way as a build install
+ - Video Cache Settings can auto-detect size from free RAM
+
 v4.3.5 (2026-08-28)
  - Typo in addon.xml and changelog corrected
 

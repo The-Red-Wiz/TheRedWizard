@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import sqlite3
 import xbmc
@@ -62,8 +63,16 @@ def advanced_set(buffer, ram, read):
     #xbmc.executebuiltin('Quit')
     xbmc.executebuiltin('ActivateWindowAndFocus(servicesettings), True')
     xbmc.executebuiltin('Action(Back)')
+
+def _auto_detect_cache_mb():
+    """A third of free RAM, clamped to 20–1024 MB (EZ Maintenance+ heuristic)."""
+    free_mem_label = xbmc.getInfoLabel('System.FreeMemory')
+    free_mb_digits = re.sub('[^0-9]', '', free_mem_label or '')
+    free_mb = int(free_mb_digits) if free_mb_digits else 0
+    return max(20, min(1024, free_mb // 3))
+
 def advanced_settings():
-    selection = xbmcgui.Dialog().select(local_string(30038), ['[COLOR gold]1GB Devices (e.g., 1st-3rd gen Firestick/Firestick Lite)[/COLOR]','[COLOR gold]1.5GB Devices (e.g., 4K Firestick)[/COLOR]','[COLOR gold]2GB+ Devices (e.g., Shield Pro/Shield Tube/FireTV Cube)[/COLOR]','[COLOR gold]Default (Reset to Default)[/COLOR]'])  # Select Ram Size
+    selection = xbmcgui.Dialog().select(local_string(30038), ['[COLOR gold]1GB Devices (e.g., 1st-3rd gen Firestick/Firestick Lite)[/COLOR]','[COLOR gold]1.5GB Devices (e.g., 4K Firestick)[/COLOR]','[COLOR gold]2GB+ Devices (e.g., Shield Pro/Shield Tube/FireTV Cube)[/COLOR]','[COLOR gold]Auto Detect (based on free RAM)[/COLOR]','[COLOR gold]Default (Reset to Default)[/COLOR]'])  # Select Ram Size
     if selection==0:
         advanced_set('2', '128', '0')
     elif selection==1:
@@ -71,6 +80,12 @@ def advanced_settings():
     elif selection==2:
         advanced_set('2', '256', '0')
     elif selection==3:
+        ram = _auto_detect_cache_mb()
+        advanced_set('2', str(ram), '0')
+        xbmc.sleep(1000)
+        xbmcgui.Dialog().notification(addon_name, '[COLOR gold]Cache set to %s MB from free RAM[/COLOR]' % ram, addon_icon, 3000)
+        return
+    elif selection==4:
         advanced_set('4', '20', '400')
     else:
         return

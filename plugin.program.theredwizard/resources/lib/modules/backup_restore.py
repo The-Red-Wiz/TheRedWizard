@@ -5,7 +5,7 @@ from zipfile import ZipFile
 from pathlib import Path
 import xbmc
 import xbmcgui
-from .addonvar import home, addon_profile, addon_path, setting, setting_set, translatePath, xbmcPath, addon_id, dp, local_string, addon_name, addon_icon, addon_fanart
+from .addonvar import home, addon_profile, addon_path, setting, setting_set, translatePath, xbmcPath, addon_id, dp, local_string, addon_name, addon_icon, addon_fanart, os_name
 from .utils import add_dir
 
 p = Path(home)
@@ -22,6 +22,20 @@ def log(_text, _var):
     xbmc.log(f'{_text} = {str(_var)}', xbmc.LOGINFO)
 
 excludes = [p / 'addons/packages', p / 'addons/temp', p / 'userdata/Thumbnails', p / 'userdata/Database/Textures13.db', p / 'userdata/Database/Textures14.db', p / wizard_path]
+
+def _foreign_native(filename):
+    """Skip add-on natives that do not belong on this OS (e.g. Windows .dll on Android)."""
+    name = filename.replace('\\', '/').lower()
+    if not name.startswith('addons/'):
+        return False
+    ext = os.path.splitext(name)[1]
+    if ext in ('.dll', '.pyd'):
+        return os_name != 'Windows'
+    if ext == '.so':
+        return os_name not in ('Linux', 'Android')
+    if ext == '.dylib':
+        return os_name not in ('macOS', 'iOS')
+    return False
 
 def from_keyboard():
     kb = xbmc.Keyboard('', '[COLOR red]Enter Backup Name[/COLOR]', False)
@@ -136,16 +150,20 @@ def restore_build(zippath):
                     filename_path = os.path.join(home, filename)
                     progress_percentage = int(counter/len(files)*100)
                     try:
-                        if not os.path.exists(filename_path) or 'Addons33.db' in filename:
+                        if _foreign_native(filename):
+                            xbmc.log(f'Skipped foreign binary {filename}', xbmc.LOGINFO)
+                        elif not os.path.exists(filename_path) or 'Addons33.db' in filename:
                             z.extract(file, home)
                     except Exception as e:
                         xbmc.log(f'[COLOR gold]Error extracting {filename} - {e}[/COLOR]', xbmc.LOGINFO)
                     dp.update(progress_percentage, f'[COLOR gold]{local_string(30034)}[/COLOR][COLOR red]\n{progress_percentage}%\n{filename}[/COLOR]')
                     counter += 1
-                dp.update(100, local_string(30035))  # Done Extracting
-                xbmcgui.Dialog().ok('[COLOR red]Restore[/COLOR]', '[COLOR gold]Restore Complete[/COLOR]')
-                setting_set('firstrun', 'true')
-                os._exit(1)
+            from .build_install import check_binary
+            check_binary()
+            dp.update(100, local_string(30035))  # Done Extracting
+            xbmcgui.Dialog().ok('[COLOR red]Restore[/COLOR]', '[COLOR gold]Restore Complete[/COLOR]')
+            setting_set('firstrun', 'true')
+            os._exit(1)
         else:
             xbmcgui.Dialog().ok('Restore', 'Backup Not Found')
     else:

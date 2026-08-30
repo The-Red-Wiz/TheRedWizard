@@ -59,7 +59,7 @@ except ImportError:
         from urllib2 import urlopen, Request, HTTPError, URLError
 
 from xbmc import Monitor, log as xbmc_log
-from xbmcgui import ControlButton, ControlImage, ControlLabel, ControlTextBox, WindowXMLDialog
+from xbmcgui import ControlButton, ControlImage, ControlLabel, ControlTextBox, Dialog, WindowXMLDialog
 
 try:  # Kodi v19 or newer
     from xbmcvfs import translatePath
@@ -67,7 +67,7 @@ except ImportError:  # Kodi v18 and older
     # pylint: disable=ungrouped-imports
     from xbmc import translatePath
 
-from .kodiutils import addon_path, localize, log
+from .kodiutils import addon_path, get_addon_info, localize, log, log_error
 
 
 IMAGE_RESULT = None
@@ -335,28 +335,23 @@ def get_best_server(servers):
     for server in servers:
         cum = []
         url = '%s/latency.txt' % os.path.dirname(server['url'])
-        urlparts = urlparse(url)
         for _ in range(0, 3):
             try:
-                if urlparts[0] == 'https':
-                    handler = HTTPSConnection(urlparts[1])
-                else:
-                    handler = HTTPConnection(urlparts[1])
-                headers = {'User-Agent': USER_AGENT}
+                request = build_request(url)
                 start = timeit.default_timer()
-                handler.request('GET', urlparts[2], headers=headers)
-                response = handler.getresponse()
+                response = urlopen(request, timeout=10)
+                text = response.read(9)
                 total = timeit.default_timer() - start
+                status = response.getcode()
+                response.close()
             except (HTTPError, URLError, socket.error):
-                cum.append(3600)
+                cum.append(3.6)
                 continue
-            text = response.read(9)
-            if int(response.status) == 200 and text == 'test=test'.encode():
+            if status == 200 and text == 'test=test'.encode():
                 cum.append(total)
             else:
-                cum.append(3600)
-            handler.close()
-        avg = round(sum(cum) / 6 * 1000, 3)
+                cum.append(3.6)
+        avg = round(sum(cum) / len(cum) * 1000, 3)
         results[avg] = server
     fastest = sorted(results.keys())[0]
     best = results[fastest]
@@ -408,6 +403,7 @@ class SpeedTest(Animation):
         self.screeny = 1080
         self.textbox = None
         self.ul_textbox = None
+        self._busy = False
 
         if sys.version_info.major == 2:
             WindowXMLDialog.__init__(self, xmlFilename, scriptPath, defaultSkin, defaultRes)  # pylint: disable=non-parent-init-called
@@ -698,20 +694,43 @@ class SpeedTest(Animation):
 
     def onClick(self, control):  # pylint: disable=invalid-name
         if control == self.button_run_id:
-            self.display_button_run(False)
-            self.display_results()
-            self.display_progress_bar()
-            self.display_ping_test()
-            self.display_gauge_test()
-            self.speedtest(share=True, simple=True)
-            self.display_progress_bar(False)
-            self.display_ping_test(False)
-            self.display_gauge_test(False)
-            if IMAGE_RESULT:
-                self.display_results(False)
-                self.show_end_result()
-            self.show_end_result_sp()
-            self.display_button_close('visible')
+            if self._busy:
+                return
+            self._busy = True
+            try:
+                self.display_button_run(False)
+                self.display_results()
+                self.display_progress_bar()
+                self.display_ping_test()
+                self.display_gauge_test()
+                success = False
+                try:
+                    success = self.speedtest(share=True, simple=True)
+                except Exception as exc:  # noqa: BLE001 - never let a test crash leave a dead UI
+                    log_error('speedtester: speedtest() raised {error}', error=exc)
+                    success = False
+                self.display_progress_bar(False)
+                self.display_ping_test(False)
+                self.display_gauge_test(False)
+                if success and IMAGE_RESULT:
+                    self.display_results(False)
+                    self.show_end_result()
+                    self.show_end_result_sp()
+                    self.display_button_close('visible')
+                elif not success:
+                    self.display_results(False)
+                    Dialog().notification(
+                        get_addon_info('name'),
+                        localize(30953),
+                        get_addon_info('icon'),
+                        4000
+                    )
+                    self.display_button_run('true')
+                else:
+                    self.show_end_result_sp()
+                    self.display_button_close('visible')
+            finally:
+                self._busy = False
         if control == self.button_close_id:
             self.save_close()
 
