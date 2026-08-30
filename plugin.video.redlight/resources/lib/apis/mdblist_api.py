@@ -719,7 +719,7 @@ def mdblist_hide_unhide_progress_items(params):
 	result = call_mdblist(url, json_data=json_data, method='post')
 	mdblist_cache.mdblist_cache.delete(_MDBL_DROPPED_CACHE_KEY)
 	if result is None:
-		return kodi_utils.notification('Error', 3000)
+		return kodi_utils.notify_error()
 	ok = _mdbl_dropped_post_ok(result, action, mediatype)
 	# Membership fallback only for Drop — Undrop must see a real removed/updated count.
 	# (A partial Dropped fetch missing the show would otherwise false-succeed Undrop.)
@@ -729,7 +729,7 @@ def mdblist_hide_unhide_progress_items(params):
 		dropped = mdblist_get_dropped_items()
 		ok = mid in dropped if mid is not None else False
 	if not ok:
-		return kodi_utils.notification('Error', 3000)
+		return kodi_utils.notify_error()
 	mdblist_sync_activities()
 	kodi_utils.kodi_refresh()
 	if action == 'hide': kodi_utils.notification('Dropped from MDBList Progress', 3000)
@@ -1211,11 +1211,11 @@ def mdblist_add_to_static_list(list_id, tmdb_id, media_type, imdb_id=None, list_
 		added = _mdbl_static_result_count(result, 'added')
 		existing = _mdbl_static_result_count(result, 'existing')
 		if added > 0:
-			kodi_utils.notification('Added to %s' % label, 3000)
+			kodi_utils.notify_added_to(label)
 			return result
 		if existing > 0:
-			return kodi_utils.notification('Already In List', 3000)
-	return kodi_utils.notification('Error', 3000)
+			return kodi_utils.notify_already_in_list()
+	return kodi_utils.notify_error()
 
 def mdblist_remove_from_static_list(list_id, tmdb_id, media_type, imdb_id=None, list_name=None, season=None, episode=None, episode_tmdb=None):
 	payload = _mdblist_static_list_payload(media_type, tmdb_id, imdb_id, season=season, episode=episode, episode_tmdb=episode_tmdb)
@@ -1229,44 +1229,44 @@ def mdblist_remove_from_static_list(list_id, tmdb_id, media_type, imdb_id=None, 
 	else:
 		still_in = mdblist_item_in_static_list(list_id, tmdb_id)
 	if removed > 0 or (result is not None and 'error' not in (result or {}) and not still_in):
-		kodi_utils.notification('Removed from %s' % label, 3000)
+		kodi_utils.notify_removed_from(label)
 		if kodi_utils.path_check('build_mdbl_list') or kodi_utils.external(): kodi_utils.kodi_refresh()
 		return result
-	return kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
+	return kodi_utils.notify_not_in_list()
 
 def mdblist_add_to_watchlist(tmdb_id, media_type, imdb_id=None):
 	result = call_mdblist('watchlist/items/add', json_data=_mdblist_list_payload(media_type, tmdb_id, imdb_id), method='post')
 	if isinstance(result, dict) and result.get('added', {}).get('movies', 0) + result.get('added', {}).get('shows', 0) > 0:
 		mdblist_sync_activities()
-		return kodi_utils.notification('Added to MDBList Watchlist', 3000)
+		return kodi_utils.notify_success()
 	if isinstance(result, dict) and result.get('existing', {}).get('movies', 0) + result.get('existing', {}).get('shows', 0) > 0:
-		return kodi_utils.notification('Already In List', 3000)
-	return kodi_utils.notification('Error', 3000)
+		return kodi_utils.notify_already_in_list()
+	return kodi_utils.notify_error()
 
 def mdblist_remove_from_watchlist(tmdb_id, media_type, imdb_id=None):
 	result = call_mdblist('watchlist/items/remove', json_data=_mdblist_list_payload(media_type, tmdb_id, imdb_id), method='post')
 	if isinstance(result, dict) and result.get('removed', {}).get('movies', 0) + result.get('removed', {}).get('shows', 0) > 0:
 		mdblist_sync_activities()
 		kodi_utils.kodi_refresh()
-		return kodi_utils.notification('Removed from MDBList Watchlist', 3000)
-	return kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
+		return kodi_utils.notify_success()
+	return kodi_utils.notify_not_in_list()
 
 def mdblist_add_to_library(tmdb_id, media_type, imdb_id=None):
 	result = call_mdblist('sync/collection', json_data=_mdblist_list_payload(media_type, tmdb_id, imdb_id), method='post')
 	if isinstance(result, dict) and result.get('updated', {}).get('movies', 0) + result.get('updated', {}).get('shows', 0) > 0:
 		mdblist_sync_activities()
-		return kodi_utils.notification('Added to MDBList Library', 3000)
+		return kodi_utils.notify_success()
 	if isinstance(result, dict) and result.get('existing', {}).get('movies', 0) + result.get('existing', {}).get('shows', 0) > 0:
-		return kodi_utils.notification('Already In List', 3000)
-	return kodi_utils.notification('Error', 3000)
+		return kodi_utils.notify_already_in_list()
+	return kodi_utils.notify_error()
 
 def mdblist_remove_from_library(tmdb_id, media_type, imdb_id=None):
 	result = call_mdblist('sync/collection/remove', json_data=_mdblist_list_payload(media_type, tmdb_id, imdb_id), method='post')
 	if isinstance(result, dict) and result.get('removed', {}).get('movies', 0) + result.get('removed', {}).get('shows', 0) > 0:
 		mdblist_sync_activities()
 		kodi_utils.kodi_refresh()
-		return kodi_utils.notification('Removed from MDBList Library', 3000)
-	return kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
+		return kodi_utils.notify_success()
+	return kodi_utils.notify_not_in_list()
 
 def _mdbl_item_in_watchlist(list_media, tmdb_id):
 	# Full cached watchlist (not page 1) so manager Add/Remove stays correct with pagination on.

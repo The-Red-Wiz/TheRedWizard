@@ -889,8 +889,8 @@ def simkl_add_to_list(listname, tmdb_id, media_type, imdb_id=None, tvdb_id=None,
 	success = _simkl_list_add_ok(result, media_type, media_kind)
 	if success:
 		_simkl_refresh_after_list_change(listname, media_type, media_kind)
-		kodi_utils.notification('Success', 3000)
-	else: kodi_utils.notification('Error', 3000)
+		kodi_utils.notify_success()
+	else: kodi_utils.notify_error()
 	return success
 
 def simkl_remove_from_list(listname, tmdb_id, media_type, imdb_id=None, tvdb_id=None, simkl_id=None, media_kind=None):
@@ -905,8 +905,8 @@ def simkl_remove_from_list(listname, tmdb_id, media_type, imdb_id=None, tvdb_id=
 		success = _simkl_list_remove_ok(result, media_type, media_kind)
 	if success:
 		_simkl_refresh_after_list_change(listname, media_type, media_kind)
-		kodi_utils.notification('Success', 3000)
-	else: kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
+		kodi_utils.notify_success()
+	else: kodi_utils.notify_not_in_list()
 	return success
 
 _SIMKL_SHOW_WATCHED_ACTIVITY_KEYS = ('watching', 'plantowatch', 'completed', 'hold', 'dropped', 'removed_from_list', 'all')

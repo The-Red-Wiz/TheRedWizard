@@ -12,7 +12,7 @@ from caches.settings_cache import get_setting, set_setting
 from caches import punchplay_cache as pp_cache
 from modules import kodi_utils, settings
 from modules.http_defaults import META_API_TIMEOUT
-from modules.utils import copy2clip, make_qrcode, make_tinyurl
+from modules.utils import copy2clip, make_qrcode, make_tinyurl, TaskPool
 
 BASE_URL = 'https://punchplay.tv'
 API_PREFIX = '/api/platform/v1'
@@ -740,6 +740,94 @@ def punchplay_search_my_lists(query):
 			})
 	return results
 
+def _punchplay_list_editable(entry):
+	if not entry or not entry.get('id'): return False
+	if entry.get('isWatchlist') or entry.get('isDynamicList'): return False
+	if entry.get('externalSource'): return False
+	return bool(entry.get('isOwner') or entry.get('isCollaborator'))
+
+def _punchplay_list_detail_items(list_id):
+	detail = call_punchplay('/lists/%s' % list_id, method='get') or {}
+	if not _api_ok(detail): return []
+	raw = detail.get('items') if isinstance(detail.get('items'), list) else []
+	return raw or []
+
+def _punchplay_item_on_list(list_id, tmdb_id, list_media):
+	want_movie = list_media == 'movie'
+	try: tid = int(tmdb_id)
+	except Exception: return None
+	for entry in _punchplay_list_detail_items(list_id):
+		try:
+			if int(entry.get('tmdbId') or entry.get('sourceId') or 0) != tid: continue
+		except Exception:
+			continue
+		kind = (entry.get('kind') or entry.get('type') or '').lower()
+		is_movie = kind in ('movie', 'movies')
+		if want_movie != is_movie: continue
+		return entry.get('id')
+	return None
+
+def punchplay_lists_split_by_membership(list_media, tmdb_id):
+	results = []
+	results_append = results.append
+	def _check(item):
+		list_id = item.get('id')
+		entry = {
+			'name': item.get('name') or 'List',
+			'display': '[B]LIST:[/B] [I]%s[/I]' % (item.get('name') or 'List').upper(),
+			'list_id': list_id,
+			'item_count': item.get('itemCount') or 0,
+		}
+		item_id = _punchplay_item_on_list(list_id, tmdb_id, list_media)
+		results_append((entry, item_id is not None, item_id))
+	editable = [e for e in (punchplay_get_lists() or []) if _punchplay_list_editable(e)]
+	if not editable: return [], []
+	threads = TaskPool().tasks(_check, editable, min(len(editable), settings.max_threads()) or 1)
+	[i.join() for i in threads]
+	in_lists, out_lists = [], []
+	for entry, is_in, item_id in results:
+		if is_in:
+			entry['item_id'] = item_id
+			in_lists.append(entry)
+		else:
+			out_lists.append(entry)
+	in_lists.sort(key=lambda k: k['name'].lower())
+	out_lists.sort(key=lambda k: k['name'].lower())
+	return in_lists, out_lists
+
+def select_punchplay_lists(lists):
+	if not lists: return None
+	list_items = [{'line1': '%s [I](x%02d)[/I]' % (item['display'], item.get('item_count', 0))} for item in lists]
+	kwargs = {'items': json.dumps(list_items), 'heading': 'Select PunchPlay List', 'narrow_window': 'true'}
+	return kodi_utils.select_dialog(lists, **kwargs)
+
+def punchplay_add_to_list(list_id, tmdb_id, list_media, title, list_name=None):
+	try: tid = int(tmdb_id)
+	except Exception:
+		return kodi_utils.notify_error()
+	kind = _title_kind(list_media)
+	payload = {'kind': kind, 'sourceId': tid, 'title': title or str(tid)}
+	if kind == 'show' and _tmdb_is_anime(tmdb_id):
+		payload['isAnime'] = True
+	result = call_punchplay('/lists/%s/items' % list_id, method='post', data=payload)
+	if _punchplay_payload_failed(result):
+		return kodi_utils.notify_error()
+	clear_punchplay_list_caches()
+	kodi_utils.notify_added_to(list_name or 'List')
+	return True
+
+def punchplay_remove_from_list(list_id, item_id, list_name=None):
+	if not item_id:
+		return kodi_utils.notify_not_in_list()
+	ok = call_punchplay('/lists/%s/items/%s' % (list_id, item_id), method='delete')
+	if _punchplay_payload_failed(ok):
+		return kodi_utils.notify_error()
+	clear_punchplay_list_caches()
+	if kodi_utils.path_check('punchplay_user_list') or kodi_utils.external():
+		kodi_utils.kodi_refresh()
+	kodi_utils.notify_removed_from(list_name)
+	return True
+
 # ---------- Interact / mark ----------
 
 def punchplay_interact(media_type, tmdb_id, payload):
@@ -1123,6 +1211,11 @@ def punchplay_manager_choice(params):
 		choices.append(('Remove from [B]Collection[/B]', 'remove_library'))
 	else:
 		choices.append(('Add to [B]Collection[/B]', 'add_library'))
+	show_in_lists, show_out_lists = punchplay_lists_split_by_membership(list_media, tmdb_id)
+	if show_out_lists:
+		choices.append(('Add To [B]My List[/B]...', 'add_list'))
+	if show_in_lists:
+		choices.append(('Remove from [B]My List[/B]...', 'remove_list'))
 	choices.extend(_manager_mark_watched_choices(params))
 	choices.extend([
 		('Reset [B]Scrobble[/B]', 'reset_scrobble'),
@@ -1159,10 +1252,10 @@ def punchplay_manager_choice(params):
 		return punchplay_reset_scrobble(params)
 	if choice == 'add_favourite':
 		ok = punchplay_interact(list_media, tmdb_id, {'isFavourite': True})
-		return kodi_utils.notification('Success' if ok else 'Error', 3000)
+		return kodi_utils.notify_success() if ok else kodi_utils.notify_error()
 	if choice == 'remove_favourite':
 		ok = punchplay_interact(list_media, tmdb_id, {'isFavourite': False})
-		return kodi_utils.notification('Success' if ok else 'Error', 3000)
+		return kodi_utils.notify_success() if ok else kodi_utils.notify_error()
 	if choice == 'add_library':
 		kind = _title_kind(list_media)
 		ok = call_punchplay('/collection', method='post', data={
@@ -1172,27 +1265,33 @@ def punchplay_manager_choice(params):
 		if ok:
 			clear_punchplay_list_caches()
 			kodi_utils.kodi_refresh()
-		return kodi_utils.notification('Success' if ok else 'Error', 3000)
+		return kodi_utils.notify_success() if ok else kodi_utils.notify_error()
 	if choice == 'remove_library':
 		entry = _collection_entry(list_media, tmdb_id, collection_entries)
 		cid = entry.get('id') if entry else None
 		if not cid:
-			return kodi_utils.notification('Error', 3000)
+			return kodi_utils.notify_not_in_list()
 		ok = call_punchplay('/collection/%s' % cid, method='delete')
 		ok = not _punchplay_payload_failed(ok)
 		if ok:
 			clear_punchplay_list_caches()
 			kodi_utils.kodi_refresh()
-		return kodi_utils.notification('Success' if ok else 'Error', 3000)
+		return kodi_utils.notify_success() if ok else kodi_utils.notify_error()
+	if choice in ('add_list', 'remove_list'):
+		selected = select_punchplay_lists(show_out_lists if choice == 'add_list' else show_in_lists)
+		if selected is None: return
+		if choice == 'add_list':
+			return punchplay_add_to_list(selected['list_id'], tmdb_id, list_media, title, selected.get('name'))
+		return punchplay_remove_from_list(selected['list_id'], selected.get('item_id'), selected.get('name'))
 	if choice.startswith('remove_'):
 		status = choice.replace('remove_', '')
 		ok = punchplay_interact(list_media, tmdb_id, {'showStatus': None, 'wantToWatch': False} if status == STATUS_PLANNING else {'showStatus': None})
-		return kodi_utils.notification('Success' if ok else 'Error', 3000)
+		return kodi_utils.notify_success() if ok else kodi_utils.notify_error()
 	if choice in (STATUS_PLANNING, STATUS_WATCHING, STATUS_ON_HOLD, STATUS_DROPPED):
 		payload = {'showStatus': choice}
 		if choice == STATUS_PLANNING: payload['wantToWatch'] = True
 		ok = punchplay_interact(list_media, tmdb_id, payload)
-		return kodi_utils.notification('Success' if ok else 'Error', 3000)
+		return kodi_utils.notify_success() if ok else kodi_utils.notify_error()
 
 # ---------- Sync ----------
 

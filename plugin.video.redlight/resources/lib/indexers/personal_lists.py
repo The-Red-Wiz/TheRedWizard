@@ -212,27 +212,33 @@ def make_new_personal_list(params):
 		heading='Personal Lists',text='Import a Trakt List to populate this new list?', ok_label='Yes', cancel_label='No'):
 		from apis.trakt_api import get_trakt_list_selection
 		chosen_list = get_trakt_list_selection(['default', 'personal', 'liked'])
-		if chosen_list == None: return None, None
+		if chosen_list == None:
+			kodi_utils.notification(kodi_utils.LIST_CREATE_CANCELLED, 3000)
+			return None, None
 		params['chosen_list'] = chosen_list
 		suggested_list_name = chosen_list.get('name')
 		suggested_author = chosen_list.get('user')
 		params.update({'suggested_list_name': suggested_list_name, 'suggested_author': suggested_author, 'chosen_list': chosen_list})
 		if suggested_author in ('Collection', 'Watchlist'): suggested_author = get_setting('redlight.trakt.user')
 	list_name = personal_list_name(suggested_list_name)
-	if list_name == None: return None, None
+	if list_name == None:
+		kodi_utils.notification(kodi_utils.LIST_CREATE_CANCELLED, 3000)
+		return None, None
 	author = personal_list_author(suggested_author)
 	if not unique_list_check(list_name, author):
 		params['is_retry'] = True
 		return make_new_personal_list(params)
 	description = personal_list_description()
 	spec = personal_sort_order()
-	if spec == None: return None, None
+	if spec == None:
+		kodi_utils.notification(kodi_utils.LIST_CREATE_CANCELLED, 3000)
+		return None, None
 	# The sort_order column is kept in step for anything that still displays it, but the list is
 	# sorted from the override store - writing only the column, as this did before, meant every list
 	# created after the upgrade ignored the sort order chosen right here and came back title first.
 	success = personal_lists_cache.make_list(list_name, author, _legacy_sort_code(spec), description)
 	if not success:
-		kodi_utils.notification('Error Creating List', 3000)
+		kodi_utils.notification(kodi_utils.LIST_CREATE_ERROR, 3000)
 		return None, None
 	_set_sort_override(list_name, author, spec)
 	if chosen_list:

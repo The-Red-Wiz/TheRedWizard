@@ -261,19 +261,20 @@ def add_remove_watchfavs(media_type, media_id, list_type, status):
 	media_type = _tmdb_media_type(media_type)
 	data = tmdb_list_api.add_remove_from_watchfavs(media_type, media_id, list_type, status)
 	if not data or not data.get('success'):
-		if not status: kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
-		else: kodi_utils.notification('Error Adding to List', 3000)
+		if not status: kodi_utils.notify_not_in_list()
+		else: kodi_utils.notify_error()
 		return False
 	return True
 
-def add_to_tmdb_list(list_id, items):
+def add_to_tmdb_list(list_id, items, list_name=None, notify=True):
 	data = tmdb_list_api.add_remove_from_list(list_id, items, 'post')
 	if not data or not data.get('success'):
-		kodi_utils.notification('Error Adding to List')
+		if notify: kodi_utils.notify_error()
 		return False
+	if notify: kodi_utils.notify_added_to(list_name)
 	return True
 
-def remove_from_tmdb_list(list_id, items):
+def remove_from_tmdb_list(list_id, items, list_name=None):
 	try:
 		payload = {'items': []}
 		for item in items.get('items', []):
@@ -282,12 +283,12 @@ def remove_from_tmdb_list(list_id, items):
 		if not payload['items']: raise ValueError('no_items')
 		data = tmdb_list_api.add_remove_from_list(list_id, payload, 'delete')
 		if not _tmdb_list_remove_succeeded(data):
-			kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000, settle_ms=300)
+			kodi_utils.notify_not_in_list(settle_ms=300)
 			return False
-		kodi_utils.notification('Success', 3000, settle_ms=300)
+		kodi_utils.notify_removed_from(list_name)
 		return True
 	except:
-		kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000, settle_ms=300)
+		kodi_utils.notify_not_in_list(settle_ms=300)
 		return False
 
 def rename_tmdb_list(current_name, list_id):
@@ -356,23 +357,25 @@ def make_new_tmdb_list(params):
 																				ok_label='Yes', cancel_label='No'):
 		from apis.trakt_api import get_trakt_list_selection
 		chosen_list = get_trakt_list_selection(['default', 'personal'])
-		if chosen_list == None: return
+		if chosen_list == None:
+			kodi_utils.notification(kodi_utils.LIST_CREATE_CANCELLED, 3000)
+			return None
 		suggested_list_name = chosen_list.get('name')
 	list_name = kodi_utils.kodi_dialog().input('Please Choose a Name for the New TMDb List', defaultt=suggested_list_name)
 	if not list_name:
-		kodi_utils.notification('List Creation Cancelled', 3000)
+		kodi_utils.notification(kodi_utils.LIST_CREATE_CANCELLED, 3000)
 		return None
 	list_name = unquote(list_name)
 	data = tmdb_list_api.make_list(list_name)
-	if not data.get('success'):
-		kodi_utils.notification('Error Creating List')
+	if not data or not data.get('success') or not data.get('id'):
+		kodi_utils.notification(kodi_utils.LIST_CREATE_ERROR, 3000)
 		return None
 	if chosen_list:
 		new_contents = process_trakt_list(chosen_list)
 		success = process_add_to_list(data.get('id'), new_contents)
 	tmdb_lists_cache.clear_all_lists()
 	if not external_creation: kodi_utils.kodi_refresh()
-	return data.get('id')
+	return data.get('id'), list_name
 
 def delete_tmdb_list(params):
 	if not kodi_utils.confirm_dialog(heading='TMDb Lists', text='Are You Sure?', ok_label='Yes', cancel_label='No'): return
@@ -463,7 +466,7 @@ def import_trakt_list_tmdb(params):
 	success = process_add_to_list(list_id, new_contents)
 	if success and rename_list:
 			tmdb_list_api.rename_list(list_id, trakt_list_name)
-	kodi_utils.notification('Success. Items added' if success else 'Error adding items', 2000)
+	kodi_utils.notify_success() if success else kodi_utils.notify_error()
 
 def process_trakt_list(chosen_list):
 	from apis.trakt_api import trakt_fetch_collection_watchlist, get_trakt_list_contents
@@ -497,7 +500,7 @@ def process_add_to_list(list_id, new_contents):
 	success = False
 	kodi_utils.show_busy_dialog()
 	try:
-		if add_to_tmdb_list(list_id, {'items': new_contents}):
+		if add_to_tmdb_list(list_id, {'items': new_contents}, notify=False):
 			success = True
 			tmdb_lists_cache.clear_list(list_id)
 			tmdb_lists_cache.clear_all_lists()

@@ -1,3 +1,10 @@
+[COLOR red][B]Version 2.3.8[/B][/COLOR]
+- [B]EasyNews / NZB[/B]: Filter by Name can keep a file with no show title when SxxExx or a bare/absolute number still matches and the TMDb episode title is in the filename (skips generic names like Home).
+- [B]Tips / Changelog[/B]: wrapping a long line that uses [COLOR name] no longer leaks raw tags (e.g. Meta List Search magenta row).
+- [B]PunchPlay Manager[/B]: [B]Add To My List[/B] / [B]Remove from My List[/B] only for ordinary lists the title is (or is not) on. Dynamic, watchlist, and externally synced lists are skipped. PunchPlay lists are movie/show only (no episode rows).
+- [B]Trakt Lists Manager[/B]: [B]Add To NEW Personal List[/B] (after add/remove, same place as TMDb / Personal Lists) creates a private list and adds this title. From an episode row the new list gets the show.
+- [B]List Managers[/B]: the same toasts for add/remove/create — [I]Success[/I], [I]Error[/I], [I]Already In List[/I], [I]Item not in list[/I], [I]Added to …[/I] / [I]Removed from …[/I] when the list is named, [I]List Creation Cancelled[/I] / [I]Error Creating List[/I]. Cancelling create no longer also says Error Creating List.
+
 [COLOR red][B]Version 2.3.7[/B][/COLOR]
 - [B]Simkl[/B] ([I]#238[/I]): Mark Show as Watched no longer treats a shelf-only history add ([I]added.shows[/I] with 0 episodes) as success. If Simkl does not expand episode timestamps, Red Light POSTs each season number (same as Mark Season) so Force Sync does not bring the show back unwatched.
 

@@ -57,15 +57,18 @@ class PersonalListsCache:
 			dbcon = connect_database('personal_lists_db')
 			contents = self.get_list(list_name, author, update_seen=False, dbcon=dbcon)
 			if action == 'add':
-				if [str(i['media_id']) for i in contents if str(new_contents['media_id']) == str(i['media_id'])]: return 'Item Already in [B]%s[/B]' % list_name
+				if [str(i['media_id']) for i in contents if str(new_contents['media_id']) == str(i['media_id'])]:
+					return kodi_utils.LIST_ITEM_ALREADY_IN_LIST
 				command = 'UPDATE personal_lists SET contents=?, total=total+1, updated=? WHERE name=?'
 				contents.append(new_contents)
 			else:
-				if not [str(i['media_id']) for i in contents if str(new_contents) == str(i['media_id'])]: return kodi_utils.LIST_ITEM_NOT_IN_LIST
+				if not [str(i['media_id']) for i in contents if str(new_contents) == str(i['media_id'])]:
+					return kodi_utils.LIST_ITEM_NOT_IN_LIST
 				command = 'UPDATE personal_lists SET contents=?, total=total-1, updated=? WHERE name=?'
 				contents = [i for i in contents if not str(i['media_id']) == str(new_contents)]
 			dbcon.execute(command, (repr(contents), get_timestamp(), list_name))
-			return 'Success'
+			if action == 'add': return 'Added to %s' % list_name
+			return 'Removed from %s' % list_name
 		except: return 'Error'
 
 	def add_many_list_items(self, list_name, author, new_contents):

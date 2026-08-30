@@ -1365,24 +1365,28 @@ def show_text(heading, text=None, file=None, font_size='small', kodi_log=False):
 	def _protect_bbcode_spaces(value):
 		return bbcode_span_re.sub(lambda m: m.group(0).replace(' ', nbsp), value)
 
+	def _tag_base(name):
+		# Protect turns "[COLOR magenta]" into nbsp; split on ' ' alone would miss [/COLOR].
+		name = name.replace(nbsp, ' ')
+		return name.split(' ', 1)[0].split('=', 1)[0].upper()
+
 	def _tag_stack_delta(stack, value):
 		for match in bbcode_tag_re.finditer(value):
 			closing, name = match.group(1), match.group(2)
-			base = name.split(' ', 1)[0].split('=', 1)[0].upper()
+			base = _tag_base(name)
 			if closing:
 				for idx in range(len(stack) - 1, -1, -1):
-					open_base = stack[idx].split(' ', 1)[0].split('=', 1)[0].upper()
-					if open_base == base:
+					if _tag_base(stack[idx]) == base:
 						del stack[idx]
 						break
 			else:
-				stack.append(name)
+				stack.append(name.replace(nbsp, ' '))
 
 	def _open_tags(stack):
-		return ''.join('[%s]' % name for name in stack)
+		return ''.join('[%s]' % name.replace(nbsp, ' ') for name in stack)
 
 	def _close_tags(stack):
-		return ''.join('[/%s]' % name.split(' ', 1)[0].split('=', 1)[0] for name in reversed(stack))
+		return ''.join('[/%s]' % _tag_base(name) for name in reversed(stack))
 
 	def _balance_bbcode(parts):
 		# Close open markup at each line end and reopen on the next so a wrap cannot leave
@@ -1435,6 +1439,27 @@ def show_text(heading, text=None, file=None, font_size='small', kodi_log=False):
 	return open_window(('windows.textviewer', 'TextViewer'), 'textviewer.xml', heading=heading, text=processed_lines, font_size=font_size)
 
 LIST_ITEM_NOT_IN_LIST = 'Item not in list'
+LIST_ITEM_ALREADY_IN_LIST = 'Already In List'
+LIST_CREATE_CANCELLED = 'List Creation Cancelled'
+LIST_CREATE_ERROR = 'Error Creating List'
+
+def notify_success(settle_ms=0):
+	notification('Success', 3000, settle_ms=settle_ms)
+
+def notify_error(settle_ms=0):
+	notification('Error', 3000, settle_ms=settle_ms)
+
+def notify_already_in_list():
+	notification(LIST_ITEM_ALREADY_IN_LIST, 3000)
+
+def notify_not_in_list(settle_ms=0):
+	notification(LIST_ITEM_NOT_IN_LIST, 3000, settle_ms=settle_ms)
+
+def notify_added_to(name=None):
+	notification('Added to %s' % name if name else 'Success', 3000)
+
+def notify_removed_from(name=None):
+	notification('Removed from %s' % name if name else 'Success', 3000)
 
 def notification(line1, time=5000, icon=None, settle_ms=0):
 	# Brief delay helps Kodi show the toast after select/confirm dialogs close (rapid calls can drop it otherwise).

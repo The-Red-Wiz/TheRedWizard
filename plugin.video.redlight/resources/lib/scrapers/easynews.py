@@ -19,6 +19,7 @@ class source:
 			self.search_title = clean_file_name(title).replace('&', 'and')
 			self.aliases = source_utils.get_aliases_titles(info.get('aliases', []))
 			self.absolute_episode = info.get('absolute_episode')
+			self.ep_name = info.get('ep_name') or ''
 			expiry = info.get('expiry_times')[0]
 			primary = self._search_name()
 			files = self._merge_searches(self._search_queries(), expiry)
@@ -32,7 +33,7 @@ class source:
 						file_name = normalize(item['name'])
 						if any(x in file_name.lower() for x in extras): continue
 						if filter_title and not source_utils.check_title_or_absolute(
-								title, file_name, self.aliases, self.year, self.season, self.episode, self.absolute_episode): continue
+								title, file_name, self.aliases, self.year, self.season, self.episode, self.absolute_episode, self.ep_name): continue
 						if filter_lang and not self._language_ok(item['language'], lang_filters, include_unknown): continue
 						display_name = clean_file_name(file_name).replace('html', ' ').replace('+', ' ').replace('-', ' ')
 						url_dl, size = item['url_dl'], round(float(int(item['rawSize']))/1073741824, 2)

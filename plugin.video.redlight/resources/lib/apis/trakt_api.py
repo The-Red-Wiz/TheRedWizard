@@ -556,20 +556,20 @@ def _trakt_list_result_count(result, key):
 	if not isinstance(block, dict): return 0
 	return sum(int(block.get(k) or 0) for k in ('movies', 'shows', 'seasons', 'episodes'))
 
-def add_to_list(user, slug, data):
+def add_to_list(user, slug, data, list_name=None):
 	result = call_trakt('/users/%s/lists/%s/items' % (user, slug), data=data)
-	if not isinstance(result, dict): return kodi_utils.notification('Error', 3000)
-	if _trakt_list_result_count(result, 'existing') > 0: return kodi_utils.notification('Already In List', 3000)
-	if _trakt_list_result_count(result, 'added') == 0: return kodi_utils.notification('Error', 3000)
-	kodi_utils.notification('Success', 3000)
+	if not isinstance(result, dict): return kodi_utils.notify_error()
+	if _trakt_list_result_count(result, 'existing') > 0: return kodi_utils.notify_already_in_list()
+	if _trakt_list_result_count(result, 'added') == 0: return kodi_utils.notify_error()
+	kodi_utils.notify_added_to(list_name)
 	trakt_sync_activities()
 	return result
 
-def remove_from_list(user, slug, data):
+def remove_from_list(user, slug, data, list_name=None):
 	result = call_trakt('/users/%s/lists/%s/items/remove' % (user, slug), data=data)
 	if not result or _trakt_list_result_count(result, 'deleted') == 0:
-		return kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
-	kodi_utils.notification('Success', 3000)
+		return kodi_utils.notify_not_in_list()
+	kodi_utils.notify_removed_from(list_name)
 	trakt_sync_activities()
 	if kodi_utils.path_check('my_lists') or kodi_utils.external(): kodi_utils.kodi_refresh()
 	return result
@@ -686,54 +686,54 @@ def select_trakt_personal_lists(lists):
 
 def add_to_watchlist(data):
 	result = call_trakt('/sync/watchlist', data=data)
-	if result['existing']['movies'] + result['existing']['shows'] > 0: return kodi_utils.notification('Already In List', 3000)
-	if result['added']['movies'] + result['added']['shows'] == 0: return kodi_utils.notification('Error', 3000)
-	kodi_utils.notification('Success', 3000)
+	if result['existing']['movies'] + result['existing']['shows'] > 0: return kodi_utils.notify_already_in_list()
+	if result['added']['movies'] + result['added']['shows'] == 0: return kodi_utils.notify_error()
+	kodi_utils.notify_success()
 	trakt_sync_activities()
 	return result
 
 def remove_from_watchlist(data):
 	result = call_trakt('/sync/watchlist/remove', data=data)
 	if not result or result.get('deleted', {}).get('movies', 0) + result.get('deleted', {}).get('shows', 0) == 0:
-		return kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
-	kodi_utils.notification('Success', 3000)
+		return kodi_utils.notify_not_in_list()
+	kodi_utils.notify_success()
 	trakt_sync_activities()
 	if kodi_utils.path_check('trakt_watchlist') or kodi_utils.external(): kodi_utils.kodi_refresh()
 	return result
 
 def add_to_collection(data):
 	result = call_trakt('/sync/collection', data=data)
-	if result['existing']['movies'] + result['existing']['episodes'] > 0: return kodi_utils.notification('Already In List', 3000)
-	if result['added']['movies'] + result['added']['episodes'] == 0: return kodi_utils.notification('Error', 3000)
-	kodi_utils.notification('Success', 3000)
+	if result['existing']['movies'] + result['existing']['episodes'] > 0: return kodi_utils.notify_already_in_list()
+	if result['added']['movies'] + result['added']['episodes'] == 0: return kodi_utils.notify_error()
+	kodi_utils.notify_success()
 	trakt_sync_activities()
 	return result
 
 def remove_from_collection(data):
 	result = call_trakt('/sync/collection/remove', data=data)
 	if not result or result.get('deleted', {}).get('movies', 0) + result.get('deleted', {}).get('episodes', 0) == 0:
-		return kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
-	kodi_utils.notification('Success', 3000)
+		return kodi_utils.notify_not_in_list()
+	kodi_utils.notify_success()
 	trakt_sync_activities()
 	if kodi_utils.path_check('trakt_collection') or kodi_utils.external(): kodi_utils.kodi_refresh()
 	return result
 
 def add_to_favorites(data):
 	result = call_trakt('/sync/favorites', data=data)
-	if not result: return kodi_utils.notification('Error', 3000)
+	if not result: return kodi_utils.notify_error()
 	if result.get('existing', {}).get('movies', 0) + result.get('existing', {}).get('shows', 0) > 0:
-		return kodi_utils.notification('Already In List', 3000)
+		return kodi_utils.notify_already_in_list()
 	if result.get('added', {}).get('movies', 0) + result.get('added', {}).get('shows', 0) == 0:
-		return kodi_utils.notification('Error', 3000)
-	kodi_utils.notification('Success', 3000)
+		return kodi_utils.notify_error()
+	kodi_utils.notify_success()
 	trakt_sync_activities()
 	return result
 
 def remove_from_favorites(data):
 	result = call_trakt('/sync/favorites/remove', data=data)
 	if not result or result.get('deleted', {}).get('movies', 0) + result.get('deleted', {}).get('shows', 0) == 0:
-		return kodi_utils.notification(kodi_utils.LIST_ITEM_NOT_IN_LIST, 3000)
-	kodi_utils.notification('Success', 3000)
+		return kodi_utils.notify_not_in_list()
+	kodi_utils.notify_success()
 	trakt_sync_activities()
 	if kodi_utils.path_check('trakt_favorites') or kodi_utils.external(): kodi_utils.kodi_refresh()
 	return result
@@ -746,7 +746,7 @@ def hide_unhide_progress_items(params):
 	data = {media_type: [{'ids': {'tmdb': media_id}}]}
 	result = call_trakt(url, data=data)
 	if not isinstance(result, dict):
-		return kodi_utils.notification('Error', 3000)
+		return kodi_utils.notify_error()
 	added = int((result.get('added') or {}).get(media_type, 0) or 0)
 	existing = int((result.get('existing') or {}).get(media_type, 0) or 0)
 	deleted = int((result.get('deleted') or {}).get(media_type, 0) or 0)
@@ -761,7 +761,7 @@ def hide_unhide_progress_items(params):
 		except:
 			ok = False
 	if not ok:
-		return kodi_utils.notification('Error', 3000)
+		return kodi_utils.notify_error()
 	trakt_sync_activities()
 	kodi_utils.kodi_refresh()
 	if is_drop: kodi_utils.notification('Dropped from Trakt Progress', 3000)
@@ -1007,14 +1007,25 @@ def get_trakt_list_selection(included_lists):
 	return selection
 
 def make_new_trakt_list(params):
-	list_title = kodi_utils.kodi_dialog().input('')
-	if not list_title: return
+	params = params or {}
+	external_creation = params.get('external_creation', 'false') == 'true'
+	list_title = kodi_utils.kodi_dialog().input('Please Choose a Name for the New Trakt List')
+	if not list_title:
+		kodi_utils.notification(kodi_utils.LIST_CREATE_CANCELLED, 3000)
+		return None
 	list_name = unquote(list_title)
-	data = {'name': list_name, 'privacy': 'private', 'allow_comments': False}
-	call_trakt('users/me/lists', data=data)
+	result = call_trakt('users/me/lists', data={'name': list_name, 'privacy': 'private', 'allow_comments': False})
+	ids = (result or {}).get('ids') if isinstance(result, dict) else {}
+	slug = (ids or {}).get('slug')
+	if not slug:
+		kodi_utils.notification(kodi_utils.LIST_CREATE_ERROR, 3000)
+		return None
+	user = ((result.get('user') or {}).get('ids') or {}).get('slug') or 'me'
 	trakt_sync_activities()
-	kodi_utils.notification('Success', 3000)
-	kodi_utils.kodi_refresh()
+	if not external_creation:
+		kodi_utils.notify_success()
+		kodi_utils.kodi_refresh()
+	return {'user': user, 'slug': slug, 'name': result.get('name') or list_name}
 
 def delete_trakt_list(params):
 	user = params['user']

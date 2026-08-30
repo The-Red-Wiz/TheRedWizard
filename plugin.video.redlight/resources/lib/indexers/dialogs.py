@@ -212,7 +212,7 @@ def personallists_manager_choice(params):
 		if action == None: return
 	if action == 'add_new':
 		list_name, author = make_new_personal_list({'external_creation': 'true'})
-		if not list_name: return kodi_utils.notification('Error Creating List', 3000)
+		if not list_name: return
 		action = 'add'
 	else:
 		picker = out_lists if action == 'add' else in_lists
@@ -277,25 +277,29 @@ def _tmdblists_manager_choice(params):
 		success = add_remove_watchfavs(media_type, tmdb_id, list_id, status)
 		tmdb_lists_cache.clear_watchfavrecs(list_id, media_type)
 		if not success: return
-		kodi_utils.notification('Success', 3000)
+		kodi_utils.notify_success()
 		return
 	item_in_list = False
+	list_name = None
 	if action == 'list_add_new':
-		list_id = make_new_tmdb_list({'external_creation': 'true'})
-		if not list_id: return kodi_utils.notification('Error Creating List')
+		created = make_new_tmdb_list({'external_creation': 'true'})
+		if not created: return
+		list_id, list_name = created
 		action, item_in_list = 'list_add', False
 	else:
-		list_id = select_tmdb_lists(out_lists if action == 'list_add' else in_lists)
+		picker = out_lists if action == 'list_add' else in_lists
+		list_id = select_tmdb_lists(picker)
 		if list_id == None: return
+		list_name = next((i.get('name') for i in picker if str(i.get('id')) == str(list_id)), None)
 	new_contents = {'items': [{'media_type': media_type, 'media_id': tmdb_id}]}
 	if action == 'list_add':
-		if item_in_list: return kodi_utils.notification('Item already in List')
-		success = add_to_tmdb_list(list_id, new_contents)
+		if item_in_list: return kodi_utils.notify_already_in_list()
+		success = add_to_tmdb_list(list_id, new_contents, list_name=list_name)
 		tmdb_lists_cache.clear_list(list_id)
 		tmdb_lists_cache.clear_all_lists()
-		kodi_utils.notification('Success' if success else 'Failed', 3000)
+		if not success: return
 	elif action == 'list_remove':
-		remove_from_tmdb_list(list_id, new_contents)
+		remove_from_tmdb_list(list_id, new_contents, list_name=list_name)
 		tmdb_lists_cache.clear_list(list_id)
 		tmdb_lists_cache.clear_all_lists()
 	if 'remove' in action and any([kodi_utils.path_check(str(list_id)) or kodi_utils.external()]):
@@ -935,6 +939,7 @@ def trakt_manager_choice(params):
 			choices.append(('Add To [B]Personal List[/B]...', 'add_show'))
 		if show_in_lists:
 			choices.append(('Remove from [B]Personal List[/B]...', 'remove_show'))
+	choices.append(('Add To [B]NEW[/B] Personal List...', 'add_new'))
 	watchlist_label = 'Movies Watchlist' if list_media == 'movie' else 'TV Shows Watchlist'
 	collection_label = 'Movies Library' if list_media == 'movie' else 'TV Shows Library'
 	favorites_label = 'Favorite Movies' if list_media == 'movie' else 'Favorite TV Shows'
@@ -989,8 +994,12 @@ def trakt_manager_choice(params):
 		selected = trakt_api.select_trakt_personal_lists(show_out_lists if choice == 'add_show' else show_in_lists)
 		if selected == None: return
 		if choice == 'add_show':
-			return trakt_api.add_to_list(selected['user'], selected['slug'], data)
-		return trakt_api.remove_from_list(selected['user'], selected['slug'], data)
+			return trakt_api.add_to_list(selected['user'], selected['slug'], data, selected.get('name'))
+		return trakt_api.remove_from_list(selected['user'], selected['slug'], data, selected.get('name'))
+	if choice == 'add_new':
+		created = trakt_api.make_new_trakt_list({'external_creation': 'true'})
+		if not created: return
+		return trakt_api.add_to_list(created['user'], created['slug'], data, created.get('name'))
 	if choice in ('add_episode', 'remove_episode'):
 		if not episode_tmdb:
 			return kodi_utils.notification('Unable to resolve episode for Trakt', 3500)
@@ -998,8 +1007,8 @@ def trakt_manager_choice(params):
 		if selected == None: return
 		list_data = _trakt_manager_personal_list_payload(params, episode_tmdb)
 		if choice == 'add_episode':
-			return trakt_api.add_to_list(selected['user'], selected['slug'], list_data)
-		return trakt_api.remove_from_list(selected['user'], selected['slug'], list_data)
+			return trakt_api.add_to_list(selected['user'], selected['slug'], list_data, selected.get('name'))
+		return trakt_api.remove_from_list(selected['user'], selected['slug'], list_data, selected.get('name'))
 
 def _trakt_list_shortcut_choice(params, list_type):
 	if not settings.trakt_user_active(): return kodi_utils.notification('No Active Trakt Account', 3500)
