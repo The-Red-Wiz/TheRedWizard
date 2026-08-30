@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<settings>
-	<category label="Chains Live">
-		<setting id="manifest_url" type="text" label="Category menu URL" default="https://thechains24.com/ABSOLUTION/chains1o5.txt"/>
-	</category>
-</settings>
