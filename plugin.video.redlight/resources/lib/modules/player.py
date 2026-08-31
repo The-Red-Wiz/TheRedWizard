@@ -33,7 +33,6 @@ _INTRO_SKIP_EARLY_START_SEC = 120
 _INTRO_SKIP_SETTLE_SEC = 4
 _INTRO_SKIP_SETTLE_MAX_WAIT_SEC = 12
 _INTRO_SKIP_SETTLE_JUMP_SEC = 20
-_INTRO_CHAPTER_MIN_START_SEC = 5
 _INTRO_CHAPTER_MIN_SEGMENT_SEC = 10
 _INTRO_CHAPTER_MIN_END_SEC = 15
 _INTRO_SKIP_POST_END_GRACE_SEC = 20
@@ -1569,7 +1568,11 @@ class RedLightPlayer(xbmc.Player):
 
 	def _start_intro_skip_fetch(self):
 		play_type = getattr(self.sources_object, 'play_type', '')
-		if not st.autoplay_skip_intro_enabled(play_type) or self.media_type != 'episode':
+		if self.media_type != 'episode':
+			return
+		if not st.autoplay_skip_intro_enabled(play_type):
+			self._log_intro_skip('Intro skip: disabled (mode=%s all_episodes=%s)' % (
+				st.skip_intro_mode(), st.skip_intro_all_episodes()))
 			return
 		self._intro_skip_active = True
 		self._intro_skip_done = False
@@ -1579,7 +1582,12 @@ class RedLightPlayer(xbmc.Player):
 		self._intro_skip_no_timing_logged = False
 		try:
 			from apis.intro_skip_api import peek_intro_segment_cache
-			cached = peek_intro_segment_cache(self.tmdb_id, self.imdb_id, self.season, self.episode)
+			duration = None
+			try:
+				total = getattr(self, 'total_time', None)
+				if total not in (None, '', 0, 0.0): duration = float(total)
+			except: pass
+			cached = peek_intro_segment_cache(self.tmdb_id, self.imdb_id, self.season, self.episode, duration)
 			if cached != '__miss__':
 				self._intro_skip_fetch_done = True
 				if cached:
@@ -1622,8 +1630,6 @@ class RedLightPlayer(xbmc.Player):
 				return
 			start_sec = total * start_pct / 100.0
 			end_sec = total * end_pct / 100.0
-			if start_sec < _INTRO_CHAPTER_MIN_START_SEC:
-				return
 			if end_sec - start_sec < _INTRO_CHAPTER_MIN_SEGMENT_SEC or end_sec < _INTRO_CHAPTER_MIN_END_SEC:
 				return
 			self._intro_skip_segment = {'start_sec': start_sec, 'end_sec': end_sec, 'source': 'chapters'}
@@ -1747,6 +1753,8 @@ class RedLightPlayer(xbmc.Player):
 		if self._intro_skip_past_segment(segment):
 			if getattr(self, '_intro_skip_approved', False):
 				self._log_intro_skip('Intro skip missed: past grace window')
+			else:
+				self._log_intro_skip('Intro skip: past intro (prompt not shown)')
 			self._intro_skip_done = True
 			return
 		try:

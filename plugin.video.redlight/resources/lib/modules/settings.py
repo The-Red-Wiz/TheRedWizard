@@ -430,7 +430,10 @@ def autoplay_next_episode():
 	else: return False
 
 def skip_intro_mode():
-	return int(get_setting('redlight.autoplay_skip_intro', '0'))
+	try:
+		return int(get_setting('redlight.autoplay_skip_intro', '0'))
+	except:
+		return 0
 
 def skip_intro_all_episodes():
 	return get_setting('redlight.skip_intro_all_episodes', 'true') == 'true'

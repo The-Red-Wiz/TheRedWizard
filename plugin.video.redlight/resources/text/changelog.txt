@@ -1,3 +1,6 @@
+[COLOR red][B]Version 2.3.9[/B][/COLOR]
+- [B]Skip Intro[/B]: ignore TheIntroDB rows that are actually credits (same timestamps as credits, or starting in the second half of the episode) and use IntroDB / chapters instead.
+
 [COLOR red][B]Version 2.3.8[/B][/COLOR]
 - [B]EasyNews / NZB[/B]: Filter by Name can keep a file with no show title when SxxExx or a bare/absolute number still matches and the TMDb episode title is in the filename (skips generic names like Home).
 - [B]Tips / Changelog[/B]: wrapping a long line that uses [COLOR name] no longer leaks raw tags (e.g. Meta List Search magenta row).

@@ -9,6 +9,8 @@ _API_TIMEOUT = 6
 _MIN_SEGMENT_SEC = 10
 _MIN_END_SEC = 15
 _MAX_SEGMENT_SEC = 600
+_MAX_INTRO_START_FRAC = 0.5
+_CREDITS_INTRO_OVERLAP_MS = 5000
 
 
 def _intro_cache_key(tmdb_id, imdb_id, season, episode):
@@ -33,7 +35,7 @@ def peek_intro_segment_cache(tmdb_id, imdb_id, season, episode, duration_sec=Non
 	if segment:
 		segment['source'] = cached.get('source', 'introdb')
 		return segment
-	return None
+	return '__miss__'
 
 
 def prefetch_intro_segment(tmdb_id, imdb_id, season, episode, duration_sec=None):
@@ -124,14 +126,19 @@ def _valid_segment(start_sec, end_sec, duration_sec=None):
 	if duration_sec:
 		try:
 			total = float(duration_sec)
-			if total > 60 and end_sec > total:
-				return None
+			if total > 60:
+				if end_sec > total:
+					return None
+				if start_sec > total * _MAX_INTRO_START_FRAC:
+					return None
 		except:
 			pass
 	return {'start_sec': start_sec, 'end_sec': end_sec}
 
 
 def _ms_segment(start_ms, end_ms, duration_sec=None):
+	if start_ms is None:
+		start_ms = 0
 	try:
 		start_ms, end_ms = int(start_ms), int(end_ms)
 	except:
@@ -139,6 +146,34 @@ def _ms_segment(start_ms, end_ms, duration_sec=None):
 	if end_ms <= start_ms:
 		return None
 	return _valid_segment(start_ms / 1000.0, end_ms / 1000.0, duration_sec)
+
+
+def _credits_start_ms_list(credits_list):
+	starts = []
+	for entry in credits_list or []:
+		ms = entry.get('start_ms') if isinstance(entry, dict) else None
+		if ms is None:
+			continue
+		try:
+			starts.append(int(ms))
+		except:
+			pass
+	return starts
+
+
+def _intro_is_credits_duplicate(start_ms, credits_starts):
+	if not credits_starts:
+		return False
+	try:
+		start_ms = 0 if start_ms is None else int(start_ms)
+	except:
+		return False
+	for credit_ms in credits_starts:
+		if abs(start_ms - credit_ms) <= _CREDITS_INTRO_OVERLAP_MS:
+			return True
+		if start_ms >= credit_ms:
+			return True
+	return False
 
 
 def _parse_start_value(start_val, end_val=None):
@@ -168,11 +203,18 @@ def _fetch_theintrodb_intro(tmdb_id, season, episode, duration_sec=None):
 		intro_list = data.get('intro') or []
 		if not intro_list:
 			return None
-		entry = intro_list[0]
-		segment = _ms_segment(entry.get('start_ms'), entry.get('end_ms'), duration_sec)
-		if segment:
-			segment['source'] = 'theintrodb'
-		return segment
+		credits_starts = _credits_start_ms_list(data.get('credits') or [])
+		for entry in intro_list:
+			if not isinstance(entry, dict):
+				continue
+			start_ms = entry.get('start_ms')
+			if _intro_is_credits_duplicate(start_ms, credits_starts):
+				continue
+			segment = _ms_segment(start_ms, entry.get('end_ms'), duration_sec)
+			if segment:
+				segment['source'] = 'theintrodb'
+				return segment
+		return None
 	except:
 		return None
 
@@ -189,6 +231,8 @@ def _fetch_introdb_intro(imdb_id, season, episode):
 			return None
 		start_sec = _parse_start_value(intro.get('start_sec', intro.get('start_ms')))
 		end_sec = _parse_start_value(intro.get('end_sec', intro.get('end_ms')))
+		if start_sec is None:
+			start_sec = 0.0
 		segment = _valid_segment(start_sec, end_sec)
 		if segment:
 			segment['source'] = 'introdb'
