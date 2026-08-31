@@ -1,3 +1,6 @@
+v4.3.7 (2026-08-31)
+ - First run after a build install starts the build's binary installer so InstallAddon no longer waits for a second boot
+
 v4.3.6 (2026-08-30)
  - Speedtest keeps local results if there is no speedtest.net image, tries HTTPS for upload, and shows a toast if the test fails
  - Speedtest ping uses a 10 second timeout and averages the probes that actually ran

@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from datetime import datetime
 import time
@@ -218,6 +219,81 @@ def install_addon(plugin_id):
             clicked = True
     return True
 # Binaries inspired Dr. Infernoo'''
+
+BINARY_INSTALLERS = (
+    'service.installlitebinary',
+    'service.installrwbinaries',
+    'service.installmybinaries',
+)
+
+def install_addon(plugin_id):
+    if xbmc.getCondVisibility(f'System.HasAddon({plugin_id})'):
+        return True
+    xbmc.executebuiltin(f'InstallAddon({plugin_id})')
+    clicked = False
+    start = time.time()
+    timeout = 20
+    while not xbmc.getCondVisibility(f'System.HasAddon({plugin_id})'):
+        if time.time() >= start + timeout:
+            return False
+        xbmc.sleep(500)
+        if xbmc.getCondVisibility('Window.IsTopMost(yesnodialog)') and not clicked:
+            xbmc.executebuiltin('SendClick(yesnodialog, 11)')
+            clicked = True
+    return True
+
+def _plugin_ids_from_installer(folder):
+    ids = []
+    json_path = folder / 'resources' / 'addons.json'
+    if json_path.exists():
+        try:
+            data = json.loads(json_path.read_text(encoding='utf-8', errors='ignore'))
+            for entry in data.values():
+                plugin_id = entry.get('plugin_id') if isinstance(entry, dict) else None
+                if plugin_id:
+                    ids.append(plugin_id)
+        except Exception as e:
+            xbmc.log(f'Failed to read {json_path}: {e}', xbmc.LOGINFO)
+    if ids:
+        return ids
+    uservar_path = folder / 'uservar.py'
+    if uservar_path.exists():
+        try:
+            text = uservar_path.read_text(encoding='utf-8', errors='ignore')
+            match = re.search(r"addon_plugin_id\s*=\s*['\"]([^'\"]+)['\"]", text)
+            if match:
+                ids.append(match.group(1))
+        except Exception as e:
+            xbmc.log(f'Failed to read {uservar_path}: {e}', xbmc.LOGINFO)
+    return ids
+
+def run_build_binary_installer():
+    """Run the build's binary installer on first start (service is still disabled)."""
+    for inst_id in BINARY_INSTALLERS:
+        folder = addons_path / inst_id
+        if not folder.is_dir():
+            continue
+        try:
+            if xbmcaddon.Addon(inst_id).getSetting('activate_installer') != 'true':
+                xbmc.log(f'Binary installer {inst_id} is off', xbmc.LOGINFO)
+                return
+        except Exception:
+            pass
+        plugin_ids = _plugin_ids_from_installer(folder)
+        if not plugin_ids:
+            xbmc.log(f'Binary installer {inst_id} has no plugin ids', xbmc.LOGINFO)
+            return
+        failed = []
+        for plugin_id in plugin_ids:
+            if not install_addon(plugin_id):
+                failed.append(plugin_id)
+        if not failed:
+            try:
+                xbmcaddon.Addon(inst_id).setSetting('activate_installer', 'false')
+            except Exception:
+                pass
+        xbmc.log(f'Binary installer {inst_id} finished, failed={failed}', xbmc.LOGINFO)
+        return
 
 def enable_wizard():
     try:

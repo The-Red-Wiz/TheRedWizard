@@ -8,7 +8,7 @@ import json
 from uservar import buildfile, notify_url, changelog_dir
 from .maintenance import clear_packages_startup, skin_override
 from .addonvar import setting, setting_set, addon_name, addon_icon, addon_id, addon_profile, isBase64, headers, dialog, local_string, addon_id, gui_save_default, kodi_ver_, get_page, UPDATE_VERSION, CURRENT_BUILD, CURRENT_VERSION, BUILD_URL, BUILD_NAME, OLD_BUILD
-from .build_install import build_install #, restore_binary, binaries_path
+from .build_install import build_install, run_build_binary_installer
 from .addons_enable import enable_addons
 from .save_data import backup_gui_skin
 from .parser import XmlParser
@@ -225,6 +225,8 @@ class Startup:
         if setting('firstrun') == 'true':
             enable_addons()
             backup_gui_skin(gui_save_default)
+            xbmc.sleep(3000)
+            run_build_binary_installer()
             setting_set('firstrun', 'false')
         else:
             if setting('autoclearpackages') != '0':
