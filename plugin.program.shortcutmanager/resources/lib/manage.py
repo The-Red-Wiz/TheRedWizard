@@ -2,16 +2,39 @@ import xbmcgui
 import xbmcvfs
 
 import os
+import re
 
 from resources.lib.common import settings
 from resources.lib.common import utils
 
 _addon_data = settings.get_addon_info("profile")
 _userdata = "special://profile/"
+_SAFE_GROUP_ID = re.compile(r"^[A-Za-z0-9_.() -]+$")
+
+
+def group_path(group_id):
+    if not group_id:
+        return None
+    group_id = str(group_id)
+    if group_id in (".", "..") or "/" in group_id or "\\" in group_id:
+        return None
+    if not _SAFE_GROUP_ID.match(group_id):
+        return None
+    base = os.path.abspath(utils.translatePath(_addon_data))
+    path = os.path.abspath(os.path.join(base, "{}.group".format(group_id)))
+    try:
+        if os.path.commonpath([base, path]) != base:
+            return None
+    except ValueError:
+        return None
+    return path
 
 
 def write_path(group_def, path_def=None, update=""):
-    filename = os.path.join(_addon_data, "{}.group".format(group_def["id"]))
+    filename = group_path(group_def.get("id"))
+    if not filename:
+        utils.log("Unsafe group id: {}".format(group_def.get("id")), "error")
+        return False
 
     if path_def:
         if update:
@@ -30,8 +53,10 @@ def get_group_by_id(group_id):
     if not group_id:
         return {}
 
-    filename = "{}.group".format(group_id)
-    path = os.path.join(_addon_data, filename)
+    path = group_path(group_id)
+    if not path:
+        utils.log("Unsafe group id: {}".format(group_id), "error")
+        return {}
 
     try:
         group_def = utils.read_json(path)
@@ -86,8 +111,10 @@ def find_defined_groups(_type=""):
 
 def find_defined_paths(group_id=None):
     if group_id:
-        filename = "{}.group".format(group_id)
-        path = os.path.join(_addon_data, filename)
+        path = group_path(group_id)
+        if not path:
+            utils.log("Unsafe group id: {}".format(group_id), "error")
+            return []
 
         group_def = utils.read_json(path)
         if group_def:

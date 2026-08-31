@@ -839,7 +839,7 @@ def punchplay_interact(media_type, tmdb_id, payload):
 	if ok: clear_punchplay_list_caches()
 	return ok
 
-def _punchplay_episode_history_ids(tmdb_id, season, episode):
+def _punchplay_episode_history_ids(tmdb_id, season, episode, watched_at=None):
 	"""Watch-history row ids for one episode (Mark Unwatched deletes these).
 
 	History is newest-first and has no show/episode filter. Stop after the first
@@ -849,6 +849,12 @@ def _punchplay_episode_history_ids(tmdb_id, season, episode):
 	try:
 		tid, season_num, episode_num = int(tmdb_id), int(season), int(episode)
 	except: return []
+	watched_at = str(watched_at or '').strip()
+	def _same_watched_at(value):
+		if not watched_at: return True
+		value = str(value or '').strip()
+		if value == watched_at: return True
+		return value.rstrip('Z').split('.')[0] == watched_at.rstrip('Z').split('.')[0]
 	history_ids, cursor, pages = [], None, 0
 	while pages < 50:
 		pages += 1
@@ -864,6 +870,7 @@ def _punchplay_episode_history_ids(tmdb_id, season, episode):
 				show_id = item.get('showTmdbId') or item.get('show_tmdb_id') or item.get('tmdbId')
 				if int(show_id) != tid: continue
 				if int(item.get('season')) != season_num or int(item.get('episode')) != episode_num: continue
+				if not _same_watched_at(item.get('watchedAt')): continue
 				history_id = item.get('id') or item.get('historyId') or item.get('watchHistoryId')
 				if history_id not in (None, ''):
 					history_ids.append(str(history_id))
@@ -885,6 +892,16 @@ def _punchplay_delete_episode_history(tmdb_id, season, episode):
 		result = call_punchplay('/watch-history/%s' % history_id, method='delete')
 		if result is None or (isinstance(result, dict) and result.get('error')):
 			ok = False
+	return ok
+
+def _punchplay_rollback_logged_episodes(tmdb_id, episode_rows, watched_at):
+	"""Undo only history rows created by this failed bulk mark operation."""
+	ok = True
+	for season, episode in episode_rows:
+		for history_id in _punchplay_episode_history_ids(tmdb_id, season, episode, watched_at=watched_at):
+			result = call_punchplay('/watch-history/%s' % history_id, method='delete')
+			if result is None or (isinstance(result, dict) and result.get('error')):
+				ok = False
 	return ok
 
 def _title_year_for_mark(media_type, tmdb_id, title=None, year=None):
@@ -983,7 +1000,7 @@ def _log_show_watched(kind, tid, show_title, show_year, watched_at):
 	except Exception:
 		meta = None
 	if not meta: return False
-	posted, failed = 0, False
+	posted, failed, posted_rows = 0, False, []
 	for item in meta.get('season_data') or []:
 		try: season_number = int(item.get('season_number'))
 		except Exception: continue
@@ -993,8 +1010,14 @@ def _log_show_watched(kind, tid, show_title, show_year, watched_at):
 		result = _log_season_watch(kind, tid, season_number, show_title, show_year, watched_at, ep_rows)
 		if _punchplay_payload_failed(result) or (isinstance(result, dict) and result.get('error')):
 			failed = True
-			continue
+			break
 		posted += 1
+		for row in ep_rows:
+			posted_rows.append((season_number, row.get('episodeNumber')))
+	if failed and posted_rows:
+		rolled_back = _punchplay_rollback_logged_episodes(tid, posted_rows, watched_at)
+		if not rolled_back:
+			kodi_utils.logger('PunchPlay', 'failed to fully roll back partial show mark tmdb=%s' % tid)
 	return posted > 0 and not failed
 
 def punchplay_watched_status_mark(action, media_type, tmdb_id, tvdb_id=0, season=None, episode=None, title=None, year=None):

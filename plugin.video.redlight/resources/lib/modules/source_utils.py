@@ -438,8 +438,8 @@ def check_title_or_absolute(title, release_title, aliases, year, season, episode
 	"""Keep SxxExx hits via check_title, plus Sxx-less files whose bare/absolute episode matches.
 
 	Same title/alias rules as cloud scrapers (pack-style substring) on the absolute path.
-	If the show/alias is missing, still keep when SxxExx/absolute matches and the TMDb episode
-	title is distinctive and present in the filename (EasyNews/NZB Filter by Name).
+	The episode title can help searches find more candidates, but it must not bypass the
+	show/alias check or unrelated shows with the same SxxExx and episode name can pass.
 	"""
 	if check_title(title, release_title, aliases, year, season, episode):
 		return True
@@ -454,7 +454,7 @@ def check_title_or_absolute(title, release_title, aliases, year, season, episode
 		return False
 	if check_title(title, release_title, aliases, year, 'pack', episode):
 		return True
-	return episode_title_in_release(ep_name, release_title)
+	return False
 
 def strip_non_ascii_and_unprintable(text):
 	"""Accent-fold first so Filter-by-Name keeps Pokémon→Pokemon / Léon→Leon."""
