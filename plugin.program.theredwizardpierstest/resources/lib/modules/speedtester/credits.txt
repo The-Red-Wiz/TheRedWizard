@@ -1,0 +1,10 @@
+Provider-name:  Dr0idGuy, dagwieers
+
+Description:  This add-on tests your Internet bandwith and reports both download and upload speeds and latency from within Kodi.
+Use this if you are experiencing streaming issues and you suspect your network to be the cause.
+
+Disclaimer:  Speed Tester is powered by speedtest.net
+
+Website:  https://kodi.wiki/view/Add-on:Speed_Tester
+
+Source:  https://github.com/add-ons/script.speedtester

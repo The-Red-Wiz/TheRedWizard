@@ -1,0 +1,7 @@
+<advancedsettings>
+    <network>
+        <curlclienttimeout>10</curlclienttimeout>
+        <curllowspeedtime>20</curllowspeedtime>
+        <curlretries>10</curlretries>
+    </network>
+</advancedsettings>

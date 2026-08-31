@@ -1,0 +1,498 @@
+# Kodi Media Center language file
+# Addon Name: Simple Wizard
+# Addon id: plugin.program.simple19wizard
+# Addon Provider: Slam, Sarge, BYB
+msgid ""
+msgstr ""
+"Project-Id-Version: Kodi Addons\n"
+"Report-Msgid-Bugs-To: alanwww1@kodi.org\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Kodi Translation Team\n"
+"Language-Team: English (http://www.transifex.com/projects/p/xbmc-addons/language/en/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+#####----- MainMenu items -----#####
+#####----- 30000->30020 -------#####
+msgctxt "#30000"
+msgid "Wizard Menu"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Install a Red Wizard Build"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Kodi Maintenance"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Clear all the data in your current setup. This action cannot be undone!"
+msgstr ""
+
+msgctxt "#30004"
+msgid "Install Build"
+msgstr ""
+
+msgctxt "#30005"
+msgid "Clear the packages folder to free up space"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Fresh Start"
+msgstr ""
+
+msgctxt "#30007"
+msgid "Clear all data. Warning, this cannot be undone!"
+msgstr ""
+
+msgctxt "#30008"
+msgid "Delete the Thumbnails folder and Textures database file (only if you need to free up space). Reboot Kodi to repopulate thumbnails!"
+msgstr ""
+
+msgctxt "#30009"
+msgid "A list of presets to set the cache size based on your device's RAM"
+msgstr ""
+
+msgctxt "#30010"
+msgid "Build Menu"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Maintenance"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Fresh Start"
+msgstr ""
+
+msgctxt "#30013"
+msgid "Notification"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Open the Notification Dialog"
+msgstr ""
+
+msgctxt "#30015"
+msgid "Settings"
+msgstr ""
+
+msgctxt "#30016"
+msgid "Open the Settings Menu"
+msgstr ""
+
+msgctxt "#30017"
+msgid "[COLOR gold]Invalid build URL. Please contact[/COLOR] [COLOR red]The Red Wizard[/COLOR][COLOR gold]![/COLOR]"
+msgstr ""
+
+msgctxt "#30018"
+msgid "Unknown Name"
+msgstr ""
+
+msgctxt "#30019"
+msgid "No Description Available."
+msgstr ""
+
+msgctxt "#30020"
+msgid "Version"
+msgstr ""
+
+msgctxt "#30021"
+msgid "*** Video Preview ***"
+msgstr ""
+
+msgctxt "#30022"
+msgid "Maintenance"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Clear Packages"
+msgstr ""
+
+msgctxt "#30024"
+msgid "Clear Thumbnails"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Advanced Settings K21"
+msgstr ""
+
+msgctxt "#30026"
+msgid "Account Manager"
+msgstr ""
+
+msgctxt "#30027"
+msgid "Authorize Services"
+msgstr ""
+
+msgctxt "#30028"
+msgid "[COLOR red]The Red Wizard[/COLOR] [COLOR gold]is ready to install your build![/COLOR]"
+msgstr ""
+
+msgctxt "#30029"
+msgid "Cancel"
+msgstr ""
+
+msgctxt "#30030"
+msgid "Continue"
+msgstr ""
+
+msgctxt "#30031"
+msgid "Do you wish to clear all data before installing?"
+msgstr ""
+
+msgctxt "#30032"
+msgid "No"
+msgstr ""
+
+msgctxt "#30033"
+msgid "Requests is being installed.\n Try again when Requests is finished installing!"
+msgstr ""
+
+msgctxt "#30034"
+msgid "[COLOR gold]Extracting files...[/COLOR]"
+msgstr ""
+
+msgctxt "#30035"
+msgid "[COLOR gold]Extracting files... Done![/COLOR]"
+msgstr ""
+
+msgctxt "#30036"
+msgid "[COLOR gold]Install Complete. Click OK to Force Close Kodi![/COLOR]"
+msgstr ""
+
+msgctxt "#30037"
+msgid "[COLOR gold]Thumbnails have been deleted. Reboot Kodi to repopulate![/COLOR]"
+msgstr ""
+
+msgctxt "#30038"
+msgid "[COLOR red]Select the RAM Size of your device:[/COLOR]"
+msgstr ""
+
+msgctxt "#30039"
+msgid "[COLOR gold]Delete Advanced Settings[/COLOR]"
+msgstr ""
+
+msgctxt "#30040"
+msgid "[COLOR gold]Advanced Settings have been reset. Kodi will now close to apply the settings![/COLOR]"
+msgstr ""
+
+msgctxt "#30041"
+msgid "[COLOR gold]Advanced Settings have been set. Kodi will now close to apply the settings![/COLOR]"
+msgstr ""
+
+msgctxt "#30042"
+msgid "[COLOR gold]Are you sure you want to clear all data? This action cannot be undone![/COLOR]"
+msgstr ""
+
+msgctxt "#30043"
+msgid "[COLOR gold]Deleting files and folders...[/COLOR]"
+msgstr ""
+
+msgctxt "#30044"
+msgid "[COLOR gold]Deleting files and folders... Done![/COLOR]"
+msgstr ""
+
+msgctxt "#30045"
+msgid "[COLOR gold]Fresh Start Complete. Click OK to Force Close Kodi![/COLOR]"
+msgstr ""
+
+msgctxt "#30046"
+msgid "Packages Cleared!"
+msgstr ""
+
+msgctxt "#30047"
+msgid "[COLOR gold]A new version of[/COLOR]"
+msgstr ""
+
+msgctxt "#30048"
+msgid "[COLOR gold]is available![/COLOR]"
+msgstr ""
+
+msgctxt "#30049"
+msgid "[COLOR gold]Installed Version:[/COLOR]"
+msgstr ""
+
+msgctxt "#30050"
+msgid "[COLOR gold]New Version:[/COLOR]"
+msgstr ""
+
+msgctxt "#30051"
+msgid "[COLOR gold]Would you like to install it now?[/COLOR]"
+msgstr ""
+
+msgctxt "#30052"
+msgid "[COLOR red]Select items to keep during a build install:[/COLOR]"
+msgstr ""
+
+msgctxt "#30053"
+msgid "Build Info"
+msgstr ""
+
+msgctxt "#30054"
+msgid "[COLOR gold]Current Build:[/COLOR]"
+msgstr ""
+
+msgctxt "#30055"
+msgid "Installed Build: "
+msgstr ""
+
+msgctxt "#30056"
+msgid "Installed Version: "
+msgstr ""
+
+msgctxt "#30057"
+msgid "Clear Packages on Startup:"
+msgstr ""
+
+msgctxt "#30058"
+msgid "[COLOR gold]Select items to keep during Build Installs/Updates:[/COLOR]"
+msgstr ""
+
+msgctxt "#30059"
+msgid "Save Items"
+msgstr ""
+
+msgctxt "#30060"
+msgid "Save my Favourites"
+msgstr ""
+
+msgctxt "#30061"
+msgid "Save my Real Debrid info (Resolveurl)"
+msgstr ""
+
+msgctxt "#30062"
+msgid "Save my sources in File Manager"
+msgstr ""
+
+msgctxt "#30063"
+msgid "Save my Advanced Settings"
+msgstr ""
+
+msgctxt "#30064"
+msgid "Add Add-ons to Whitelist"
+msgstr ""
+
+msgctxt "#30065"
+msgid "Remove Add-ons from Whitelist"
+msgstr ""
+
+msgctxt "#30066"
+msgid "[COLOR red]Fresh Start[/COLOR]"
+msgstr ""
+
+msgctxt "#30067"
+msgid "Integrates with Account Manager Lite from the 709 Repo"
+msgstr ""
+
+msgctxt "#30068"
+msgid "Videos"
+msgstr ""
+
+msgctxt "#30069"
+msgid "The Red Wizard TV"
+msgstr ""
+
+msgctxt "#30070"
+msgid "Authorise Debrid and Meta Accounts, and MDBList Ratings (Redflix Builds)"
+msgstr ""
+
+msgctxt "#30071"
+msgid "Wizard Tools"
+msgstr ""
+
+msgctxt "#30072"
+msgid "Tools"
+msgstr ""
+
+msgctxt "#30073"
+msgid "Add and Remove Add-ons From Your Whitelist"
+msgstr ""
+
+msgctxt "#30074"
+msgid "Whitelist Add-Ons"
+msgstr ""
+
+msgctxt "#30950"
+msgid "[B]Run Speedtest[/B]"
+msgstr ""
+
+msgctxt "#30951"
+msgid "[B]Close[/B]"
+msgstr ""
+
+msgctxt "#30953"
+msgid "Speed test failed. Check your connection and try again."
+msgstr ""
+
+msgctxt "#30960"
+msgid "[B]Running Speed Test add-on[/B]"
+msgstr ""
+
+msgctxt "#30961"
+msgid "Retrieving speedtest.net configuration"
+msgstr ""
+
+msgctxt "#30962"
+msgid "Retrieving speedtest.net server list"
+msgstr ""
+
+msgctxt "#30963"
+msgid "Testing from {isp} ({ip})"
+msgstr ""
+
+msgctxt "#30964"
+msgid "Selecting best server based on latency"
+msgstr ""
+
+msgctxt "#30965"
+msgid "Hosted by: {sponsor}"
+msgstr ""
+
+msgctxt "#30966"
+msgid "Host server: {host}"
+msgstr ""
+
+msgctxt "#30967"
+msgid "City, State: {name}"
+msgstr ""
+
+msgctxt "#30968"
+msgid "Country: {country}"
+msgstr ""
+
+msgctxt "#30969"
+msgid "Distance: {d:0.2f} km"
+msgstr ""
+
+msgctxt "#30970"
+msgid "Ping: {latency} ms"
+msgstr ""
+
+msgctxt "#30971"
+msgid "Testing download speed..."
+msgstr ""
+
+msgctxt "#30972"
+msgid "Download speed: {speed:0.2f} Mbps"
+msgstr ""
+
+msgctxt "#30973"
+msgid "Testing upload speed..."
+msgstr ""
+
+msgctxt "#30974"
+msgid "Upload speed: {speed:0.2f} Mbps"
+msgstr ""
+
+msgctxt "#30980"
+msgid "[B]Recommended download speed for video streaming:[/B]"
+msgstr ""
+
+msgctxt "#30981"
+msgid "- 3 to 5 Mbps for viewing SD-quality 480p video"
+msgstr ""
+
+msgctxt "#30982"
+msgid "- 5 to 10 Mbps for viewing HD-quality 720p video"
+msgstr ""
+
+msgctxt "#30983"
+msgid "- 10+ Mbps for the best 1080p or Live TV experience"
+msgstr ""
+
+msgctxt "#30984"
+msgid "- 25 to 50+ Mbps for 4K streaming"
+msgstr ""
+
+msgctxt "#30985"
+msgid "[I]Reported speeds may be due to the limitations of the device.[/I]"
+msgstr ""
+
+######-----Settings-----#####
+
+msgctxt "#30100"
+msgid "Logging"
+msgstr ""
+
+msgctxt "#30101"
+msgid "Settings for logging of Addon"
+msgstr ""
+
+msgctxt "#30102"
+msgid "Debug"
+msgstr ""
+
+msgctxt "#30103"
+msgid "Actions"
+msgstr ""
+
+msgctxt "#30104"
+msgid "Window Imformation"
+msgstr ""
+
+msgctxt "#30105"
+msgid "General"
+msgstr ""
+
+msgctxt "#30106"
+msgid "Advanced Settings K21"
+msgstr ""
+
+msgctxt "#30107"
+msgid "[COLOR gold]Advanced Settings have been deleted. Kodi will now close to apply the settings![/COLOR]"
+msgstr ""
+
+msgctxt "#30108"
+msgid "Build Changelog"
+msgstr ""
+
+msgctxt "#30109"
+msgid "Open the Changelog Dialog"
+msgstr ""
+
+msgctxt "#30110"
+msgid "You have an update Available! Click here or open the build menu to install your update."
+msgstr ""
+
+msgctxt "#30111"
+msgid "Your Installed Build"
+msgstr ""
+
+msgctxt "#30112"
+msgid "Video Cache Presets"
+msgstr ""
+
+msgctxt "#30113"
+msgid "Enable/Disable Kodi Splash Screen"
+msgstr ""
+
+msgctxt "#30114"
+msgid "Enable/Disable Skin Protection"
+msgstr ""
+
+msgctxt "#30115"
+msgid "Enable to protect your skin from defaulting to Estuary if the GUI Settings file becomes corrupted!"
+msgstr ""
+
+msgctxt "#30116"
+msgid "Enable English Language/Subtitles"
+msgstr ""
+
+msgctxt "#30117"
+msgid "Date Installed:"
+msgstr ""
+
+msgctxt "#30118"
+msgid "Installed Version of Kodi"
+msgstr ""
+
+msgctxt "#30119"
+msgid "Show Kodi / OS information on the main menu"
+msgstr ""

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<window>
+	<defaultcontrol always="true">302</defaultcontrol>
+	<coordinates>
+		<left>100</left>
+		<top>50</top>
+	</coordinates>
+	<animation effect="slide" start="0, 500" time="500" tween="quadratic" >WindowOpen</animation>
+	<animation effect="fade" time="500">WindowClose</animation>
+	<controls>
+		<control type="image">
+			<description>Image</description>
+			<width>1100</width>
+			<height>600</height>
+			<texture>background.png</texture>
+			<colordiffuse></colordiffuse>
+			<bordertexture border="2" colordiffuse="black">white.png</bordertexture>
+			<bordersize>5</bordersize>
+		</control>
+		<control type="button" id="302">
+			<left>970</left>
+			<top>540</top>
+			<description>Close</description>
+			<width>75</width>
+			<height>37</height>
+			<texturefocus colordiffuse="gold">close.png</texturefocus>
+            	<texturenofocus colordiffuse="grey">close.png</texturenofocus>
+			<bordersize>5</bordersize>
+			<onleft>301</onleft>
+     			<onright>301</onright>
+		</control>
+		<control type="textbox" id = "300">
+			<description>text</description>
+			<top>30</top>
+			<left>50</left>
+			<width>1000</width>
+			<height>540</height>
+			<font>font13</font>
+			<align>center</align>
+			<aligny>center</aligny>
+			<textcolor>whitesmoke</textcolor>
+			<shadowcolor>black</shadowcolor>
+			<pagecontrol>301</pagecontrol>
+		</control>
+	</controls>
+</window>
