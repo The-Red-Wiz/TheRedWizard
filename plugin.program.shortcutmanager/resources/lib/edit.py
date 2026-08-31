@@ -142,7 +142,9 @@ def _remove_subfolder_tree(group_id):
         for path_def in group_def.get("paths", []):
             if path_def.get("target") == "subfolder" and path_def.get("group"):
                 _remove_subfolder_tree(path_def["group"])
-    utils.remove_file(os.path.join(_addon_data, "{}.group".format(group_id)))
+    path = manage.group_path(group_id)
+    if path:
+        utils.remove_file(path)
 
 
 def _remove_path(path_id, group_id, over=False):

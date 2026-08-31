@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.shortcutmanager" name="Shortcut Manager" version="1.1.1" provider-name="Bob">
+<addon id="plugin.program.shortcutmanager" name="Shortcut Manager" version="1.1.2" provider-name="Bob">
     <requires>
         <import addon="script.module.pil" />
         <import addon="script.module.six" />
@@ -28,7 +28,10 @@
 	<description lang="es_ES">Crea y organiza accesos directos (incluyendo subcarpetas) a tu contenido favorito para un acceso rápido.</description>
 	<platform>all</platform>
         <license>LGPL-3.0</license>
-        <news>1.1.1
+        <news>1.1.2
+ - Group files stay inside the add-on profile; a malformed JSON group is no longer deleted on read
+
+1.1.1
  - Creating a group now refreshes My Groups immediately
  - Remove Group is on the group context menu (not Edit Group)
  - Stop forcing a list view (no label sort methods, no default "files" content, programs-only)

@@ -433,7 +433,6 @@ def read_json(file, log_file=False, default={}):
             log("Could not read JSON from {}: {}".format(file, e), level="error")
             if log_file:
                 log(content, level="info")
-            os.remove(path)
             return default
 
     return convert(data)
