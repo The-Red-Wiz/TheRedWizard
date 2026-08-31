@@ -923,6 +923,9 @@ def filter_by_name(scraper):
 	if get_property('fs_filterless_search') == 'true': return False
 	return get_setting('redlight.%s.title_filter' % scraper, 'false') == 'true'
 
+def filter_by_episode_title(scraper):
+	return get_setting('redlight.%s.title_filter_episode' % scraper, 'true') == 'true'
+
 def uncached_min_seeders():
 	return int(get_setting('redlight.results.uncached_min_seeders', '0'))
 

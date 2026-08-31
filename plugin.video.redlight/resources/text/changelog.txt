@@ -1,3 +1,7 @@
+[COLOR red][B]Version 2.4.0[/B][/COLOR]
+- [B]EasyNews / NZB[/B]: Filter Results by Name can keep a TV file with no show title when SxxExx or a bare/absolute number matches and the episode title is distinctive ([B]Allow episode title without show name[/B], on by default, separate EasyNews and NZB toggles). Turn that off to require the show title or an alias.
+- [B]PunchPlay[/B]: if Mark Show as Watched fails part-way through the seasons, earlier seasons from that attempt are rolled back so the show is not left half-marked.
+
 [COLOR red][B]Version 2.3.9[/B][/COLOR]
 - [B]Skip Intro[/B]: ignore TheIntroDB rows that are actually credits (same timestamps as credits, or starting in the second half of the episode) and use IntroDB / chapters instead.
 

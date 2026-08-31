@@ -2,7 +2,7 @@
 from apis.easynews_api import EasyNews
 from modules import source_utils
 from modules.utils import clean_file_name, normalize
-from modules.settings import filter_by_name, easynews_language_filter, easynews_lang_include_unknown, easynews_fallback_search, easynews_search_width
+from modules.settings import filter_by_name, filter_by_episode_title, easynews_language_filter, easynews_lang_include_unknown, easynews_fallback_search, easynews_search_width
 # from modules.kodi_utils import logger
 
 class source:
@@ -15,6 +15,7 @@ class source:
 			filter_lang, lang_filters = easynews_language_filter()
 			include_unknown = easynews_lang_include_unknown()
 			filter_title = filter_by_name('easynews')
+			allow_episode_title = filter_by_episode_title('easynews')
 			self.media_type, title, self.year, self.season, self.episode = info.get('media_type'), info.get('title'), int(info.get('year')), info.get('season'), info.get('episode')
 			self.search_title = clean_file_name(title).replace('&', 'and')
 			self.aliases = source_utils.get_aliases_titles(info.get('aliases', []))
@@ -33,7 +34,7 @@ class source:
 						file_name = normalize(item['name'])
 						if any(x in file_name.lower() for x in extras): continue
 						if filter_title and not source_utils.check_title_or_absolute(
-								title, file_name, self.aliases, self.year, self.season, self.episode, self.absolute_episode, self.ep_name): continue
+								title, file_name, self.aliases, self.year, self.season, self.episode, self.absolute_episode, self.ep_name, allow_episode_title): continue
 						if filter_lang and not self._language_ok(item['language'], lang_filters, include_unknown): continue
 						display_name = clean_file_name(file_name).replace('html', ' ').replace('+', ' ').replace('-', ' ')
 						url_dl, size = item['url_dl'], round(float(int(item['rawSize']))/1073741824, 2)

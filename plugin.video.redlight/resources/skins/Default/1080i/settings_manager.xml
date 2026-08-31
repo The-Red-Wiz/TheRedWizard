@@ -2706,6 +2706,17 @@
                           <visible>Container(2000).HasFocus(62)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.provider.easynews),true)</visible>
                           <visible>![String.IsEmpty(Window(10000).Property(redlight.easynews_user)) + String.IsEmpty(Window(10000).Property(redlight.easynews_password))]</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.easynews.title_filter),true)</visible>
+                          <property name="setting_label">    - Allow episode title without show name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.easynews.title_filter_episode)]</property>
+                          <property name="setting_description">When Filter Results by Name is on, keep a TV file that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing from the filename (typical EasyNews naming). Generic episode names such as Pilot or Home are still skipped. Turn off to require the show title or an alias in the filename (stricter, fewer wrong-show hits).</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=easynews.title_filter_episode)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(62)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.easynews),true)</visible>
+                          <visible>![String.IsEmpty(Window(10000).Property(redlight.easynews_user)) + String.IsEmpty(Window(10000).Property(redlight.easynews_password))]</visible>
                           <property name="setting_label">Filter Languages</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.easynews.filter_lang)]</property>
@@ -2976,6 +2987,17 @@
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.nzb.title_filter)]</property>
                           <property name="setting_description">After NZB indexers return results, match release names against the movie or episode title (and aliases). Disable if valid links go missing.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=nzb.title_filter)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(62)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.nzb),true)</visible>
+                          <visible>![String.IsEmpty(Window(10000).Property(redlight.nzb1.url)) + String.IsEmpty(Window(10000).Property(redlight.nzb1.key))]</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.nzb.title_filter),true)</visible>
+                          <property name="setting_label">    - Allow episode title without show name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.nzb.title_filter_episode)]</property>
+                          <property name="setting_description">When Filter Results by Name is on, keep a TV release that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing from the filename (typical NZB naming). Generic episode names such as Pilot or Home are still skipped. Turn off to require the show title or an alias in the filename (stricter, fewer wrong-show hits).</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=nzb.title_filter_episode)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(62)</visible>
