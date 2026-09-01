@@ -1,3 +1,6 @@
+[COLOR red][B]Version 2.4.1[/B][/COLOR]
+- [B]Comet / Nyaa (Anime)[/B]: optional native torrent scrapers (Settings > Torrent Sources, under External Scrapers, off by default). Red Light queries Comet or Nyaa, keeps names with its own episode matching (SxxExx and absolute numbers such as Show - 100), then runs the same debrid cache check as external scrapers. Comet is IMDb-scoped and is the high-volume option; Nyaa is the anime tracker (name search). Requires an authorised debrid. Clear Internal Scrapers Cache after changing host or category.
+
 [COLOR red][B]Version 2.4.0[/B][/COLOR]
 - [B]EasyNews / NZB[/B]: Filter Results by Name can keep a TV file with no show title when SxxExx or a bare/absolute number matches and the episode title is distinctive ([B]Allow episode title without show name[/B], on by default, separate EasyNews and NZB toggles). Turn that off to require the show title or an alias.
 - [B]PunchPlay[/B]: if Mark Show as Watched fails part-way through the seasons, earlier seasons from that attempt are rolled back so the show is not left half-marked.

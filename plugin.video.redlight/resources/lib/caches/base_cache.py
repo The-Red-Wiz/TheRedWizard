@@ -238,6 +238,16 @@ def clear_cache(cache_type, silent=False):
 		from apis import easynews_api
 		results = []
 		results.append(easynews_api.clear_media_results_database())
+		try:
+			from apis import comet_api
+			results.append(comet_api.clear_comet_cache())
+		except Exception:
+			results.append(False)
+		try:
+			from apis import nyaa_api
+			results.append(nyaa_api.clear_nyaa_cache())
+		except Exception:
+			results.append(False)
 		for item in ('pm_cloud', 'rd_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud', 'folders'): results.append(clear_cache(item, silent=True))
 		success = False not in results
 	elif cache_type == 'easynews_scrape':

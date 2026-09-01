@@ -2425,6 +2425,133 @@
                           <property name="setting_description">Remove the scraper module from slot 3.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=external_scraper_clear_slot&amp;slot=3)</onclick>
                       </item>
+        <!-- Native Scrapers -->
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <property name="setting_label">Native Scrapers</property>
+                          <property name="setting_type">separator</property>
+                          <onclick>noop</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <property name="setting_label">Comet</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.comet)]</property>
+                          <property name="setting_description">Query Comet for torrent hashes, then check them on your debrid (same cache check as external scrapers). Matching uses Red Light filters, including SxxExx and absolute episode names. Requires an authorised debrid. Public Comet hosts can change or go down; no support is provided for those instances.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.comet)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <property name="setting_label">    - Instance</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.url_name)]</property>
+                          <property name="setting_description">Goldy (comet.feels.legal) is the default and usually returns the most streams. Other public hosts are fallbacks. Custom is a full Comet base URL with no trailing slash. Clear Internal Scrapers Cache after changing host.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=comet.url)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.comet.url),3)</visible>
+                          <property name="setting_label">    - Custom URL</property>
+                          <property name="setting_type">numeric</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.custom_url)]</property>
+                          <property name="setting_description">Comet base URL (no trailing slash), e.g. https://comet.example.com. Red Light appends /stream/movie/{imdb}.json or /stream/series/{imdb}:{season}:{episode}.json.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=comet.custom_url)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <property name="setting_label">    - Filter Results by Name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.title_filter)]</property>
+                          <property name="setting_description">After Comet returns streams for this IMDb title, keep filenames that match the movie/episode (including aliases, SxxExx, absolute numbers, and season/show packs). Turn off to keep every Comet stream for that ID — more rows, more chance of a wrong file. Default is on.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=comet.title_filter)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.comet.title_filter),true)</visible>
+                          <property name="setting_label">    - Allow episode title without show name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.title_filter_episode)]</property>
+                          <property name="setting_description">When Filter Results by Name is on, keep a TV file that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing. Generic names such as Pilot or Home are still skipped.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=comet.title_filter_episode)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <property name="setting_label">    - Check Before Full Search</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.check.comet)]</property>
+                          <property name="setting_description">Query Comet early in the source search, before external torrent scrapers. Does not replace other providers. Pair with Autoplay Result below when Check Before Full Search is enabled.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=check.comet)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.check.comet),true)</visible>
+                          <property name="setting_label">    - Autoplay Result</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.autoplay.comet)]</property>
+                          <property name="setting_description">When Check Before Full Search is enabled, autoplay the top cached Comet result found during prescrape. Requires Autoplay under Playback, and respects Limit Autoplay Quality.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=autoplay.comet)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <property name="setting_label">Nyaa (Anime)</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.nyaa)]</property>
+                          <property name="setting_description">Search Nyaa (anime tracker) for torrent magnets, then check them on your debrid. Aimed at anime-style names (Show - 100) that Magneto/Classy drop. Requires an authorised debrid. Nyaa RSS can change; no support is provided for the public site.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.nyaa)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
+                          <property name="setting_label">    - Category</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.nyaa.category_name)]</property>
+                          <property name="setting_description">All categories is the widest Nyaa search. Anime (English-translated) is usually enough for dubbed/subbed TV. Anime (all) includes raws. Clear Internal Scrapers Cache after changing.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=nyaa.category)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
+                          <property name="setting_label">    - Filter Results by Name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.nyaa.title_filter)]</property>
+                          <property name="setting_description">Keep Nyaa filenames that match the movie/episode (including aliases, SxxExx, and absolute numbers such as Show - 100). Turn off only if valid names are being dropped. Default is on.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=nyaa.title_filter)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.nyaa.title_filter),true)</visible>
+                          <property name="setting_label">    - Allow episode title without show name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.nyaa.title_filter_episode)]</property>
+                          <property name="setting_description">When Filter Results by Name is on, keep a TV file that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=nyaa.title_filter_episode)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
+                          <property name="setting_label">    - Check Before Full Search</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.check.nyaa)]</property>
+                          <property name="setting_description">Search Nyaa early in the source search, before external torrent scrapers. Does not replace other providers.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=check.nyaa)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.check.nyaa),true)</visible>
+                          <property name="setting_label">    - Autoplay Result</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.autoplay.nyaa)]</property>
+                          <property name="setting_description">When Check Before Full Search is enabled, autoplay the top cached Nyaa result found during prescrape. Requires Autoplay under Playback.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=autoplay.nyaa)</onclick>
+                      </item>
         <!-- AIOStreams (hidden while aiostreams_api.ENABLED is false) -->
                       <item>
                           <visible>Container(2000).HasFocus(62)</visible>

@@ -21,6 +21,8 @@ _INTERNAL_PROGRESS_LABELS = {
 	'oc_cloud': 'OC Cloud',
 	'tb_cloud': 'TB Cloud',
 	'folders': 'Folders',
+	'comet': 'Comet',
+	'nyaa': 'Nyaa (Anime)',
 }
 
 class source:

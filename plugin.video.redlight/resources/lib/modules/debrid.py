@@ -404,3 +404,170 @@ def TB_check(hash_list, cached_hashes):
 		return None
 	add_to_local_cache(process_list, 'tb', expires)
 	return cached_hashes
+
+NATIVE_TORRENT_SCRAPERS = ('comet', 'nyaa')
+_DEBRID_RUNNERS = {
+	'Real-Debrid': ('Real-Debrid', RD_check),
+	'Premiumize.me': ('Premiumize.me', PM_check),
+	'AllDebrid': ('AllDebrid', AD_check),
+	'Offcloud': ('Offcloud', OC_check),
+	'TorBox': ('TorBox', TB_check),
+}
+
+
+def stamp_torrent_cache(results, active_debrid, cache_check_override=None, data=None, background=True, progress_dialog=None):
+	'''Stamp comet/nyaa hash rows with per-debrid cache_provider. Other rows pass through.'''
+	from threading import Thread, Lock
+	from time import time as _time
+	from modules.settings import debrid_cache_check
+	from modules.kodi_utils import logger, get_property, clear_property, sleep, kodi_monitor
+
+	if not results:
+		return results
+	native, rest = [], []
+	for item in results:
+		if item.get('scrape_provider') in NATIVE_TORRENT_SCRAPERS and item.get('hash') and not item.get('cache_provider'):
+			native.append(item)
+		else:
+			rest.append(item)
+	if not native:
+		return results
+	active_debrid = list(active_debrid or [])
+	if not active_debrid:
+		return rest
+
+	def _cache_check_enabled(provider):
+		if cache_check_override is not None:
+			return cache_check_override
+		return debrid_cache_check(provider)
+
+	def _is_unchecked_row(item):
+		return str(item.get('cache_provider', '')).startswith('Unchecked ')
+
+	hash_list, unique_hashes, unique_urls = [], set(), set()
+	deduped = []
+	for item in native:
+		try:
+			url = (item.get('url') or '').lower()
+			info_hash = str(item.get('hash') or '').lower()
+			item['hash'] = info_hash
+			if url in unique_urls:
+				continue
+			unique_urls.add(url)
+			if len(info_hash) != 40 or info_hash in unique_hashes:
+				continue
+			unique_hashes.add(info_hash)
+			hash_list.append(info_hash)
+			deduped.append(item)
+		except Exception:
+			deduped.append(item)
+	if not deduped:
+		return rest
+	native = deduped
+	cached_hashes = query_local_cache(hash_list)
+	providers_needing_api = [p for p in active_debrid if _cache_check_enabled(p)]
+	final_results, frozen_providers, final_lock = [], set(), Lock()
+	monitor = kodi_monitor() if progress_dialog and not background else None
+
+	def _unchecked_batch(provider, reason):
+		try:
+			logger('DebridCacheCheck', 'native fallback=unchecked provider=%s reason=%s total=%d' % (provider, reason, len(native)))
+		except Exception:
+			pass
+		return [dict(i, **{'cache_provider': 'Unchecked %s' % provider, 'debrid': provider}) for i in native]
+
+	def _commit(provider, batch):
+		with final_lock:
+			if provider in frozen_providers:
+				return
+			existing = [i for i in final_results if i.get('debrid') == provider]
+			if existing:
+				existing_unverified = all(_is_unchecked_row(i) for i in existing)
+				new_verified = batch and not all(_is_unchecked_row(i) for i in batch)
+				if existing_unverified and new_verified:
+					final_results[:] = [i for i in final_results if i.get('debrid') != provider]
+					final_results.extend(batch)
+				return
+			final_results.extend(batch)
+
+	def _process_cache_check(provider, function):
+		incomplete, cached = False, []
+		try:
+			if _cache_check_enabled(provider):
+				if provider in ('Real-Debrid', 'AllDebrid'):
+					cached = function(hash_list, cached_hashes, data or {}, active_debrid)
+				else:
+					cached = function(hash_list, cached_hashes)
+				if cached is None:
+					incomplete, cached = True, []
+			else:
+				cached = hash_list
+		except Exception as e:
+			incomplete, cached = True, []
+			try:
+				logger('DebridCacheCheck', 'native provider=%s thread=%s' % (provider, type(e).__name__))
+			except Exception:
+				pass
+		api_blocked = get_property('redlight.debrid_cache_api_error') if provider == 'AllDebrid' else ''
+		if api_blocked:
+			clear_property('redlight.debrid_cache_api_error')
+			batch = _unchecked_batch(provider, api_blocked)
+		elif incomplete:
+			batch = _unchecked_batch(provider, 'incomplete_check')
+		else:
+			cached_set = set(str(i).lower() for i in cached)
+			batch = [dict(i, **{'cache_provider': provider if i.get('hash', '').lower() in cached_set else 'Uncached %s' % provider, 'debrid': provider}) for i in native]
+		_commit(provider, batch)
+
+	if not providers_needing_api:
+		for provider in active_debrid:
+			final_results.extend([dict(i, **{'cache_provider': provider, 'debrid': provider}) for i in native])
+		return rest + final_results
+
+	debrid_check_threads = [Thread(target=_process_cache_check, args=_DEBRID_RUNNERS[item], name=item) for item in providers_needing_api]
+	hash_budget = max(0, len(hash_list))
+	debrid_timeout = max(45, min(240, 30 + (hash_budget // 25) * 8))
+	debrid_deadline = _time() + debrid_timeout
+	for provider in active_debrid:
+		if provider in providers_needing_api:
+			continue
+		final_results.extend([dict(i, **{'cache_provider': provider, 'debrid': provider}) for i in native])
+	[i.start() for i in debrid_check_threads]
+	if progress_dialog and not background:
+		start_time = _time()
+		try:
+			progress_dialog.reset_is_cancelled()
+		except Exception:
+			pass
+		while not progress_dialog.iscanceled() and not (monitor and monitor.abortRequested()):
+			remaining = [x.getName() for x in debrid_check_threads if x.is_alive()]
+			percent = min(100, int((max((_time() - start_time), 0) / float(debrid_timeout)) * 100))
+			try:
+				progress_dialog.update_scraper(0, 0, 0, 0, len(final_results) or len(native), ', '.join(remaining).upper(), percent)
+			except Exception:
+				pass
+			if not remaining or _time() >= debrid_deadline:
+				break
+			sleep(100)
+	for thread in debrid_check_threads:
+		thread.join(timeout=max(0.0, debrid_deadline - _time()))
+	grace = _time() + 2.0
+	for thread in debrid_check_threads:
+		if thread.is_alive():
+			thread.join(timeout=max(0.0, grace - _time()))
+	with final_lock:
+		present = set(i.get('debrid') for i in final_results if i.get('debrid'))
+		for provider in providers_needing_api:
+			if provider not in present:
+				final_results.extend(_unchecked_batch(provider, 'incomplete_check'))
+		frozen_providers.update(providers_needing_api)
+	try:
+		uncached = sum(1 for i in final_results if str(i.get('cache_provider', '')).startswith('Uncached '))
+		unchecked = sum(1 for i in final_results if str(i.get('cache_provider', '')).startswith('Unchecked '))
+		cached = len(final_results) - uncached - unchecked
+		logger('DebridCacheCheck', 'native enabled=%s providers=%s total=%d cached=%d uncached=%d unchecked=%d' % (
+			bool(providers_needing_api), ','.join(providers_needing_api) or 'none', len(final_results), cached, uncached, unchecked))
+	except Exception:
+		pass
+	return rest + final_results
+

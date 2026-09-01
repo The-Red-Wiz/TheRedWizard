@@ -272,8 +272,8 @@ class SourcesResults(BaseDialog):
 				if pack: extraInfo = '[B]%s PACK[/B] | %s' % (get('package'), extraInfo)
 				if self.episode_group_label: extraInfo = '%s | %s' % (self.episode_group_label, extraInfo)
 				if not extraInfo: extraInfo = 'N/A'
-				if scrape_provider == 'external':
-					source_site = get('provider').upper()
+				if scrape_provider == 'external' or scrape_provider in ('comet', 'nyaa'):
+					source_site = 'NYAA (ANIME)' if scrape_provider == 'nyaa' else get('provider').upper()
 					provider = get('debrid', source_site).replace('.me', '').upper()
 					provider_lower = provider.lower()
 					provider_icon = self.get_provider_and_path(provider_lower)[1]
@@ -332,6 +332,12 @@ class SourcesResults(BaseDialog):
 						scraper_module_label = 'Scraper'
 						scraper_suffix = '     [COLOR %s][B]Scraper: [/B][/COLOR]%s' % (item_highlight, scraper_module.upper())
 						scraper_suffix_tint = '     [COLOR FFA8A8A8][B]Scraper: [/B][/COLOR][COLOR FFFFFFFF]%s[/COLOR]' % scraper_module.upper()
+				elif scrape_provider in ('comet', 'nyaa'):
+					indexer_label = 'NYAA (ANIME)' if scrape_provider == 'nyaa' else 'COMET'
+					scraper_module = scrape_provider
+					scraper_module_label = 'Indexer'
+					scraper_suffix = '     [COLOR %s][B]Indexer: [/B][/COLOR]%s' % (item_highlight, indexer_label)
+					scraper_suffix_tint = '     [COLOR FFA8A8A8][B]Indexer: [/B][/COLOR][COLOR FFFFFFFF]%s[/COLOR]' % indexer_label
 				elif scrape_provider == 'aiostreams':
 					scraper_module = get('aio_release_group') or ''
 					if scraper_module:
