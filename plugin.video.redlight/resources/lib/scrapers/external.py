@@ -22,7 +22,10 @@ _INTERNAL_PROGRESS_LABELS = {
 	'tb_cloud': 'TB Cloud',
 	'folders': 'Folders',
 	'comet': 'Comet',
+	'torrentio': 'Torrentio',
+	'torz': 'StremThru Torz',
 	'nyaa': 'Nyaa (Anime)',
+	'animetosho': 'AnimeTosho (Anime)',
 }
 
 class source:

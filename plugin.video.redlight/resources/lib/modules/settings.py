@@ -616,11 +616,26 @@ def nzb_scrape_active():
 def _any_debrid_account():
 	return any(enabled_debrids_check(i) for i in ('rd', 'pm', 'ad', 'oc', 'tb'))
 
+def internal_scrapers_enabled():
+	return get_setting('redlight.provider.internal', 'false') == 'true'
+
+def _native_torrent_scrape_active(scraper):
+	return internal_scrapers_enabled() and get_setting('redlight.provider.%s' % scraper, 'false') == 'true' and _any_debrid_account()
+
 def comet_scrape_active():
-	return get_setting('redlight.provider.comet', 'false') == 'true' and _any_debrid_account()
+	return _native_torrent_scrape_active('comet')
+
+def torrentio_scrape_active():
+	return _native_torrent_scrape_active('torrentio')
+
+def torz_scrape_active():
+	return _native_torrent_scrape_active('torz')
 
 def nyaa_scrape_active():
-	return get_setting('redlight.provider.nyaa', 'false') == 'true' and _any_debrid_account()
+	return _native_torrent_scrape_active('nyaa')
+
+def animetosho_scrape_active():
+	return _native_torrent_scrape_active('animetosho')
 
 def nzb_search_width():
 	return int(get_setting('redlight.nzb.search_width', '0'))
@@ -689,7 +704,9 @@ def tv_progress_location():
 
 def check_prescrape_sources(scraper, media_type):
 	"""Prescrape only when Check Before Full Search is enabled for that provider."""
-	if scraper in ('easynews', 'aiostreams', 'nzb', 'comet', 'nyaa', 'rd_cloud', 'pm_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud'):
+	if scraper in ('animetosho', 'nyaa', 'comet', 'torz', 'torrentio'):
+		return False
+	if scraper in ('easynews', 'aiostreams', 'nzb', 'rd_cloud', 'pm_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud'):
 		return get_setting('redlight.check.%s' % scraper) == 'true'
 	if scraper == 'folders':
 		return get_setting('redlight.check.folders') == 'true'
@@ -1016,8 +1033,11 @@ def active_internal_scrapers():
 	active = [i.split('.')[1] for i in settings if get_setting('redlight.%s' % i) == 'true']
 	if aiostreams_active(): active.append('aiostreams')
 	if nzb_scrape_active(): active.append('nzb')
-	if comet_scrape_active(): active.append('comet')
+	if animetosho_scrape_active(): active.append('animetosho')
 	if nyaa_scrape_active(): active.append('nyaa')
+	if comet_scrape_active(): active.append('comet')
+	if torz_scrape_active(): active.append('torz')
+	if torrentio_scrape_active(): active.append('torrentio')
 	return active
 
 def provider_sort_ranks():

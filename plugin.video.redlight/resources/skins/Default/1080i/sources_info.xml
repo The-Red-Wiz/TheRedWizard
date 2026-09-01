@@ -79,7 +79,7 @@
                     <textcolor>FFCCCCCC</textcolor>
                     <align>left</align>
                     <aligny>center</aligny>
-                    <label>[UPPERCASE][COLOR $INFO[Window.Property(highlight)]][B]Site: [/B][/COLOR]$INFO[Window.Property(source_site)][/UPPERCASE]</label>
+                    <label>[UPPERCASE][COLOR $INFO[Window.Property(highlight)]][B]$INFO[Window.Property(source_site_label)]: [/B][/COLOR]$INFO[Window.Property(source_site)][/UPPERCASE]</label>
                 </control>
                 <control type="label">
                     <visible>!String.IsEmpty(Window.Property(scraper_module))</visible>

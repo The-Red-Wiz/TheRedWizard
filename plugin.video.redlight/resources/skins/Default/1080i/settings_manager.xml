@@ -2425,88 +2425,70 @@
                           <property name="setting_description">Remove the scraper module from slot 3.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=external_scraper_clear_slot&amp;slot=3)</onclick>
                       </item>
-        <!-- Native Scrapers -->
+        <!-- Internal Scrapers -->
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <property name="setting_label">Native Scrapers</property>
+                          <property name="setting_label">Internal Scrapers</property>
                           <property name="setting_type">separator</property>
                           <onclick>noop</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <property name="setting_label">Comet</property>
+                          <property name="setting_label">Enable</property>
                           <property name="setting_type">boolean</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.comet)]</property>
-                          <property name="setting_description">Query Comet for torrent hashes, then check them on your debrid (same cache check as external scrapers). Matching uses Red Light filters, including SxxExx and absolute episode names. Requires an authorised debrid. Public Comet hosts can change or go down; no support is provided for those instances.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.comet)</onclick>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.internal)]</property>
+                          <property name="setting_description">Enable Red Light's internal torrent scrapers. Indexers (AnimeTosho, Nyaa) and Sites (Comet, StremThru Torz, Torrentio) stay off until you enable them below. Requires an authorised debrid. Does not require External Scrapers — they can run on their own or together with Magneto/Gears/etc.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.internal)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
-                          <property name="setting_label">    - Instance</property>
-                          <property name="setting_type">action</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.url_name)]</property>
-                          <property name="setting_description">Goldy (comet.feels.legal) is the default and usually returns the most streams. Other public hosts are fallbacks. Custom is a full Comet base URL with no trailing slash. Clear Internal Scrapers Cache after changing host.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=comet.url)</onclick>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">Indexers</property>
+                          <property name="setting_type">separator</property>
+                          <onclick>noop</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.comet.url),3)</visible>
-                          <property name="setting_label">    - Custom URL</property>
-                          <property name="setting_type">numeric</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.custom_url)]</property>
-                          <property name="setting_description">Comet base URL (no trailing slash), e.g. https://comet.example.com. Red Light appends /stream/movie/{imdb}.json or /stream/series/{imdb}:{season}:{episode}.json.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=comet.custom_url)</onclick>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">AnimeTosho (Anime)</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.animetosho)]</property>
+                          <property name="setting_description">Search AnimeTosho (anime indexer) for torrent magnets, then check them on your debrid. Complements Nyaa for anime-style names (Show - 100). Requires an authorised debrid. The public JSON feed can change; no support is provided for the site.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.animetosho)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.animetosho),true)</visible>
                           <property name="setting_label">    - Filter Results by Name</property>
                           <property name="setting_type">boolean</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.title_filter)]</property>
-                          <property name="setting_description">After Comet returns streams for this IMDb title, keep filenames that match the movie/episode (including aliases, SxxExx, absolute numbers, and season/show packs). Turn off to keep every Comet stream for that ID — more rows, more chance of a wrong file. Default is on.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=comet.title_filter)</onclick>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.animetosho.title_filter)]</property>
+                          <property name="setting_description">Keep AnimeTosho filenames that match the movie/episode (including aliases, SxxExx, and absolute numbers such as Show - 100). Turn off only if valid names are being dropped. Default is on.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=animetosho.title_filter)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.comet.title_filter),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.animetosho),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.animetosho.title_filter),true)</visible>
                           <property name="setting_label">    - Allow episode title without show name</property>
                           <property name="setting_type">boolean</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.title_filter_episode)]</property>
-                          <property name="setting_description">When Filter Results by Name is on, keep a TV file that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing. Generic names such as Pilot or Home are still skipped.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=comet.title_filter_episode)</onclick>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.animetosho.title_filter_episode)]</property>
+                          <property name="setting_description">When Filter Results by Name is on, keep a TV file that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=animetosho.title_filter_episode)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
-                          <property name="setting_label">    - Check Before Full Search</property>
-                          <property name="setting_type">boolean</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.check.comet)]</property>
-                          <property name="setting_description">Query Comet early in the source search, before external torrent scrapers. Does not replace other providers. Pair with Autoplay Result below when Check Before Full Search is enabled.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=check.comet)</onclick>
-                      </item>
-                      <item>
-                          <visible>Container(2000).HasFocus(61)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.check.comet),true)</visible>
-                          <property name="setting_label">    - Autoplay Result</property>
-                          <property name="setting_type">boolean</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.autoplay.comet)]</property>
-                          <property name="setting_description">When Check Before Full Search is enabled, autoplay the top cached Comet result found during prescrape. Requires Autoplay under Playback, and respects Limit Autoplay Quality.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=autoplay.comet)</onclick>
-                      </item>
-                      <item>
-                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <property name="setting_label">Nyaa (Anime)</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.nyaa)]</property>
-                          <property name="setting_description">Search Nyaa (anime tracker) for torrent magnets, then check them on your debrid. Aimed at anime-style names (Show - 100) that Magneto/Classy drop. Requires an authorised debrid. Nyaa RSS can change; no support is provided for the public site.</property>
+                          <property name="setting_description">Search Nyaa (anime indexer) for torrent magnets, then check them on your debrid. Aimed at anime-style names (Show - 100) that Magneto/Classy drop. Requires an authorised debrid. Nyaa RSS can change; no support is provided for the public site.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.nyaa)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
                           <property name="setting_label">    - Category</property>
                           <property name="setting_type">action</property>
@@ -2516,6 +2498,7 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
                           <property name="setting_label">    - Filter Results by Name</property>
                           <property name="setting_type">boolean</property>
@@ -2525,6 +2508,7 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.nyaa.title_filter),true)</visible>
                           <property name="setting_label">    - Allow episode title without show name</property>
@@ -2535,22 +2519,163 @@
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
-                          <property name="setting_label">    - Check Before Full Search</property>
-                          <property name="setting_type">boolean</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.check.nyaa)]</property>
-                          <property name="setting_description">Search Nyaa early in the source search, before external torrent scrapers. Does not replace other providers.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=check.nyaa)</onclick>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">Sites</property>
+                          <property name="setting_type">separator</property>
+                          <onclick>noop</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.nyaa),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.check.nyaa),true)</visible>
-                          <property name="setting_label">    - Autoplay Result</property>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">Comet</property>
                           <property name="setting_type">boolean</property>
-                          <property name="setting_value">$INFO[Window(10000).Property(redlight.autoplay.nyaa)]</property>
-                          <property name="setting_description">When Check Before Full Search is enabled, autoplay the top cached Nyaa result found during prescrape. Requires Autoplay under Playback.</property>
-                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=autoplay.nyaa)</onclick>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.comet)]</property>
+                          <property name="setting_description">Query Comet for torrent hashes, then check them on your debrid (Check Cached Status). Matching uses Red Light filters, including SxxExx and absolute episode names. Requires an authorised debrid. Public Comet hosts can change or go down; no support is provided for those instances.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.comet)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <property name="setting_label">    - Instance</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.url_name)]</property>
+                          <property name="setting_description">Goldy (comet.feels.legal) is the default and usually returns the most streams. Other public hosts are fallbacks. Custom is a full Comet base URL with no trailing slash. Clear Internal Scrapers Cache after changing host.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=comet.url)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.comet.url),3)</visible>
+                          <property name="setting_label">    - Custom URL</property>
+                          <property name="setting_type">numeric</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.custom_url)]</property>
+                          <property name="setting_description">Comet base URL (no trailing slash), e.g. https://comet.example.com. Red Light appends /stream/movie/{imdb}.json or /stream/series/{imdb}:{season}:{episode}.json.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=comet.custom_url)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <property name="setting_label">    - Filter Results by Name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.title_filter)]</property>
+                          <property name="setting_description">After Comet returns streams for this IMDb title, keep filenames that match the movie/episode (including aliases, SxxExx, absolute numbers, and season/show packs). Turn off to keep every Comet stream for that ID — more rows, more chance of a wrong file. Default is on.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=comet.title_filter)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.comet),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.comet.title_filter),true)</visible>
+                          <property name="setting_label">    - Allow episode title without show name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.comet.title_filter_episode)]</property>
+                          <property name="setting_description">When Filter Results by Name is on, keep a TV file that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing. Generic names such as Pilot or Home are still skipped.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=comet.title_filter_episode)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">StremThru Torz</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.torz)]</property>
+                          <property name="setting_description">Query StremThru Torz for torrent hashes, then check them on your debrid. Matching uses Red Light filters, including SxxExx and absolute episode names. Requires an authorised debrid. Public StremThru hosts can change or go down; no support is provided for those instances.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.torz)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.torz),true)</visible>
+                          <property name="setting_label">    - Instance</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.torz.url_name)]</property>
+                          <property name="setting_description">Kuu-lection (stremthru.stremio.ru) is the Magneto default. Munif and Midnight are fallbacks. Custom is a full StremThru base URL with no trailing slash. Clear Internal Scrapers Cache after changing host.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=torz.url)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.torz),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.torz.url),3)</visible>
+                          <property name="setting_label">    - Custom URL</property>
+                          <property name="setting_type">numeric</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.torz.custom_url)]</property>
+                          <property name="setting_description">StremThru base URL (no trailing slash), e.g. https://stremthru.example.com. Red Light appends /v0/torrents?sid={imdb} or /v0/torrents?sid={imdb}:{season}:{episode}.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=torz.custom_url)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.torz),true)</visible>
+                          <property name="setting_label">    - Filter Results by Name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.torz.title_filter)]</property>
+                          <property name="setting_description">After Torz returns torrents for this IMDb title, keep filenames that match the movie/episode (including aliases, SxxExx, absolute numbers, and season/show packs). Turn off to keep every Torz result for that ID — more rows, more chance of a wrong file. Default is on.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=torz.title_filter)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.torz),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.torz.title_filter),true)</visible>
+                          <property name="setting_label">    - Allow episode title without show name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.torz.title_filter_episode)]</property>
+                          <property name="setting_description">When Filter Results by Name is on, keep a TV file that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing. Generic names such as Pilot or Home are still skipped.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=torz.title_filter_episode)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">Torrentio</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.provider.torrentio)]</property>
+                          <property name="setting_description">Query Torrentio for torrent hashes (YTS, EZTV, RARBG, 1337x, TPB, NyaaSi, and others), then check them on your debrid. Matching uses Red Light filters, including SxxExx and absolute episode names. Requires an authorised debrid. torrentio.strem.fun can rate-limit or go down; no support is provided for the public instance.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=provider.torrentio)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.torrentio),true)</visible>
+                          <property name="setting_label">    - Instance</property>
+                          <property name="setting_type">action</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.torrentio.url_name)]</property>
+                          <property name="setting_description">torrentio.strem.fun is the public default. Custom is a full Torrentio base URL with no trailing slash (unconfigured addon that returns magnets). Clear Internal Scrapers Cache after changing host.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=torrentio.url)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.torrentio),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.torrentio.url),1)</visible>
+                          <property name="setting_label">    - Custom URL</property>
+                          <property name="setting_type">numeric</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.torrentio.custom_url)]</property>
+                          <property name="setting_description">Torrentio base URL (no trailing slash), e.g. https://torrentio.example.com. Red Light appends /stream/movie/{imdb}.json or /stream/series/{imdb}:{season}:{episode}.json.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_string&amp;setting_id=torrentio.custom_url)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.torrentio),true)</visible>
+                          <property name="setting_label">    - Filter Results by Name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.torrentio.title_filter)]</property>
+                          <property name="setting_description">After Torrentio returns streams for this IMDb title, keep filenames that match the movie/episode (including aliases, SxxExx, absolute numbers, and season/show packs). Turn off to keep every Torrentio stream for that ID — more rows, more chance of a wrong file. Default is on.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=torrentio.title_filter)</onclick>
+                      </item>
+                      <item>
+                          <visible>Container(2000).HasFocus(61)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.torrentio),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.torrentio.title_filter),true)</visible>
+                          <property name="setting_label">    - Allow episode title without show name</property>
+                          <property name="setting_type">boolean</property>
+                          <property name="setting_value">$INFO[Window(10000).Property(redlight.torrentio.title_filter_episode)]</property>
+                          <property name="setting_description">When Filter Results by Name is on, keep a TV file that has the right SxxExx or absolute number and a distinctive episode title even if the show name is missing. Generic names such as Pilot or Home are still skipped.</property>
+                          <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=torrentio.title_filter_episode)</onclick>
                       </item>
         <!-- AIOStreams (hidden while aiostreams_api.ENABLED is false) -->
                       <item>
@@ -2715,6 +2840,7 @@
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.ad.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.ad.enabled),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <property name="setting_label">Add Resolved Debrid Cache to Cloud</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.store_resolved_to_cloud.alldebrid_name)]</property>
@@ -3218,20 +3344,20 @@
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.oc.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.oc.enabled),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true)</visible>
-                          <property name="setting_label">Check Cached Status (External Scrapers)</property>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">Check Cached Status</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.oc.cache_check)]</property>
-                          <property name="setting_description">When enabled, Red Light checks whether external torrent results are cached on your Offcloud account before listing them. You may see fewer links, but those shown should be instant.</property>
+                          <property name="setting_description">When enabled, Red Light checks whether torrent results (Internal Scrapers and External Scrapers) are cached on your Offcloud account before listing them. You may see fewer links, but those shown should be instant.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=oc.cache_check)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.oc.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.oc.enabled),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.oc.cache_check),true)</visible>
-                          <property name="setting_label">Include Uncached Results (External Scrapers)</property>
+                          <property name="setting_label">Include Uncached Results</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.oc.include_uncached)]</property>
                           <property name="setting_description">When enabled, torrents not in Offcloud instant cache also appear in the main results list (subject to minimum seeders). Selecting an uncached row adds it to your Offcloud cloud.</property>
@@ -3241,6 +3367,7 @@
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.oc.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.oc.enabled),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <property name="setting_label">Add Resolved Debrid Cache to Cloud</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.store_resolved_to_cloud.offcloud_name)]</property>
@@ -3360,20 +3487,20 @@
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.pm.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.pm.enabled),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true)</visible>
-                          <property name="setting_label">Check Cached Status (External Scrapers)</property>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">Check Cached Status</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.pm.cache_check)]</property>
-                          <property name="setting_description">When enabled, Red Light checks whether external torrent results are cached on your Premiumize account before listing them. You may see fewer links, but those shown should be instant.</property>
+                          <property name="setting_description">When enabled, Red Light checks whether torrent results (Internal Scrapers and External Scrapers) are cached on your Premiumize account before listing them. You may see fewer links, but those shown should be instant.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=pm.cache_check)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.pm.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.pm.enabled),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.pm.cache_check),true)</visible>
-                          <property name="setting_label">Include Uncached Results (External Scrapers)</property>
+                          <property name="setting_label">Include Uncached Results</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.pm.include_uncached)]</property>
                           <property name="setting_description">When enabled, torrents not in Premiumize instant cache also appear in the main results list (subject to minimum seeders). Selecting an uncached row adds it to your Premiumize cloud.</property>
@@ -3383,6 +3510,7 @@
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.pm.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.pm.enabled),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <property name="setting_label">Add Resolved Debrid Cache to Cloud</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.store_resolved_to_cloud.premiumize.me_name)]</property>
@@ -3492,17 +3620,18 @@
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.rd.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.rd.enabled),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true)</visible>
-                          <property name="setting_label">Check Cached Status (External Scrapers)</property>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">Check Cached Status</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.rd.cache_check)]</property>
-                          <property name="setting_description">Real Debrid does not expose cached status for external scrapers. When enabled, Red Light filters external scraper torrents using third-party cache checks. The scrape may take longer and you will see fewer links.</property>
+                          <property name="setting_description">Real Debrid does not expose cached status for torrents. When enabled, Red Light filters Internal Scrapers and External Scrapers using third-party cache checks. The scrape may take longer and you will see fewer links.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=rd.cache_check)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.rd.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.rd.enabled),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <property name="setting_label">Add Resolved Debrid Cache to Cloud</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.store_resolved_to_cloud.real-debrid_name)]</property>
@@ -3632,20 +3761,20 @@
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.tb.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.tb.enabled),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true)</visible>
-                          <property name="setting_label">Check Cached Status (External Scrapers)</property>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
+                          <property name="setting_label">Check Cached Status</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.tb.cache_check)]</property>
-                          <property name="setting_description">When enabled, Red Light checks whether external torrent results are cached on your TorBox account before listing them. You may see fewer links, but those shown should be instant.</property>
+                          <property name="setting_description">When enabled, Red Light checks whether torrent results (Internal Scrapers and External Scrapers) are cached on your TorBox account before listing them. You may see fewer links, but those shown should be instant.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_boolean&amp;setting_id=tb.cache_check)</onclick>
                       </item>
                       <item>
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.tb.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.tb.enabled),true)</visible>
-                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.tb.cache_check),true)</visible>
-                          <property name="setting_label">Include Uncached Results (External Scrapers)</property>
+                          <property name="setting_label">Include Uncached Results</property>
                           <property name="setting_type">boolean</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.tb.include_uncached)]</property>
                           <property name="setting_description">When enabled, torrents not in TorBox shared cache also appear in the main results list (subject to minimum seeders). Selecting an uncached row adds it to your TorBox cloud.</property>
@@ -3655,10 +3784,11 @@
                           <visible>Container(2000).HasFocus(61)</visible>
                           <visible>!String.IsEqual(Window(10000).Property(redlight.tb.token),empty_setting)</visible>
                           <visible>String.IsEqual(Window(10000).Property(redlight.tb.enabled),true)</visible>
+                          <visible>String.IsEqual(Window(10000).Property(redlight.provider.external),true) | String.IsEqual(Window(10000).Property(redlight.provider.internal),true) | String.IsEqual(Window(10000).Property(redlight.provider.nzb),true)</visible>
                           <property name="setting_label">Add Resolved Debrid Cache to Cloud</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">$INFO[Window(10000).Property(redlight.store_resolved_to_cloud.torbox_name)]</property>
-                          <property name="setting_description">Choose which resolved media is automatically added to your TorBox Cloud. All media or only show packs.</property>
+                          <property name="setting_description">Choose which resolved media is automatically added to your TorBox Cloud. All media or only show packs. Applies to torrent resolve (Internal Scrapers and External Scrapers) and NZB playback.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=settings_manager.set_from_list&amp;setting_id=store_resolved_to_cloud.torbox)</onclick>
                       </item>
                       <item>
@@ -3860,7 +3990,7 @@
                           <property name="setting_label">Rescrape Actions</property>
                           <property name="setting_type">action</property>
                           <property name="setting_value">...</property>
-                          <property name="setting_description">Configure automatic retries when a source search returns no playable results. Each action can be Off, Auto, or Prompt, with order from Highest to Lowest. Rescrape With No Cache Check disables per-provider external cache checks (Real Debrid, All Debrid, TorBox, Premiumize, Offcloud). Rescrape With Disabled External Providers includes disabled external torrent providers (not internal scrapers such as EasyNews or debrid cloud). Offer Full Search After Early Results applies to the empty-search retry path only; Check Before Full Search and Run External Scraper Search during prescrape are separate.</property>
+                          <property name="setting_description">Configure automatic retries when a source search returns no playable results. Each action can be Off, Auto, or Prompt, with order from Highest to Lowest. Rescrape With No Cache Check disables per-provider torrent cache checks (Real Debrid, TorBox, Premiumize, Offcloud) for Internal Scrapers and External Scrapers. Rescrape With Disabled External Providers includes disabled external torrent providers (not internal scrapers such as EasyNews or debrid cloud). Offer Full Search After Early Results applies to the empty-search retry path only; Check Before Full Search and Run External Scraper Search during prescrape are separate.</property>
                           <onclick>RunPlugin(plugin://plugin.video.redlight/?mode=rescrape_actions_choice)</onclick>
                       </item>
         <!-- Sorting and Filtering -->

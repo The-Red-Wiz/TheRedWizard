@@ -14,6 +14,7 @@ from modules import debrid, kodi_utils, settings, metadata, watched_status
 from modules.player import RedLightPlayer
 from modules.source_utils import get_cache_expiry, make_alias_dict, include_exclude_filters, get_file_info, release_info_format, audio_lang_choices, matches_english_or_untagged
 from modules.release_groups import release_group_boost
+from modules.native_torrents import NATIVE_TORRENT_SCRAPERS
 from modules.utils import clean_file_name, string_to_float, safe_string, remove_accents, get_datetime, append_module_to_syspath, manual_function_import
 # logger = kodi_utils.logger
 
@@ -402,7 +403,7 @@ class Sources():
 		self.filter_keys = include_exclude_filters()
 		self.filter_keys.pop('hybrid')
 		self.default_internal_scrapers = ('easynews', 'aiostreams', 'nzb', 'rd_cloud', 'pm_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud', 'folders')
-		self.native_torrent_scrapers = ('comet', 'nyaa')
+		self.native_torrent_scrapers = NATIVE_TORRENT_SCRAPERS
 		self.debrids = {'Real-Debrid': ('apis.real_debrid_api', 'RealDebridAPI'), 'rd_cloud': ('apis.real_debrid_api', 'RealDebridAPI'),
 		'rd_browse': ('apis.real_debrid_api', 'RealDebridAPI'), 'Premiumize.me': ('apis.premiumize_api', 'PremiumizeAPI'), 'pm_cloud': ('apis.premiumize_api', 'PremiumizeAPI'),
 		'pm_browse': ('apis.premiumize_api', 'PremiumizeAPI'), 'AllDebrid': ('apis.alldebrid_api', 'AllDebridAPI'), 'ad_cloud': ('apis.alldebrid_api', 'AllDebridAPI'),
@@ -713,7 +714,7 @@ class Sources():
 			if not self.progress_dialog and not self.background: self._make_progress_dialog()
 			results = []
 			self.check_prescrape_ran = False
-			if self.prescrape and any(x in self.active_internal_scrapers for x in self.default_internal_scrapers + self.native_torrent_scrapers):
+			if self.prescrape and any(x in self.active_internal_scrapers for x in self.default_internal_scrapers):
 				if self.prepare_internal_scrapers():
 					results = self.collect_prescrape_results()
 					self.check_prescrape_ran = bool(self.prescrape_scrapers)
@@ -904,7 +905,7 @@ class Sources():
 	def _log_prescrape_settings(self):
 		try:
 			active = self.active_internal_scrapers or []
-			check_scrapers = ('easynews', 'aiostreams', 'nzb', 'comet', 'nyaa', 'rd_cloud', 'pm_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud', 'folders', 'external')
+			check_scrapers = ('easynews', 'aiostreams', 'nzb', 'rd_cloud', 'pm_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud', 'folders', 'external')
 			check = {s: settings.check_prescrape_sources(s, self.media_type) for s in active if s in check_scrapers}
 			label = '%s tmdb=%s' % (self.media_type, self.tmdb_id)
 			if self.media_type == 'episode':
@@ -1195,7 +1196,8 @@ class Sources():
 		self.active_external, self.external_providers = False, []
 
 	def internal_sources(self, prescrape=False, cloud_early=False):
-		active_sources = [i for i in self.active_internal_scrapers if i in ['easynews', 'aiostreams', 'nzb', 'comet', 'nyaa', 'rd_cloud', 'pm_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud'] and i not in self.remove_scrapers]
+		internal_ids = ('easynews', 'aiostreams', 'nzb') + NATIVE_TORRENT_SCRAPERS + ('rd_cloud', 'pm_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud')
+		active_sources = [i for i in self.active_internal_scrapers if i in internal_ids and i not in self.remove_scrapers]
 		if not prescrape:
 			prescrape_ran = getattr(self, 'prescrape_ran_scrapers', set()) or set()
 			if prescrape_ran:
@@ -1269,17 +1271,13 @@ class Sources():
 		return ('rd_cloud', 'pm_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud')
 
 	def _prescrape_autoplay_candidates(self, results):
-		autoplay_scrapers = self._cloud_scrapers() + ('easynews', 'aiostreams', 'nzb', 'folders', 'comet', 'nyaa')
+		autoplay_scrapers = self._cloud_scrapers() + ('easynews', 'aiostreams', 'nzb', 'folders')
 		candidates = [i for i in results if i.get('scrape_provider') in autoplay_scrapers and settings.autoplay_prescrape(i['scrape_provider'])]
 		playable = []
 		for item in candidates:
 			provider = item.get('scrape_provider')
 			if provider == 'nzb' and not item.get('nzb_cached'):
 				continue
-			if provider in self.native_torrent_scrapers:
-				cache_provider = str(item.get('cache_provider') or '')
-				if cache_provider.startswith('Uncached ') or cache_provider.startswith('Unchecked '):
-					continue
 			playable.append(item)
 		return playable
 
@@ -1287,7 +1285,7 @@ class Sources():
 		return item.get('scrape_provider') in self._cloud_scrapers()
 
 	def _external_autoplay_candidates(self, results):
-		"""Global Autoplay Movie/Episode — debrid torrents (external + native Comet/Nyaa), not cloud / AIO / EN / folders."""
+		"""Global Autoplay Movie/Episode — debrid torrents (external + internal torrent scrapers), not cloud / AIO / EN / folders."""
 		return [i for i in results if i.get('scrape_provider') in ('external',) + self.native_torrent_scrapers]
 
 	def _release_empty_prescrape_cloud_scrapers(self):

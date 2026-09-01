@@ -1,6 +1,8 @@
 
 External scrapers are optional torrent packs under Settings > Torrent Sources. Enable them there. Red Light does not provide support for third-party scraper modules.
 
+[B]Internal Scrapers[/B] on the same page (AnimeTosho, Nyaa, Comet, StremThru Torz, Torrentio) are Red Light's own. They are not slots, do not use Search Mode, and work with or without a pack. They use the same debrid [B]Check Cached Status[/B] setting as packs.
+
 You can assign up to three packs (slots). Each slot is independently enabled. Results from all enabled slots are merged and duplicates removed.
 
 [B]Choose Module[/B]
@@ -27,4 +29,4 @@ You can assign up to three packs (slots). Each slot is independently enabled. Re
 
 Leaving the default Series Fallback is recommended. The other modes can hit the same community indexers more than once.
 
-[B]Scraper Timeout[/B] (Settings > Results) is the time allowed for the scrape, including external slots. Debrid [B]Check Cached Status (External Scrapers)[/B] is per account and is separate from Search Mode.
+[B]Scraper Timeout[/B] (Settings > Results) is the time allowed for the scrape, including external slots. Debrid [B]Check Cached Status[/B] is per account and is separate from Search Mode.

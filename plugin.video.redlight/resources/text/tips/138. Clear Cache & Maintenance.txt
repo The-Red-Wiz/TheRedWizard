@@ -50,10 +50,10 @@ Tools > Maintenance lists database and cache tools in the order below. Most clea
   Clears EasyNews search history only (not the scrape results cache above).
 
 [B]Clear External Scrapers Cache[/B]
-  Clears external scraper package results and related debrid hash cache used with scrapers.
+  Clears external scraper package results and related debrid hash cache used with scrapers. Does not clear Internal Scrapers.
 
 [B]Clear Internal Scrapers Cache[/B]
-  Clears internal scraper-related caches (EasyNews media results plus folder/cloud scrape helpers used in that path).
+  Clears EasyNews media results, Internal Scrapers torrent searches (AnimeTosho, Nyaa, Comet, StremThru Torz, Torrentio), and folder/cloud scrape helpers used in that path. Does not clear External Scrapers.
 
 [B]Clear All Debrid / Offcloud / Premiumize / Real Debrid / TorBox Cache[/B]
   Clears that debrid's cloud/listing cache used by Red Light. Does not delete files from your debrid account. Available even when that service is not authorised.

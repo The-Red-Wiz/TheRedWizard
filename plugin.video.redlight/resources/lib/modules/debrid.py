@@ -6,6 +6,7 @@ from apis.premiumize_api import PremiumizeAPI
 from apis.alldebrid_api import AllDebridAPI
 from apis.torbox_api import TorBoxAPI
 from apis.offcloud_api import OffcloudAPI
+from modules.native_torrents import NATIVE_TORRENT_SCRAPERS
 from modules.source_utils import get_external_cache_status
 from modules.utils import chunks
 from modules.kodi_utils import show_busy_dialog, hide_busy_dialog, notification
@@ -405,7 +406,6 @@ def TB_check(hash_list, cached_hashes):
 	add_to_local_cache(process_list, 'tb', expires)
 	return cached_hashes
 
-NATIVE_TORRENT_SCRAPERS = ('comet', 'nyaa')
 _DEBRID_RUNNERS = {
 	'Real-Debrid': ('Real-Debrid', RD_check),
 	'Premiumize.me': ('Premiumize.me', PM_check),
@@ -416,7 +416,7 @@ _DEBRID_RUNNERS = {
 
 
 def stamp_torrent_cache(results, active_debrid, cache_check_override=None, data=None, background=True, progress_dialog=None):
-	'''Stamp comet/nyaa hash rows with per-debrid cache_provider. Other rows pass through.'''
+	'''Stamp internal torrent hash rows with per-debrid cache_provider. Other rows pass through.'''
 	from threading import Thread, Lock
 	from time import time as _time
 	from modules.settings import debrid_cache_check

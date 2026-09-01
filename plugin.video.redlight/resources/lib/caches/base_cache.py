@@ -244,8 +244,23 @@ def clear_cache(cache_type, silent=False):
 		except Exception:
 			results.append(False)
 		try:
+			from apis import torrentio_api
+			results.append(torrentio_api.clear_torrentio_cache())
+		except Exception:
+			results.append(False)
+		try:
+			from apis import torz_api
+			results.append(torz_api.clear_torz_cache())
+		except Exception:
+			results.append(False)
+		try:
 			from apis import nyaa_api
 			results.append(nyaa_api.clear_nyaa_cache())
+		except Exception:
+			results.append(False)
+		try:
+			from apis import animetosho_api
+			results.append(animetosho_api.clear_animetosho_cache())
 		except Exception:
 			results.append(False)
 		for item in ('pm_cloud', 'rd_cloud', 'ad_cloud', 'oc_cloud', 'tb_cloud', 'folders'): results.append(clear_cache(item, silent=True))

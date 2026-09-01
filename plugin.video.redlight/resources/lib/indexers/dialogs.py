@@ -1395,18 +1395,21 @@ def set_language_filter_choice(params):
 
 def enable_scrapers_choice(params={}):
 	icon = params.get('icon', None) or kodi_utils.get_icon('redlight')
-	scrapers = ['external', 'comet', 'nyaa', 'easynews', 'rd_cloud', 'pm_cloud', 'ad_cloud', 'tb_cloud', 'folders']
+	scrapers = ['external', 'animetosho', 'nyaa', 'comet', 'torz', 'torrentio', 'easynews', 'rd_cloud', 'pm_cloud', 'ad_cloud', 'tb_cloud', 'folders']
 	cloud_scrapers = {'rd_cloud': 'rd.enabled', 'pm_cloud': 'pm.enabled', 'ad_cloud': 'ad.enabled', 'tb_cloud': 'tb.enabled'}
-	scraper_names = ['EXTERNAL SCRAPERS', 'COMET', 'NYAA (ANIME)', 'EASYNEWS', 'RD CLOUD', 'PM CLOUD', 'AD CLOUD', 'TB CLOUD', 'FOLDERS 1-5']
+	scraper_names = ['EXTERNAL SCRAPERS', 'ANIMETOSHO (ANIME)', 'NYAA (ANIME)', 'COMET', 'STREMTHRU TORZ', 'TORRENTIO', 'EASYNEWS', 'RD CLOUD', 'PM CLOUD', 'AD CLOUD', 'TB CLOUD', 'FOLDERS 1-5']
 	set_scrapers = settings.active_internal_scrapers()
 	preselect = [scrapers.index(i) for i in set_scrapers]
 	list_items = [{'line1': item, 'icon': icon} for item in scraper_names]
 	kwargs = {'items': json.dumps(list_items), 'multi_choice': 'true', 'preselect': preselect}
 	choice = kodi_utils.select_dialog(scrapers, **kwargs)
 	if choice is None: return
+	native_scrapers = ('animetosho', 'nyaa', 'comet', 'torz', 'torrentio')
 	for i in scrapers:
 		set_setting('provider.%s' % i, ('true' if i in choice else 'false'))
 		if i in cloud_scrapers and i in choice: set_setting(cloud_scrapers[i], 'true')
+	if any(i in choice for i in native_scrapers):
+		set_setting('provider.internal', 'true')
 
 def sources_folders_choice(params):
 	from windows.base_window import open_window

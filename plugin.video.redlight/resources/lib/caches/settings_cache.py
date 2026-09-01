@@ -99,6 +99,10 @@ def _new_setting_value(setting_id, setting_default, currentsettings, had_existin
 		# purge then deletes the five legacy ids and with them the only copy of the user's orderings.
 		if setting_id == 'migration.unified_list_sort': return 'true' if fresh_install else setting_default
 		return setting_default
+	if setting_id == 'provider.internal':
+		if any(currentsettings.get('provider.%s' % scraper) == 'true' for scraper in ('comet', 'torrentio', 'torz', 'nyaa', 'animetosho')):
+			return 'true'
+		return setting_default
 	old_setting_id = _NEW_SETTING_VALUE_MIGRATIONS.get(setting_id)
 	if not old_setting_id:
 		return setting_default
@@ -1680,6 +1684,7 @@ def default_settings():
 {'setting_id': 'external_scraper.slot3.name', 'setting_type': 'string', 'setting_default': 'empty_setting'},
 {'setting_id': 'external_scraper.slot3.enabled', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'external_scraper.run_mode', 'setting_type': 'action', 'setting_default': '1', 'settings_options': {'1': 'Series (Fallback by Slot Order)', '2': 'Series (All Slots in Order)', '3': 'Primary Slot + Parallel Fallback', '0': 'Parallel (All Enabled Slots)'}},
+{'setting_id': 'provider.internal', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'provider.comet', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'comet.url', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {
 	'0': 'Goldy — https://comet.feels.legal',
@@ -1690,8 +1695,24 @@ def default_settings():
 {'setting_id': 'comet.custom_url', 'setting_type': 'string', 'setting_default': ''},
 {'setting_id': 'comet.title_filter', 'setting_type': 'boolean', 'setting_default': 'true'},
 {'setting_id': 'comet.title_filter_episode', 'setting_type': 'boolean', 'setting_default': 'true'},
-{'setting_id': 'check.comet', 'setting_type': 'boolean', 'setting_default': 'false'},
-{'setting_id': 'autoplay.comet', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'provider.torrentio', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'torrentio.url', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {
+	'0': 'https://torrentio.strem.fun',
+	'1': 'Custom — set URL below',
+}},
+{'setting_id': 'torrentio.custom_url', 'setting_type': 'string', 'setting_default': ''},
+{'setting_id': 'torrentio.title_filter', 'setting_type': 'boolean', 'setting_default': 'true'},
+{'setting_id': 'torrentio.title_filter_episode', 'setting_type': 'boolean', 'setting_default': 'true'},
+{'setting_id': 'provider.torz', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'torz.url', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {
+	'0': 'Kuu-lection — https://stremthru.stremio.ru',
+	'1': 'Munif — https://stremthru.13377001.xyz',
+	'2': 'Midnight — https://stremthrufortheweebs.midnightignite.me',
+	'3': 'Custom — set URL below',
+}},
+{'setting_id': 'torz.custom_url', 'setting_type': 'string', 'setting_default': ''},
+{'setting_id': 'torz.title_filter', 'setting_type': 'boolean', 'setting_default': 'true'},
+{'setting_id': 'torz.title_filter_episode', 'setting_type': 'boolean', 'setting_default': 'true'},
 {'setting_id': 'provider.nyaa', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'nyaa.category', 'setting_type': 'action', 'setting_default': '0', 'settings_options': {
 	'0': 'All categories',
@@ -1700,8 +1721,9 @@ def default_settings():
 }},
 {'setting_id': 'nyaa.title_filter', 'setting_type': 'boolean', 'setting_default': 'true'},
 {'setting_id': 'nyaa.title_filter_episode', 'setting_type': 'boolean', 'setting_default': 'true'},
-{'setting_id': 'check.nyaa', 'setting_type': 'boolean', 'setting_default': 'false'},
-{'setting_id': 'autoplay.nyaa', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'provider.animetosho', 'setting_type': 'boolean', 'setting_default': 'false'},
+{'setting_id': 'animetosho.title_filter', 'setting_type': 'boolean', 'setting_default': 'true'},
+{'setting_id': 'animetosho.title_filter_episode', 'setting_type': 'boolean', 'setting_default': 'true'},
 {'setting_id': 'migration.external_scraper_slots_v160', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'migration.cache_check_pm_oc_tb_v129e', 'setting_type': 'boolean', 'setting_default': 'false'},
 {'setting_id': 'migration.ad_cache_check_removed_v173', 'setting_type': 'boolean', 'setting_default': 'false'},
