@@ -1,6 +1,0 @@
-
-If you set 'Autoplay' in Settings > Playback > Playback, then you will see an 'Autoplay Next Episode' setting appear. Select that and Red Light will fetch results for the next episode of the TV Show you are watching, and begin playing it once the current episode has ended. This is a built-in feature of Red Light, so there is no need to install the UpNext add-on to begin your binge-watch session. Try it out to see...
-
-Under Playback > Episodes you can also set Check Still Watching After X (0 = Off, default 3). After that many episodes, Red Light asks if you are still watching. The same setting applies to Continual Random Play. For Continual Random, episodes with no scrape results are skipped and do not count toward that number.
-
-For a fixed short binge without leaving Autoplay Next on forever: open Playback Options on an episode and choose Play # Episodes, then type how many (e.g. 3). Red Light plays that many in a row and stops. Next Up and Still Watching are skipped for that run.

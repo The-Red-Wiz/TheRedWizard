@@ -1,8 +1,0 @@
-{
-    "name": "Red Light - Source Select",
-    "plugin": "plugin.video.redlight",
-    "priority": 500,     
-    "is_resolvable" : "true", 
-    "play_movie": "executebuiltin://RunPlugin(plugin://plugin.video.redlight/?mode=playback.media&media_type=movie&tmdb_id={tmdb}&autoplay=false)",
-    "play_episode": "executebuiltin://RunPlugin(plugin://plugin.video.redlight/?mode=playback.media&media_type=episode&tmdb_id={tmdb}&season={season}&episode={episode}&playcount=0&autoplay=false)"
-}

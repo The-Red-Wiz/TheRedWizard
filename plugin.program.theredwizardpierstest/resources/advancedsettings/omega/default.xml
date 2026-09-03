@@ -1,8 +1,0 @@
-<advancedsettings>
-  <filecache>
-    <buffermode>4</buffermode>
-    <memorysize>20</memorysize>
-    <readfactor>400</readfactor>
-    <chunksize>131072</chunksize>
-  </filecache>
-</advancedsettings>

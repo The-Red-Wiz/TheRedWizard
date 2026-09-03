@@ -1,8 +1,0 @@
-{
-  "name" : "Gratis Red", 
-  "plugin" : "plugin.video.gratisred",
-  "priority" : 500,
-  "is_resolvable" : "false",  
-  "play_movie" : "plugin://plugin.video.gratisred/?action=play&select=0&title={title_url}&year={year}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}",
-  "play_episode" : "plugin://plugin.video.gratisred/?action=play&select=0&tvshowtitle={showname_url}&season={season}&episode={episode}&year={showyear}&imdb={imdb}&tmdb={tmdb}&tvdb={tvdb}&premiered={premiered}"
-}

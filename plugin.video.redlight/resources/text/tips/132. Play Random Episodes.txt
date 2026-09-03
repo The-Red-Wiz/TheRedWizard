@@ -1,6 +1,0 @@
-
-Red Light allows you to either autoplay a single random episode from a TV Show, or autoplay continual random episdoes from a TV Show. To access this feature, bring up the context menu on a TV Show, and select "Options..."  >  "Play Random".
-
-You can then choose between "Single Random Play" or "Continual Random Play". Single Random Play will autoplay a single episode from the TV Show at random, while Continual Random Play will autoplay episodes continually until stopped.
-
-Continual Random Play uses Playback > Episodes > Check Still Watching After X (same setting as Autoplay Next Episode). When that many episodes have played, Red Light asks if you are still watching so a sleep binge can stop. Episodes with no scrape results are skipped and do not count. Set the setting to 0 to disable.

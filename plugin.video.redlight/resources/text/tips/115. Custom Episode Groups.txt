@@ -1,7 +1,0 @@
-Red Light allows you to assign a custom episode group to your TV Shows. These custom episode groups may relate to a different order of episodes (Aired vs DVD etc), a different order due to metadata site (TMDb vs TVDB etc), or may relate simply to the naming of released episode files (Anime is notorious for this).
-
-To assign a Custom Episode Group to a TV Show, simply invoke the Context Menu on the show, Select > Options > Assign an Episode Group to.. . Then, if available, choose an episode group from the choices shown.
-
-These Custom Episode Groups will not change how the episodes are arranged within Red Light, rather the information from them will be used when scraping for results for playback. This feature may be particularly useful when dealing with Anime content, but can be set for any TV Show.
-
-When Rescrape With Episode Group is set to Auto (or the optional Anime "Seasons" Episode Group Fallback is on and no group is assigned), Red Light prefers TMDb's Original Air Date group over Absolute or other types. Assign Episode Group and Rescrape Prompt still let you pick any group by hand.
